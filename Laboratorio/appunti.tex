@@ -26,10 +26,7 @@
 
 La seguente è una lista, non esaustiva, dei comandi visti a lezione per l'uso della shell Bash.
 
-\begin{itemize}
-
-\item Comandi:
-
+\subsection{Comandi}
 \begin{itemize}
 \item\verb|free| $\rightarrow$ memoria libera
 \item\verb|pwd| $\rightarrow$ cartella corrente
@@ -37,23 +34,23 @@ La seguente è una lista, non esaustiva, dei comandi visti a lezione per l'uso d
 \item\verb|dirname| $\rightarrow$ ottiene il nome della cartella di un dato file 
 \end{itemize}
 
-\item Piping:
+\subsection{Piping}
 \begin{itemize}
 \item\verb|;| $\rightarrow$ esecuzione in sequenza
-\item\verb|&&|, \verb| || | $\rightarrow$ esecuzione in sequenza con corto circuito 
+\item\verb=&& ||= $\rightarrow$ esecuzione in sequenza con corto circuito 
 \item\verb=|= $\rightarrow$ piping classico
-\item\verb| > | $\rightarrow$ redirect su file classico
+\item\verb|>| $\rightarrow$ redirect su file classico
 \item\verb|1>| $\rightarrow$ redirect di \verb|stdout|
 \item\verb|2>| $\rightarrow$ redirect di \verb|stderr|
 \end{itemize}
 
-\item Scripting (intestazione):
+\subsection{Intestazioni}
 \begin{itemize}
 \item\verb|#! /bin/bash| $\rightarrow$ intestazione
 \item\verb|#Script "Hello World"| $\rightarrow$ intestazione nominativa
 \end{itemize}
 
-\item Scripting:
+\subsection{Scripting}
 \begin{itemize}
 \item\verb|var=VALORE| $\rightarrow$ assegnazione (sono sempre stringhe)
 \item\verb|${var}| $\rightarrow$ stampa (con eventuale esecuzione)
@@ -68,7 +65,7 @@ La seguente è una lista, non esaustiva, dei comandi visti a lezione per l'uso d
 \item\verb|$?| $\rightarrow$ valore di ritorno globale, usato dagli script (tipo return 0 in C): ha significato booleano (**0** niente errori, arriva fino a **256**)
 \end{itemize}
 
-\item Booleani:
+\subsection{Booleani}
 \begin{itemize}
 \item\verb|test ...| $\rightarrow$ si aspetta un espressione booleana, e internamente modifica il registro booleano visto prima:
 \item\verb|-eq, -ne, -lt, -gt| $\rightarrow$ operandi booleani utilizzati
@@ -77,7 +74,7 @@ La seguente è una lista, non esaustiva, dei comandi visti a lezione per l'uso d
 \item\verb| -f (file) -d (directory)| $\rightarrow$ verificano l'esistenza di un dato file/cartella. 
 \end{itemize}
 
-\item Cicli:
+\subsection{Cicli}
 \begin{itemize}
 \item\verb|if [ ... ]; then ... ; else ...; fi| $\rightarrow$ costrutto if standard
 % Utilizzo = al posto di un pipe per evitare conflitti inutili
@@ -87,21 +84,22 @@ La seguente è una lista, non esaustiva, dei comandi visti a lezione per l'uso d
 \item\verb|while [[ ... ]] ; ...; done| $\rightarrow$ while standard
 \end{itemize}
 
-\item Funzioni:
+\subsection{Funzioni}
 \begin{itemize}
 \item\verb|func() { ... }| $\rightarrow$ accedibile come fossero degli script (\verb|func arg1 ... argn|)
 \end{itemize}
 
-\item Varie:
+\subsection{Varie}
 \begin{itemize}
 \item\verb|$( ... )| $\rightarrow$ sottoshell che esegue comandi in un processo separato
 \item\verb|BASH_SOURCE[0]| $\rightarrow$ contiene il nome dello script in esecuzione
 \item\verb|exit n| $\rightarrow$ uscita con codice d'errore
 \item\verb|1> 2> ... n>| $\rightarrow$ redirezionamento dei diversi canali sui file, come visto prima (1 = stdout, 2 = stderr); è possibile redirezionare stderr su stdout e viceversa tramite il comando \verb|2>&1|, oppure mettendo tutto su file: \verb|1>output 2>&1|. L'ordine in cui vengono interpretati i redirect sono da destra a sinistra.
 \end{itemize}
-\end{itemize}
 
 \section{Make}
+
+\subsection{Introduzione}
 
 Make è un tool utilizzato per automatizzare processi all'interno di sistemi Unix. Viene principalmente usato per automatizzare la compilazione dei file.
 
@@ -116,6 +114,43 @@ I file vengono poi eseguiti tramite il comando \verb|make -f nome_file.makefile|
 
 Il nome del file è opzionale e se non presente viene cercato all'interna della cartella corrente un nome corrispondente a \verb|Makefile|.
 
-In ogni ricetta, ogni riga è trattata singolarmente come un singolo processo. Bisogna quindi fare attenzione all'uso di \verb|cd|.
+In ogni ricetta, ogni riga è trattata singolarmente come un singolo processo, caricando la giusta cartella di lavoro di volta in volta. Bisogna quindi fare attenzione all'uso di \verb|cd|.
+
+All'inizio di ogni regola, si può inoltre specificare una o più \textit{dipendenze} che devono essere rispettate prima di avviare la regola corrispondente. A tal scopo si usa generalmente dare il nome del file che verrà generato alla regola stessa, se la regola ne genera qualcuno:
+
+\begin{verbatim}
+file.cc: dipendenza1 dipendenza2... 
+    comandi per generare file.cc...
+\end{verbatim}
+
+In tutti gli altri casi si parla di \textit{pseudo-regole} ed il nome può essere attribuito di fantasia.
+
+\subsection{Definizione di macro}
+
+All'interno dei makefile si possono definire delle macro, che possono essere utilizzate con una sintassi analoga a bash. Ciò risulta problematico in quanto \verb|$| è interpretato prima da Makefile e poi da Bash.
+
+\begin{verbatim}
+MACRO1=Pippo
+main:
+    @echo Hello $(MACRO1)
+\end{verbatim}
+
+Le macro possono inoltre essere sovrascritte al momento dell'avvio di \verb|MAKE| con la medesima sintassi (ma è necessario che la macro stessa sia definita all'interno del file). 
+
+Con la sintassi \verb|$(...)| è possibile accedere a una sotto-shell, analoga a quella di Bash, per eseguire comandi all'interno del Makefile stesso. In questo sotto-comando tutti gli \verb|\n| vengono tramutati in spazi.
+
+\section{gcc}
+
+\subsection{Introduzione}
+
+\verb|gcc| è un compilatore multi source/target per compilare i file sorgenti C. Viene utilizzato in combinazione con Make per compilare velocemente più sorgenti.
+
+\subsection{Flag}
+\begin{itemize}
+\item\verb|gcc main.c -S| $\rightarrow$ compila in codice Assembly
+\item\verb|gcc main.c -E| $\rightarrow$ esegue solo il preprocessore
+\item\verb|gcc main.c -c| $\rightarrow$ compila senza linkare
+\item\verb|gcc main.c -o| $\rightarrow$ genera i file oggetto binari
+\end{itemize}
 
 \end{document}
