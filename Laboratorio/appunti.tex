@@ -1,0 +1,121 @@
+\documentclass[a4paper]{article}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage[italian]{babel}
+\usepackage{booktabs}
+\usepackage{caption}
+\usepackage[table,xcdraw]{xcolor}
+\usepackage{wrapfig}
+\usepackage{graphicx}
+\usepackage[margin=1in]{geometry} 
+\usepackage{fancyvrb}
+
+\title{%
+  Sistemi Operativi \\
+  \large Riassunto delle lezioni di Laboratorio A.A. 2018/2019}
+
+\author{Matteo Franzil}
+
+\begin{document}
+
+\maketitle
+
+\tableofcontents
+
+\section{Comandi Bash}
+
+La seguente è una lista, non esaustiva, dei comandi visti a lezione per l'uso della shell Bash.
+
+\begin{itemize}
+
+\item Comandi:
+
+\begin{itemize}
+\item\verb|free| $\rightarrow$ memoria libera
+\item\verb|pwd| $\rightarrow$ cartella corrente
+\item\verb|df| $\rightarrow$ partizioni
+\item\verb|dirname| $\rightarrow$ ottiene il nome della cartella di un dato file 
+\end{itemize}
+
+\item Piping:
+\begin{itemize}
+\item\verb|;| $\rightarrow$ esecuzione in sequenza
+\item\verb|&&|, \verb| || | $\rightarrow$ esecuzione in sequenza con corto circuito 
+\item\verb=|= $\rightarrow$ piping classico
+\item\verb| > | $\rightarrow$ redirect su file classico
+\item\verb|1>| $\rightarrow$ redirect di \verb|stdout|
+\item\verb|2>| $\rightarrow$ redirect di \verb|stderr|
+\end{itemize}
+
+\item Scripting (intestazione):
+\begin{itemize}
+\item\verb|#! /bin/bash| $\rightarrow$ intestazione
+\item\verb|#Script "Hello World"| $\rightarrow$ intestazione nominativa
+\end{itemize}
+
+\item Scripting:
+\begin{itemize}
+\item\verb|var=VALORE| $\rightarrow$ assegnazione (sono sempre stringhe)
+\item\verb|${var}| $\rightarrow$ stampa (con eventuale esecuzione)
+\item\verb|$@| $\rightarrow$ equivalente ad \verb|argv|
+\item\verb|$#| $\rightarrow$ equivalente ad \verb|argc|
+\item\verb|$1|, \verb|$2|, \verb|$3|, \verb|$n| $\rightarrow$ i primi 9 parametri passati
+\item\verb|shift| $\rightarrow$ cestina il primo argomento nella lista
+\item\verb|" ... "| $\rightarrow$ crea un comando / stringa interpolando variabili
+\item\verb|$(( ... ))| $\rightarrow$ contengono espressioni aritmetiche: se all'interno uso una \verb|$var|, viene sostituita come fosse una macro, se uso il singolo contenuto di \verb|var| allora viene inserito il valore come avesse le parentesi.
+\item\verb|bc| $\rightarrow$ comando che supporta il piping in entrata, per eseguire operazioni in float
+\item\verb|# Commenti| $\rightarrow$ commento classico di singola riga
+\item\verb|$?| $\rightarrow$ valore di ritorno globale, usato dagli script (tipo return 0 in C): ha significato booleano (**0** niente errori, arriva fino a **256**)
+\end{itemize}
+
+\item Booleani:
+\begin{itemize}
+\item\verb|test ...| $\rightarrow$ si aspetta un espressione booleana, e internamente modifica il registro booleano visto prima:
+\item\verb|-eq, -ne, -lt, -gt| $\rightarrow$ operandi booleani utilizzati
+\item\verb|[ ... ]| $\rightarrow$ sintassi di testing alternativa (gli spazi sono importanti!); attenzione che le parentesi quadrate sono considerate come ultimo comando eseguito
+\item\verb|[[ ... ]]| $\rightarrow$ raggruppamento di espressioni booleani per utilizzare operatori comuni (>, < ...)- 
+\item\verb| -f (file) -d (directory)| $\rightarrow$ verificano l'esistenza di un dato file/cartella. 
+\end{itemize}
+
+\item Cicli:
+\begin{itemize}
+\item\verb|if [ ... ]; then ... ; else ...; fi| $\rightarrow$ costrutto if standard
+% Utilizzo = al posto di un pipe per evitare conflitti inutili
+\item\verb=case $var in; a|b) ... ;; c) ... ;; esac= $\rightarrow$ costrutto switch standard
+\item\verb|for (( init ; case; step )); do; ...; done| $\rightarrow$ costrutto for standard
+\item\verb|until [[ ... ]] ; ...; done| $\rightarrow$ while negato
+\item\verb|while [[ ... ]] ; ...; done| $\rightarrow$ while standard
+\end{itemize}
+
+\item Funzioni:
+\begin{itemize}
+\item\verb|func() { ... }| $\rightarrow$ accedibile come fossero degli script (\verb|func arg1 ... argn|)
+\end{itemize}
+
+\item Varie:
+\begin{itemize}
+\item\verb|$( ... )| $\rightarrow$ sottoshell che esegue comandi in un processo separato
+\item\verb|BASH_SOURCE[0]| $\rightarrow$ contiene il nome dello script in esecuzione
+\item\verb|exit n| $\rightarrow$ uscita con codice d'errore
+\item\verb|1> 2> ... n>| $\rightarrow$ redirezionamento dei diversi canali sui file, come visto prima (1 = stdout, 2 = stderr); è possibile redirezionare stderr su stdout e viceversa tramite il comando \verb|2>&1|, oppure mettendo tutto su file: \verb|1>output 2>&1|. L'ordine in cui vengono interpretati i redirect sono da destra a sinistra.
+\end{itemize}
+\end{itemize}
+
+\section{Make}
+
+Make è un tool utilizzato per automatizzare processi all'interno di sistemi Unix. Viene principalmente usato per automatizzare la compilazione dei file.
+
+I Makefile sono composti da regole, composte da un \textbf{identificativo} (o nome) e da una \textbf{ricetta} (una serie di comandi indentati con una tabulazione \verb|\t| rispetto al nome della ricetta):
+
+\begin{verbatim}
+regola:
+    echo "Ciao"
+\end{verbatim}
+
+I file vengono poi eseguiti tramite il comando \verb|make -f nome_file.makefile|. Notare come i comandi vengono anche stampati su \verb|stdout| oltre a essere eseguiti. Questa funzionalità può essere sfruttata per stampare a video anche i procedimenti che vengono eseguiti dal file, ma può risultare fastidioso: si può quindi inserire una chiocciola \verb|@| che impedisce la stampa del comando.
+
+Il nome del file è opzionale e se non presente viene cercato all'interna della cartella corrente un nome corrispondente a \verb|Makefile|.
+
+In ogni ricetta, ogni riga è trattata singolarmente come un singolo processo. Bisogna quindi fare attenzione all'uso di \verb|cd|.
+
+\end{document}

@@ -1,4 +1,9 @@
 #!/bin/bash
+
+# Comandi utili: ls, free, ll
+# Piping: standard |, output >, stdout 1>, stderr 2>
+
+
 x=2+3
 echo "x=$x"
 z1=$(( x*2 ))
@@ -34,7 +39,6 @@ for (( i = 1 , j = 1 ; i <= 10 ; i += 1, j *= 2 )); do
 	echo "i=$i, j=$j"
 done
 
-#!/bin/bash
 echo "Crea un file 'semaforo.txt'..."
 # attende che un file sia creato
 until [[ -e "semaforo.txt" ]] ; do sleep 3; done
@@ -42,3 +46,6 @@ echo "File creato, ora eliminalo..."
 # attende che un file sia eliminato
 while [[ -e "semaforo.txt" ]] ; do sleep 3; done
 echo "File eliminato!"
+
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+echo "DIR = ${DIR}"
