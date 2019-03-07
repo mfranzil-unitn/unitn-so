@@ -20,7 +20,9 @@ This repo contains material about the following course:
 
 You can find the following material in the repo:
 
-* Laboratorio/ - Code made during labs, including notes.
+* Laboratorio/ - Code made during labs, including notes written in LaTeX.
+
+Additional content (mainly lecture notes written in LaTeX) can be found in the following repo: [unitn-sistemi-operativi](https://github.com/laurascotch/unitn-sistemi-operativi).
 
 ## Authors
 
