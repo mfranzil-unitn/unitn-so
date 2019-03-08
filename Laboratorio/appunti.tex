@@ -62,7 +62,7 @@ La seguente è una lista, non esaustiva, dei comandi visti a lezione per l'uso d
 \item\verb|$(( ... ))| $\rightarrow$ contengono espressioni aritmetiche: se all'interno uso una \verb|$var|, viene sostituita come fosse una macro, se uso il singolo contenuto di \verb|var| allora viene inserito il valore come avesse le parentesi.
 \item\verb|bc| $\rightarrow$ comando che supporta il piping in entrata, per eseguire operazioni in float
 \item\verb|# Commenti| $\rightarrow$ commento classico di singola riga
-\item\verb|$?| $\rightarrow$ valore di ritorno globale, usato dagli script (tipo return 0 in C): ha significato booleano (**0** niente errori, arriva fino a **256**)
+\item\verb|$?| $\rightarrow$ valore di ritorno globale, usato dagli script (tipo return 0 in C): ha significato booleano (\textbf{0} niente errori, arriva fino a \textbf{256})
 \end{itemize}
 
 \subsection{Booleani}
@@ -83,7 +83,7 @@ La seguente è una lista, non esaustiva, dei comandi visti a lezione per l'uso d
 \item\verb|until [[ ... ]] ; ...; done| $\rightarrow$ while negato
 \item\verb|while [[ ... ]] ; ...; done| $\rightarrow$ while standard
 \end{itemize}
-
+ 
 \subsection{Funzioni}
 \begin{itemize}
 \item\verb|func() { ... }| $\rightarrow$ accedibile come fossero degli script (\verb|func arg1 ... argn|)
