@@ -20,10 +20,14 @@ This repo contains material about the following course:
 
 You can find the following material in the repo:
 
-* Laboratorio/ - Code made during labs, including notes written in LaTeX.
+* Codici/ - Sample code given during theory lectures.
+* Laboratorio/ - Laboratory lecture notes written in LaTeX, with sample code.
 
-Additional content (mainly lecture notes written in LaTeX) can be found in the following repo: [unitn-sistemi-operativi](https://github.com/laurascotch/unitn-sistemi-operativi).
+Additional content outside of this repo:
+
+* [unitn-sistemi-operativi](https://github.com/laurascotch/unitn-sistemi-operativi) - Theory lecture notes.
 
 ## Authors
 
 * **Matteo Franzil** - *Initial work* - [mfranzil](https://github.com/mfranzil)
+* **Laura Scoccianti** - *Theory lecture notes* - [laurascotch](https://github.com/laurascotch/)

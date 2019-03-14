@@ -149,6 +149,82 @@ Con la sintassi \verb|$(...)| è possibile accedere a una sotto-shell, analoga a
     \item\verb|gcc main.c -E| $\rightarrow$ esegue solo il preprocessore
     \item\verb|gcc main.c -c| $\rightarrow$ compila senza linkare
     \item\verb|gcc main.c -o| $\rightarrow$ genera i file oggetto binari
+    \item\verb|gcc main.c -g| $\rightarrow$ compilazione con mapping per \verb|gdb|
+    \item\verb|gcc main.c -DNOME=VAL| $\rightarrow$ compilazione con definizione di macro NOME=VAL
 \end{itemize}
 
+\subsection{gdb}
+
+\verb|gdb| è un debugger usato in combinazione con \verb|gcc|. In questo ambiente controllato, possiamo tenere traccia dello stato dell'esecuzione del programma mappando opportunamente le variabili (in quanto i nomi vengono persi durante la compilazione).
+
+Per iniziare, si usa il comando \verb|run| nella shell interattiva che viene presentata da \verb|gdb|.
+
+Punto centrale del debugging è il \textbf{breakpoint}; si tratta di un punto, indicato manualmente con \verb|break *|, che causerà l'interruzione dell'esecuzione del programma una volta raggiunto. A questo punto è possibile o usare \verb|step <count>| e \verb|next <count>| per fare uno o più step generici o principali, oppure interferire volontariamente in maniera più o meno pesante, ad esempio usando \verb|print| per ottenere i valori delle variabili oppure \verb|set variable vname=value| per modificare il valore. Si può infine continuare l'esecuzione con \verb|continue|.
+
+\section{C}
+
+\subsection{Introduzione}
+
+Il lingaggio C è un linguaggio di "basso livello", alla base dei sistemi Unix e dotato di una struttura minimale e ben definita, che velocizza le prestazioni omettendo funzioni di alto livello presenti invece in altri linguaggi.
+
+Prima della compilazione vi è un \textit{pre-processore} il cui compito è interpretare le direttive e gli alias definiti all'inizio del file (tramite l'apposito carattere \verb|#|), generando il cosiddetto file "sorgente direttivo". Le direttive sono varie, seguono le principali:
+
+\begin{itemize}
+    \item\verb|#include <lib>| $\rightarrow$ inclusione di codici libreria
+    \item\verb|#include "file"| $\rightarrow$ inclusione di file \verb|.h| esterni
+    \item\verb|#define NOME TESTO| $\rightarrow$ macro
+    \item\verb|#define FUNC(X,Y) (X) (Y)| $\rightarrow$ macro con funzioni
+    \item\verb|#if|, \verb|#ifdef NOME|, \verb|#ifndef NOME|, \verb|#else|, \verb|endif| $\rightarrow$ controlli
+\end{itemize}
+
+Il linguaggio viene quindi compilato e analizzato una sola volta: prima viene trasformato in codice intermedio (Assembly), poi in file oggetto \verb|.o| e infine linkato ai file libreria e trasformato in linguaggio macchina \verb|.out|.
+
+\subsection{Sintassi}
+\begin{itemize}
+    \item\verb|int printf(const char *format, …)| $\rightarrow$ stampa con formattazione:\\ \verb|%[flags][width][.precision][length]specifier|; alcuni specifier sono \verb|%c|, \verb|%i/%d|, \verb|%li|, \verb|%s|, rispettivamente \verb|char|, \verb|int|, \verb|long|, \verb|char*|
+    \item Si può ovviare alla mancanza dei booleani tramite un apposita macro: \verb|#define BOOL char;| \verb|#define FALSE 0;| \verb|#define TRUE 1|
+\end{itemize}
+
+\subsection{Organizzazione della memoria}
+
+Data l'immagine del processo in memoria, partendo dall'indirizzo più basso, troviamo:
+\begin{itemize}
+    \item OS Kernel
+    \item Text segment: istruzioni della CPU
+    \item Data segment: variabili globali
+    \item BSS: variabili non inizializzate
+    \item Heap e stack: allocazione dinamica automatica e personalizzata
+\end{itemize}
+
+In C, non c'è garbage collection e la memoria allocata dinamicamente va esplicitamente deallocata per evitare fastidiosi memory leak. AL momento dell'allocazione in memoria, distinguiamo tra \textbf{variabili statiche}, corrispondenti alle variabili globali dichiarate all'inizio, \textbf{variabili dinamiche}, ovvero le variabili dichiarate con \verb|new| e con puntatori e che devono essere esplicitamente deallocate, e \textbf{variabili auomatiche}, locali a una funzione.
+
+\subsection{Stringhe, puntatori, tipi}
+
+In C, una \textbf{stringa} è un vettore di caratteri che termina con uno \verb|\0|.
+
+Un \textbf{puntatore} è una variabile che punta a una certa casella di memoria. \verb|int* a| rappresenta un puntatore (non inizializzato) a una variabile di tipo \verb|int|. L'asterisco viene inoltre utilizzato per accedere alla locazione \verb|*a|; \verb|&a| rappresenta invece la locazione di memoria puntata in esadecimale.
+
+In C è inoltre possibile costruire tipi di dati derivati e rinominarne altri con i costrutti \verb|struct| e \verb|typedef|.
+
+\section{Processi}
+
+Per la teoria riguardante i processi, consultare gli appunti di teoria del corso.
+
+La seguente è una lista, non esaustiva, di comandi utili alla gestione dei processi di sistema Unix tramite Bash.
+
+\begin{itemize}
+    \item \verb|command&| $\rightarrow$ lancia un processo in background, restituendo il suo PID
+    \item \verb|ps| $\rightarrow$ elenca i processi attivi su sistema
+    \item \verb|ps -o pid,ppid,pgid,sid,uid,euid| $\rightarrow$ elenca i processi attivi con informazioni extra
+\end{itemize}
+
+La seguente è una lista degli identificatori di processo:
+
+\begin{itemize}
+    \item \verb|PID| $\rightarrow$ attributo di identificazione univoco per istante temporale
+    \item \verb|PPID| $\rightarrow$ id del processo genitore
+    \item \verb|PGID| $\rightarrow$ id di un gruppo di processi, che possono collaborare in maniera stretta tra loro; al momento della creazione i figli entrano nel gruppo di un genitore
+    \item \verb|SID| $\rightarrow$ insieme di gruppi di processi; alla creazione un processo è associato alla sessione del padre
+    \item \verb|RUID, EUID| $\rightarrow$ rispettivamente l'id utente del creatore ed esecutore del processo
+\end{itemize}
 \end{document}
