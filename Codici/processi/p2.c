@@ -5,9 +5,7 @@
 #include <sys/shm.h>
 #include <sys/stat.h>
 
-int main()
-
-{
+int main() {
     key_t key;
     int i, a;
     int shm;

@@ -4,9 +4,7 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 
-int main()
-
-{
+int main() {
     key_t key;
     int i, a;
     int shm, shm1;

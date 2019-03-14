@@ -180,9 +180,10 @@ Prima della compilazione vi è un \textit{pre-processore} il cui compito è inte
 Il linguaggio viene quindi compilato e analizzato una sola volta: prima viene trasformato in codice intermedio (Assembly), poi in file oggetto \verb|.o| e infine linkato ai file libreria e trasformato in linguaggio macchina \verb|.out|.
 
 \subsection{Sintassi}
+
 \begin{itemize}
-    \item\verb|int printf(const char *format, …)| $\rightarrow$ stampa con formattazione:\\ \verb|%[flags][width][.precision][length]specifier|; alcuni specifier sono \verb|%c|, \verb|%i/%d|, \verb|%li|, \verb|%s|, rispettivamente \verb|char|, \verb|int|, \verb|long|, \verb|char*|
-    \item Si può ovviare alla mancanza dei booleani tramite un apposita macro: \verb|#define BOOL char;| \verb|#define FALSE 0;| \verb|#define TRUE 1|
+    \item\verb|int printf(const char *format, …)| $\rightarrow$ stampa con formattazione:\\ \verb|%[flags][width][.precision][length]specifier|; alcuni specifier sono \verb|%c|, \verb|%d|, \verb|%li|, \verb|%s|, rispettivamente \verb|char|, \verb|int|, \verb|long|, \verb|char*|
+    \item Si può ovviare alla mancanza dei booleani tramite un apposita macro: \verb|#define BOOL char;| \verb|#define FALSE 0;| \verb|#define TRUE 1;|. Si noti che questa variabile può comunque, analogamente a un char, contenere valori fino a 255; è quindi cura del programmatore utilizzarla in maniera corretta e non confusionaria.
 \end{itemize}
 
 \subsection{Organizzazione della memoria}
@@ -204,7 +205,9 @@ In C, una \textbf{stringa} è un vettore di caratteri che termina con uno \verb|
 
 Un \textbf{puntatore} è una variabile che punta a una certa casella di memoria. \verb|int* a| rappresenta un puntatore (non inizializzato) a una variabile di tipo \verb|int|. L'asterisco viene inoltre utilizzato per accedere alla locazione \verb|*a|; \verb|&a| rappresenta invece la locazione di memoria puntata in esadecimale.
 
-In C è inoltre possibile costruire tipi di dati derivati e rinominarne altri con i costrutti \verb|struct| e \verb|typedef|.
+Importante è la notazione: infatti il simbolo \verb|*| si lega al nome della variabile e non al tipo, per cui scrivere \verb|int* a, b| definirà una variabile \verb|a| di tipo puntatore a int e \verb|b| di tipo int, e non due puntatori come si potrebbe pensare.
+
+In C è inoltre possibile costruire tipi di dati derivati e rinominarne altri con i costrutti \verb|struct| e \verb|typedef|. La prima permette di creare "tipi aggregati", in maniera analoga a una classe in un linguaggio Object-Oriented; la seconda permette di ridefinire, in maniera analoga a una macro, un certo tipo di dato oppure una struct con un nuovo nome.
 
 \section{Processi}
 
