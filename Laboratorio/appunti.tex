@@ -182,7 +182,12 @@ Il linguaggio viene quindi compilato e analizzato una sola volta: prima viene tr
 \subsection{Sintassi}
 
 \begin{itemize}
-    \item\verb|int printf(const char *format, …)| $\rightarrow$ stampa con formattazione:\\ \verb|%[flags][width][.precision][length]specifier|; alcuni specifier sono \verb|%c|, \verb|%d|, \verb|%li|, \verb|%s|, rispettivamente \verb|char|, \verb|int|, \verb|long|, \verb|char*|
+    \item\verb|int printf(const char *format, …)| $\rightarrow$ stampa con formattazione:\\ \verb|%[flags][width][.precision][length]specifier|; alcuni specifier sono:
+        \subitem\verb|%c| $\rightarrow$ \verb|char|
+        \subitem\verb|%d| $\rightarrow$ \verb|int|
+        \subitem\verb|%li| $\rightarrow$ \verb|long|
+        \subitem\verb|%s| $\rightarrow$ \verb|char*| (ovvero una stringa)
+        \subitem\verb|%p| $\rightarrow$ locazione di memoria
     \item Si può ovviare alla mancanza dei booleani tramite un apposita macro: \verb|#define BOOL char;| \verb|#define FALSE 0;| \verb|#define TRUE 1;|. Si noti che questa variabile può comunque, analogamente a un char, contenere valori fino a 255; è quindi cura del programmatore utilizzarla in maniera corretta e non confusionaria.
 \end{itemize}
 
@@ -201,13 +206,33 @@ In C, non c'è garbage collection e la memoria allocata dinamicamente va esplici
 
 \subsection{Stringhe, puntatori, tipi}
 
-In C, una \textbf{stringa} è un vettore di caratteri che termina con uno \verb|\0|.
+In C, una \textbf{stringa} è un array di \verb|char| che termina con uno \verb|\0|, detto \textit{terminatore di sequenza}. Per poter lavorare con le stringhe è necessario utilizzare delle opportune funzioni che le trattano come array.
 
 Un \textbf{puntatore} è una variabile che punta a una certa casella di memoria. \verb|int* a| rappresenta un puntatore (non inizializzato) a una variabile di tipo \verb|int|. L'asterisco viene inoltre utilizzato per accedere alla locazione \verb|*a|; \verb|&a| rappresenta invece la locazione di memoria puntata in esadecimale.
 
 Importante è la notazione: infatti il simbolo \verb|*| si lega al nome della variabile e non al tipo, per cui scrivere \verb|int* a, b| definirà una variabile \verb|a| di tipo puntatore a int e \verb|b| di tipo int, e non due puntatori come si potrebbe pensare.
 
 In C è inoltre possibile costruire tipi di dati derivati e rinominarne altri con i costrutti \verb|struct| e \verb|typedef|. La prima permette di creare "tipi aggregati", in maniera analoga a una classe in un linguaggio Object-Oriented; la seconda permette di ridefinire, in maniera analoga a una macro, un certo tipo di dato oppure una struct con un nuovo nome.
+
+Esiste infine \verb|union| che funziona in maniera simile, ma i campi sono mutualmente esclusivi e condividono lo spazio d'indirizzamento: assegnare uno causa la sovrascrittura degli altri campi.
+
+\subsection{Allocazione}
+
+All'interno della libreria \verb|stdlib.h| abbiamo svariate primite per l'allocazione e deallocazione di memoria, tra cui:
+
+\begin{itemize}
+    \item\verb|sizeof(item)| che restiuisce la quantità di memoria occupata da \verb|item|
+    \item\verb|malloc(size)| che alloca \verb|size| quantità di memoria
+    \item\verb|calloc(num, size)| che alloca spazio per \verb|num| oggetti di dimensione \verb|size|
+    \item\verb|realloc(ptr, newsize)| che rialloca la memoria puntata da \verb|ptr| con la nuova dimensione \verb|newsize|
+    \item \verb|free(ptr)| che libera la memoria occupata da \verb|ptr|
+\end{itemize}
+
+Un esempio di utilizzo:
+\begin{verbatim}
+    int* a;
+    a = (int*) malloc(sizeof(int) * 100);
+\end{verbatim}
 
 \section{Processi}
 
@@ -230,4 +255,33 @@ La seguente è una lista degli identificatori di processo:
     \item \verb|SID| $\rightarrow$ insieme di gruppi di processi; alla creazione un processo è associato alla sessione del padre
     \item \verb|RUID, EUID| $\rightarrow$ rispettivamente l'id utente del creatore ed esecutore del processo
 \end{itemize}
+
+\section{Architettura}
+
+\subsection{Introduzione}
+
+L'architettura di sistema Unix ha come elemento centrale il kernel, che si occupa della gestione delle risorse (ulteriori informazioni nella parte di teoria del corso). Al momento dell'avvio, il kernel verifica lo stato dell'hardware, monta la partizione di sistema in modalità di sola lettura e lancia \textit{init}, ovvero il primissimo processo (\verb|/sbin/init|). A partire da \textit{init} vengono fatti partire tutti i processi che si occupano dell'avvio del sistema, sia in maniera diretta con \verb|fork| sia indiretta con \verb|exec|.
+
+I programmi utente, per accedere all'hardware, devono per forza passare per il kernel (vedi parte del \textit{context switch} nella parte di teoria). Il kernel rimane l'unica risorsa di sistema ad avere accesso privilegiato a tutte le componenti dell'hardware.
+
+Ogni programma è all'oscuro delle astrazioni fornite dal sistema operativo e crede di avere la CPU tutta per sè, e non gli viene permesso di disturbare le azioni degli altri processi. Grazie a ciò i processi Unix sono considerati particolarmente stabili.
+
+\subsection{File system}
+
+Il sistema Unix fornisce due interfacce per l'accesso ai file da parte dei processi: gli \textit{stream} e i \textit{file descriptor}. 
+
+\subsubsection{Stream}
+
+Negli \textit{stream}, un file è descritto come puntatore a un tipo file (\verb|File*|): una volta creato un oggetto di questo tipo possiamo usare strumenti per la lettura, la scrittura, con relativa formattazione e buffering, che forniscono un livello di astrazione in più rispetto a quanto fornito dal kernel.
+
+\subsubsection{File descriptor}
+
+Nei \textit{file descriptor}, ogni file è associato a un intero (\verb|int|) che punta alla rispettiva locazione della tabella di file. In questo caso vi è un buffer specifico per la lettura e la scrittura, di dimensione arbitraria ma fissata. Per accedere al buffer si fa uso di apposite system call, ovvero \verb|open, read, write, lseek, close|. Queste permettono un controllo maggiore sul file ma complicano la scrittura di codice. 
+
+Da notare come ogni processo Unix possiede, alla nascita, tre file descriptor \verb|0, 1, 2| che corrispondono a \verb|stdin|, \verb|stdout| e \verb|stderr|. Tutti i file che vengono apertitramite file descriptor useranno interi successivi a questi (con un limite di circa 100). 
+
+Al momento dell'apertura di un file con \verb|open|, la system call localizza l'i-node del file (ovvero la struttura dati appartenente al file system che contiene informazioni sul file come dimensioni, permessi, etc...) e ne inserisce un puntatore nella \textit{tabella dei file aperti dal processo} assegnandogli un intero, in modo da potervi rapidamente accedere.
+
+A livello kernel, inoltre, vi sono inoltre due tabelle globali. Una è la \textit{tabella dei file attivi} che contiene una copia dell'i-node di tutti i file che sono stati aperti da tutti i processi, l'altra è la \textit{tabella dei file aperti del sistema} che invece contiene riferimenti a tutti i file che non hanno ancora terminato operazioni di lettura o scrittura. Ogni entry contiene il puntatore I/O della posizione e un puntatore all'i-node della tabella dei file attivi. Se un file viene aperto da pià processi, avrà elementi distinti in questa tabella.
+
 \end{document}
