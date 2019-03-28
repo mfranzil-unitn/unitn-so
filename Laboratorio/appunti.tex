@@ -183,11 +183,11 @@ Il linguaggio viene quindi compilato e analizzato una sola volta: prima viene tr
 
 \begin{itemize}
     \item\verb|int printf(const char *format, …)| $\rightarrow$ stampa con formattazione:\\ \verb|%[flags][width][.precision][length]specifier|; alcuni specifier sono:
-        \subitem\verb|%c| $\rightarrow$ \verb|char|
-        \subitem\verb|%d| $\rightarrow$ \verb|int|
-        \subitem\verb|%li| $\rightarrow$ \verb|long|
-        \subitem\verb|%s| $\rightarrow$ \verb|char*| (ovvero una stringa)
-        \subitem\verb|%p| $\rightarrow$ locazione di memoria
+          \subitem\verb|%c| $\rightarrow$ \verb|char|
+          \subitem\verb|%d| $\rightarrow$ \verb|int|
+          \subitem\verb|%li| $\rightarrow$ \verb|long|
+          \subitem\verb|%s| $\rightarrow$ \verb|char*| (ovvero una stringa)
+          \subitem\verb|%p| $\rightarrow$ locazione di memoria
     \item Si può ovviare alla mancanza dei booleani tramite un apposita macro: \verb|#define BOOL char;| \verb|#define FALSE 0;| \verb|#define TRUE 1;|. Si noti che questa variabile può comunque, analogamente a un char, contenere valori fino a 255; è quindi cura del programmatore utilizzarla in maniera corretta e non confusionaria.
 \end{itemize}
 
@@ -268,7 +268,7 @@ Ogni programma è all'oscuro delle astrazioni fornite dal sistema operativo e cr
 
 \subsection{File system}
 
-Il sistema Unix fornisce due interfacce per l'accesso ai file da parte dei processi: gli \textit{stream} e i \textit{file descriptor}. 
+Il sistema Unix fornisce due interfacce per l'accesso ai file da parte dei processi: gli \textit{stream} e i \textit{file descriptor}.
 
 \subsubsection{Stream}
 
@@ -276,12 +276,99 @@ Negli \textit{stream}, un file è descritto come puntatore a un tipo file (\verb
 
 \subsubsection{File descriptor}
 
-Nei \textit{file descriptor}, ogni file è associato a un intero (\verb|int|) che punta alla rispettiva locazione della tabella di file. In questo caso vi è un buffer specifico per la lettura e la scrittura, di dimensione arbitraria ma fissata. Per accedere al buffer si fa uso di apposite system call, ovvero \verb|open, read, write, lseek, close|. Queste permettono un controllo maggiore sul file ma complicano la scrittura di codice. 
+Nei \textit{file descriptor}, ogni file è associato a un intero (\verb|int|) che punta alla rispettiva locazione della tabella di file. In questo caso vi è un buffer specifico per la lettura e la scrittura, di dimensione arbitraria ma fissata. Per accedere al buffer si fa uso di apposite system call, ovvero \verb|open, read, write, lseek, close|. Queste permettono un controllo maggiore sul file ma complicano la scrittura di codice.
 
-Da notare come ogni processo Unix possiede, alla nascita, tre file descriptor \verb|0, 1, 2| che corrispondono a \verb|stdin|, \verb|stdout| e \verb|stderr|. Tutti i file che vengono apertitramite file descriptor useranno interi successivi a questi (con un limite di circa 100). 
+Da notare come ogni processo Unix possiede, alla nascita, tre file descriptor \verb|0, 1, 2| che corrispondono a \verb|stdin|, \verb|stdout| e \verb|stderr|. Tutti i file che vengono apertitramite file descriptor useranno interi successivi a questi (con un limite di circa 100).
 
 Al momento dell'apertura di un file con \verb|open|, la system call localizza l'i-node del file (ovvero la struttura dati appartenente al file system che contiene informazioni sul file come dimensioni, permessi, etc...) e ne inserisce un puntatore nella \textit{tabella dei file aperti dal processo} assegnandogli un intero, in modo da potervi rapidamente accedere.
 
 A livello kernel, inoltre, vi sono inoltre due tabelle globali. Una è la \textit{tabella dei file attivi} che contiene una copia dell'i-node di tutti i file che sono stati aperti da tutti i processi, l'altra è la \textit{tabella dei file aperti del sistema} che invece contiene riferimenti a tutti i file che non hanno ancora terminato operazioni di lettura o scrittura. Ogni entry contiene il puntatore I/O della posizione e un puntatore all'i-node della tabella dei file attivi. Se un file viene aperto da pià processi, avrà elementi distinti in questa tabella.
 
+\section{System Call}
+
+Come visto, i programmi fanno uso di system call per accedere all'hardware. Queste system call sono disponibili sulle librerie condivise (visualizzabili con \verb|ldd|) che vengono automaticamente caricate in compilazione e al momento di caricamento. Due di queste librerie sono \verb|ld-linux.so|, che carica eventuali librerie mancati per conto del sistema operativo, e \verb|libc.so|, che contiene le principali funzioni GNU.
+
+\subsection{Varie}
+
+Alcune di queste system call sono \verb|time()|, \verb|ctime()|, \verb|exit()| che rispettivamente
+\begin{itemize}
+    \item \verb|time()| fornisce il tempo in secondi dal sistema (misurato a partire dall'epoca Unix)
+    \item \verb|ctime()| rende un tempo \verb|time_t|, passato come puntatore, leggibile (la cosìddetta human-readable form)
+    \item \verb|exit(int status)| chiude il processo e tutti i file descriptor associati ad esso. La procedura di exit passa al processo padre l'intero utilizzato come parametro, che fornisce indicazioni sul fallimento o sul successo del programma.
+\end{itemize}
+
+\subsection{File}
+
+\subsubsection{File descriptor}
+
+Per quanto riguarda l'accesso ai file, utilizziamo le seguenti system call in modalità file descriptor:
+
+\begin{verbatim}
+#include <fcntl.h>
+
+int open (char *filename, int access, int permission);
+int read (int handle, void *buffer, int nbyte);
+int write(int handle, void *buffer, int nbyte);
+int close(int handle);
+\end{verbatim}
+
+\verb|access| e \verb|permission| sono degli \textit{enum} che possono assumere i seguenti valori, a seconda dei permessi che si desidera assegnare:
+
+\begin{verbatim}
+Access:     O_RDONLY O_APPEND O_WRONLY O_RDWR O_BINARY O_TEXT
+Permission: S_IWRITE S_IREADS_IWRITE | S_IREAD
+\end{verbatim}
+
+\verb|open| restituisce un handle, generalmente $> 2$, che rappresenta l'intero descrittore del file che andrà usato in seguito.
+
+\subsubsection{Stream}
+
+Per accedere ai file in modalità stream, invece:
+
+\begin{verbatim}
+#include <stdio.h>
+
+FILE *fopen(const char *filename, const char *mode)
+int fclose(FILE *stream)
+int fgetc(FILE *stream)
+int feof(FILE *stream)
+\end{verbatim}
+
+\subsection{Permessi}
+Le seguenti system call sono analoghe al sistema di gestione permessi per Unix. \verb|uid_t, gid_t, mode_t| sono interi che rappresentano le modalità, l'utente e il gruppo che si desidera assegnare.
+
+\begin{verbatim}
+#include <sys/stat.h>
+
+int chmod(const char *pathname, mode_t mode);
+int chown(const char *pathname, uid_t owner, gid_t group);
+\end{verbatim}
+
+\subsection{Processi}
+Come visto in precedenza, ogni processo ha un unico process ID. Viene usato \verb|pid_t| che è un intero.
+
+\begin{verbatim}
+#include <stdlib.h>
+
+int getpid();
+int getppid();
+int getuid();
+\end{verbatim}
+
+Tramite \verb|int system(char* cmd)| infine, il processo corrente crea un processo figlio che esegue la shell di sistema /bin/sh e il comando impartito. Una volta terminato il processo padre continua da dove aveva interrotto.
+
+\section{Inter-Process Communication}
+
+\subsection{Forking e segnali}
+
+Affinché un processo in esecuzione, dotato di un immagine in memoria, possa generare un nuovo processo figlio, deve fare uso della system call \verb|fork| per crearne uno. Tramite questa, il processo corrente viene clonato, duplicando Program Counter, registri e variabili. A questo punto i due processi coesistono con PID diversi, e vanno competere tra loro per il tempo CPU: verranno trattati infatti allo stesso modo dallo scheduler. La funzione infine restituisce un intero, che sarà \verb|0| per il codice eseguito nel processo figlio e il PID del figlio al codice eseguito nel padre.
+
+Segue una lista di system call utilizzabili nell'ambito del forking.
+\begin{itemize}
+\item \verb|pid_t fork()| $\rightarrow$ genera un nuovo processo
+\item \verb|pid_t getpid()| $\rightarrow$ restituisce il “pid” del processo
+\item \verb|pid_t getppid()| $\rightarrow$ restituisce il “pid” del padre
+\item \verb|pid_t wait(int *status)| $\rightarrow$ attende la conclusione dei figli, è possibile avere informazioni sullo stato d’uscita passando una variabile, altrimenti si può usare NULL
+\item \verb|pid_t waitpid(pid_t pid, int *status, int options)| $\rightarrow$ attende la conclusione di un figlio specifico (pid>0), di tutti (pid=-1) o di quelli appartenenti a un certo gruppo (pid<-1: appartenenti al gruppo il cui valore assoluto è pid, pid=0: appartenti allo stesso gruppo del chiamante). Options specifica se attendere in casi particolari. wait(NULL) è equivalente a waitpid(-1, NULL, 0);
+\end{itemize}
 \end{document}
