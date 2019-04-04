@@ -2,7 +2,7 @@ Libri/
 Materiale/
 Esami/
 Slide/
-
+.vscode/
 # Prerequisites
 *.d
 
