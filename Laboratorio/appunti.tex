@@ -359,7 +359,7 @@ Tramite \verb|int system(char* cmd)| infine, il processo corrente crea un proces
 
 \section{Inter-Process Communication}
 
-\subsection{Forking e segnali}
+\subsection{Fork}
 
 Affinché un processo in esecuzione, dotato di un immagine in memoria, possa generare un nuovo processo figlio, deve fare uso della system call \verb|fork| per crearne uno. Tramite questa, il processo corrente viene clonato, duplicando Program Counter, registri e variabili. A questo punto i due processi coesistono con PID diversi, e vanno competere tra loro per il tempo CPU: verranno trattati infatti allo stesso modo dallo scheduler. La funzione infine restituisce un intero, che sarà \verb|0| per il codice eseguito nel processo figlio e il PID del figlio al codice eseguito nel padre.
 
@@ -371,4 +371,122 @@ Segue una lista di system call utilizzabili nell'ambito del forking.
 \item \verb|pid_t wait(int *status)| $\rightarrow$ attende la conclusione dei figli, è possibile avere informazioni sullo stato d’uscita passando una variabile, altrimenti si può usare NULL
 \item \verb|pid_t waitpid(pid_t pid, int *status, int options)| $\rightarrow$ attende la conclusione di un figlio specifico (pid>0), di tutti (pid=-1) o di quelli appartenenti a un certo gruppo (pid<-1: appartenenti al gruppo il cui valore assoluto è pid, pid=0: appartenti allo stesso gruppo del chiamante). Options specifica se attendere in casi particolari. wait(NULL) è equivalente a waitpid(-1, NULL, 0);
 \end{itemize}
+
+\subsection{Exec}
+
+A differenza di \verb|fork|, \verb|exec| sostituisce l'immagine del processo corrente con un'altro. Il comando utilizzato per fare ciò è il seguente, dove \verb|file| è il processo da caricare.
+
+\verb|int execvp (const char* file, char* const argv[])|
+
+Esistono comunque diverse famiglie di comandi exec che variano a seconda dei parametri passati: dato \verb|exec|, è possibile avere:
+
+\begin{itemize}
+\item Una \verb|l| finale significa che gli argomenti vengono presi in numero variabile. 
+\item Una \verb|v| finale significa che viene preso come parametro un vettore di stringhe
+\item Una \verb|e| finale permette di passare un ulteriore vettore di stringhe del tipo chiave-valore passate come ambiente
+\item Una \verb|p| finale prende un nome del file da cercare del path di sistema per l'immagine.
+\end{itemize}
+
+\subsection{Segnali}
+
+I segnali sono interruzioni a livello software, identificate con un intero, alla quale viene associato un valore enum mnemonico che ne descrive brevemente il funzionamento.
+
+Esempi di segnali sono \verb|SIGALRM| (usato come sveglia), \verb|SIGCHLD| (figlio ucciso), \verb|SIGCONT| (continua, se bloccato precedentemente), \verb|SIGINT| (interrupt utente, tipo CTRL+C), \verb|SIGKILL| e \verb|SIGSTOP| (interrupt forzato di sistema), \verb|SIGQUIT| (uscita dal terminale), \verb|SIGTERM| (terminazione del processo).
+
+Per ogni processo è tenuta una lista dei segnali da catturare e di quelli bloccati. Ogni volta che il processo viene schedulato, se la lista dei segnali da catturare non è vuota viene gestita a seconda dei segnali presenti.
+
+Ogni segnale ha un suo handler, che ha il compito di continuare l'esecuzione, terminare o stoppare il processo, oppure ignorarlo. Ogni processo è libero di sostituire l'handler con una funzione a suo piacere, a parte per \verb|SIGKILL| e \verb|SIGSTOP| che non possono essere bloccati.
+
+Un handler è una funzione che restituisce \verb|void| e accetta un intero come argomento, corrispondente al segnale da gestire. All'interno della funzione è necessario utilizzare uno \verb|switch| per discriminare il segnale corretto e gestirlo a modo. Per binare la funzione appena scritta al rispettivo segnale, bisogna usare la funzione \verb|signal| che prende in ingresso il codice e la funzione (passata come puntatore).
+
+Per mandare un segnale è necessario usare la funzione \verb|kill| che prende come parametri il pid del processo e il codice del segnale da inviare.
+
+\section{Errori}
+
+Per gestire gli errori usiamo:
+
+\begin{itemize}
+    \item \verb|errno|, una variabile globale che contiene il codice dell'ultimo errore di sistema
+    \item \verb|strerror|, una funzione che restituisce il messaggio d'errore di cui sopra
+    \item \verb|perror|, una funzione che stampa una stringa passata come parametro e ne accoda il messaggio d'errore di cui sopra
+\end{itemize}
+
+\section{File descriptor}
+
+Utilizziamo le seguenti funzioni per gestire i file tramite file descriptor:
+
+\begin{itemize}
+\item \verb|open|: apre un file, prendendo come parametri un riferimento al file, una o più flag che specificano la modalità d'apertura e una o più flag che specificano i permessi. Le flag possono essere combinate tra loro tramite "or" bitwise.
+
+Le flag utilizzabili sono \verb|O_RDONLY|, \verb|O_WRONLY|, \verb|O_RDWR|, \verb|O_CREAT| e \verb|O_EXCL|. Le ultime due rispettivamente creano se non esiste il file ed evita di sovrascrivere se esiste.
+
+Per i permessi, è possibile utilizzare le flag apposite oppure utilizzare la sintassi Unix classica.
+
+\begin{verbatim}
+#include <fcntl.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+
+int open (const char* Path, int flags, int mode);
+\end{verbatim}
+
+\item \verb|close|: chiude un file descriptor già aperto.
+\item \verb|read|: legge al file puntato da un file descriptor mettendo \verb|cnt| byte in \verb|buf| e restituisce il numero di byte effettivamente letti, 0 se ha finito oppure -1.
+
+\begin{verbatim}
+#include <fcntl.h>
+size_t read (int fd, void* buf, size_t cnt);
+\end{verbatim}
+
+\item \verb|write|: scrive su unfile puntato da un file descriptor mettendo \verb|cnt| byte presenti in \verb|buf| e restituisce il numero di byte effettivamente scritti, 0 se ha finito oppure -1.
+
+\begin{verbatim}
+#include <fcntl.h>
+size_t write (int fd, void* buf, size_t cnt);
+\end{verbatim}
+
+\item \verb|lseek|: sposta il cursore alla posizione \verb|offset|contata da \verb|whence|. Quest'ultimo parametro può assumere i valori \verb|SEEK_SET| (conta dall'inizio), \verb|SEEK_CUR| (conta dalla posizione corrente), \verb|SEEK_END| (conta dalla fine).
+
+In ogni caso restituisce la posizione del cursore.
+
+\begin{verbatim}
+#include <sys/types.h>
+#include <unistd.h>
+off_t lseek(int fd, off_t offset, int whence);
+\end{verbatim}
+
+\item \verb|dup/dup2|: creano una copia del file descriptor con indice più piccolo possibile (\verb|dup|) o indice dato (\verb|dup2|).
+
+\begin{verbatim}
+#include <unistd.h>
+int dup(int oldfd);
+int dup2(int oldfd, int newfd);
+\end{verbatim}    
+\end{itemize}
+
+\section{Pipe}
+
+Il piping connette l'output di un comando all'input di un altro. I due processi vengono eseguiti in maniera concorrente e fanno uso di un buffer comune.
+
+Esistono due tipi di pipe: quelle anonime (usate dalla shell) e quelle nominative (usate su file).
+
+\subsection{Pipe anonime}
+
+Le pipe anonime uniscono due processi con antenato comune in maniera unidirezionale. Viene usato un buffer comune con due lati d'accesso, uno in sola scrittura e uno in sola scrittura.
+
+La syscall è \verb|int pipe (int fd[2])| che imposta due file descriptor, \verb|fd[0]| per il lato di lettura e \verb|fd[1]| per il lato di scrittura. A questo punto è possibile utilizzare le syscall per i file descriptor viste in precedenza. Importante notare come il buffer, avendo capacità limitata, si limiterà a restituire tutti i dati disponibili in lettura anche se ne vengono richiesti di più. Inoltre, se è vuoto il processo si sospende fino all'arrivo di nuovi dati o alla chiusura.
+
+Il lato di scrittura, invece, invia un \verb|SIGPIPE| al processo se il lato di lettura è stato chiuso; generalmente, prova ad effettuare scritture atomiche se e solo se il numero di byte scritti è minore dello spazio disponibile.
+
+Generalmente, una volta aperta una pipe, viene eseguito un fork e i due processi $P_1, P_2$ chiudono il lato che a loro non interessa.
+
+\subsection{Pipe con nome}
+
+Le pipe con nome vengono gestiti con file speciale, non hanno vincoli di gerarchia e sono persistenti. In ogni caso sono trattati come file dal sistema e le syscall viste in precedenza sono perfettamente funzionanti.
+
+\begin{verbatim}
+#include <sys/types.h>
+#include <sys/stat.h>
+int mkfifo(const char *pathname, mode_t mode);
+\end{verbatim}
 \end{document}
