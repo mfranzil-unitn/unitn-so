@@ -10,6 +10,9 @@
 #include <sys/types.h>
 #include <unistd.h>
 
+// CENTRALINA = 0
+// BULB = 1
+
 char *getUserName() {
     int uid = geteuid();
     struct passwd *pw = getpwuid(uid);
@@ -20,6 +23,19 @@ char *getUserName() {
         return strncat(strncat(pw->pw_name, "@", 1023), hostname, 1023);
     }
     return "host";
+}
+
+char** split(char* tmp, int count) {
+    char* tokenizer = strtok (tmp,"|");
+    char** vars = malloc(count * sizeof(char*));
+    int j = 0;
+
+    while (tokenizer != NULL) {
+       vars[j++] = tokenizer;
+       tokenizer = strtok(NULL, "|");
+    }
+
+    return vars;
 }
 
 int main(int argc, char *argv[]) {
@@ -70,17 +86,78 @@ int main(int argc, char *argv[]) {
                 char *pipe_str = malloc(4 * sizeof(char));
                 sprintf(pipe_str, "/tmp/%i", atoi(buf[1]));
 
-                char tmp[128];  // dove ci piazzo l'output della pipe
+                char tmp[1024];  // dove ci piazzo l'output della pipe
 
-                if (kill(children[atoi(buf[1])], SIGUSR1) != 0) {
+                int pid = children[atoi(buf[1])];
+
+                // apertura della pipe fallita
+                if (kill(pid, SIGUSR1) != 0) {
                     printf("Errore! Sistema: codice errore %i\n", errno);
                     continue;
                 }
 
                 int fd = open(pipe_str, O_RDONLY);
-                read(fd, tmp, 128);
-                printf("Il PID della risorsa richiesta è %s\n", tmp);
+                read(fd, tmp, 1024);
+
+              //  printf(tmp);
+
+                if (strncmp(tmp, "1", 1) == 0) { // Lampadina
+                    char** vars = split(tmp, 5); // parametri: stato, tempo di accensione, pid, indice
+                    printf("Oggetto: Lampadina\nStato: %s\nTempo di accensione: %s\nPID: %s\nIndice: %s\n",
+                        vars[1], vars[2], vars[3], vars[4]);
+                } else {
+                    printf("Da implementare");
+                }
+
+                free(pipe_str);
                 close(fd);
+            }
+        } else if (strcmp(buf[0], "switch") == 0) {
+            if (cur_cm != 3) {
+                printf("Sintassi: switch <id> <label> <pos>\nInterruttori disponibili:\n    bulb: accensione\n");
+            } else {
+                // INIZIO CODICE DUPLICATO
+
+                char *pipe_str = malloc(4 * sizeof(char));
+                sprintf(pipe_str, "/tmp/%i", atoi(buf[1]));
+
+                char tmp[1024];  // dove ci piazzo l'output della pipe
+
+                int pid = children[atoi(buf[1])];
+
+                // apertura della pipe fallita
+                if (kill(pid, SIGUSR1) != 0) {
+                    printf("Errore! Sistema: codice errore %i\n", errno);
+                    continue;
+                }
+
+                int fd = open(pipe_str, O_RDONLY);
+                read(fd, tmp, 1024);
+
+                if (strncmp(tmp, "1", 1) == 0) { // Lampadina
+                    if (strcmp(buf[2], "accensione") != 0) {
+                        printf("Operazione non permessa su una lampadina!");
+                        continue;
+                    }
+
+                    char** vars = split(tmp, 5); // parametri: tipo, stato, tempo di accensione, pid, indice
+                    int status = atoi(vars[1]);
+                    if (strcmp(buf[3], "on") == 0 && status == 0) {
+                        kill(pid, SIGUSR2);
+                        printf("Lampadina accesa.\n");
+                    } else if (strcmp(buf[3], "off") == 0 && status == 1) {
+                        kill(pid, SIGUSR2);
+                        printf("Lampadina spenta.\n");
+                    } else if (strcmp(buf[3], "off") == 0 && status == 0) { // Spengo una lampadina spenta
+                        printf("Stai provando a spegnere una lampadina spenta\n");
+                    } else if (strcmp(buf[3], "on") == 0 && status == 1) { // Spengo una lampadina accesa
+                        printf("Stai provando a accendere una lampadina accesa\n");
+                    } else {
+                        printf("Operazione non permessa.\n");
+                    }
+                } else {
+                    printf("Da implementare");
+                }
             }
         } else if (strcmp(buf[0], "add") == 0) {
             if (cur_cm != 1) {
