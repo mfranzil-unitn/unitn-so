@@ -26,11 +26,11 @@ int main(int argc, char *argv[]) {
     system("clear");
     char *name = getUserName();
 
-.    //PID del launcher.
-    int ppid = atoi(argv[1]);
+    /*//PID del launcher
+    int ppid = atoi(argv[1]);*/
 
     //Creo FIFO da shell a launcher.
-    char *shpm = "/tmp/myshpm";
+   /* char *shpm = "/tmp/myshpm";
     mkfifo(shpm, 0666);
     int fd = open(shpm, O_WRONLY);
 
@@ -38,7 +38,7 @@ int main(int argc, char *argv[]) {
     char str[16];
     sprintf(str, "%d", (int)getpid());
     write(fd, str, 16);
-    close(fd);
+    close(fd);*/
     ////FINE MODIFICAAAAAAAAAAAAAAAAAAAAAAA
 
     while (1) {
@@ -63,12 +63,9 @@ int main(int argc, char *argv[]) {
         //       printf(buf[k]);
         //   }
 
-        ////MODIFICATO SI ESCE SOLO TRAMITE LAUNCHER.
-        /*if (strcmp(buf[0], "exit") == 0) {  // supponiamo che l'utente scriva solo "exit" per uscire
+        if (strcmp(buf[0], "exit") == 0) {  // supponiamo che l'utente scriva solo "exit" per uscire
             break;
-        } else*/
-
-        if (strcmp(buf[0], "\0") == 0) {  // a capo a vuoto
+        } else if (strcmp(buf[0], "\0") == 0) {  // a capo a vuoto
             //return; Hai scritto Return, credo sia un continue, sbaglio?
             continue;
         } else if (strcmp(buf[0], "help") == 0) {  // guida
@@ -93,10 +90,7 @@ int main(int argc, char *argv[]) {
             } else {
                 add(buf, &device_i, children_pids);
             }
-        }
-
-        ////MODIFICATO E SPOSTATO IN LAUNCHER.
-        /*else if (strcmp(buf[0], "restart") == 0) {
+        } else if (strcmp(buf[0], "restart") == 0) {
             char *const args[] = {NULL};
             int pid = fork();
             if (pid == 0) {
@@ -107,7 +101,7 @@ int main(int argc, char *argv[]) {
                 execvp("./shell", args);
             }
             exit(0);
-        }*/
+        }
         else {  //tutto il resto
             printf("Comando non riconosciuto. Usa help per visualizzare i comandi disponibili\n");
         }
@@ -146,6 +140,7 @@ void info(char buf[][MAX_BUF_SIZE], int *children_pids) {
 
     int fd = open(pipe_str, O_RDONLY);
     read(fd, tmp, MAX_BUF_SIZE);
+    close(fd);
 
     if (strncmp(tmp, "1", 1) == 0) {  // Lampadina
         char **vars = split(tmp, 5);
@@ -181,7 +176,6 @@ void info(char buf[][MAX_BUF_SIZE], int *children_pids) {
     }
 
     free(pipe_str);
-    close(fd);
 }
 
 void __switch(char buf[][MAX_BUF_SIZE], int *children_pids) {
@@ -201,10 +195,12 @@ void __switch(char buf[][MAX_BUF_SIZE], int *children_pids) {
         return;
     }
 
-    int fd = open(pipe_str, O_RDONLY);
+    int fd = open(pipe_str, O_RDWR);
     read(fd, tmp, MAX_BUF_SIZE);
 
     if (strncmp(tmp, "1", 1) == 0) {  // Lampadina
+    close(fd);
+
         if (strcmp(buf[2], "accensione") != 0) {
             printf("Operazione non permessa su una lampadina!\nOperazioni permesse: accensione\n");
             return;
@@ -227,29 +223,45 @@ void __switch(char buf[][MAX_BUF_SIZE], int *children_pids) {
         }
         free(vars);
     } else if (strncmp(tmp, "2", 1) == 0) {  // Fridge
-        if (strcmp(buf[2], "apertura") != 0) {
-            printf("Operazione non permessa su un frigorifero!\nOperazioni permesse: apertura\n");
-            return;
-        }
+        if (strcmp(buf[2], "apertura") == 0) {
+            char **vars = split(tmp, 8);  // parametri: tipo, stato, tempo di accensione, pid, indice
+            int status = atoi(vars[1]);
 
-        char **vars = split(tmp, 8);  // parametri: tipo, stato, tempo di accensione, pid, indice
-        int status = atoi(vars[1]);
-        if (strcmp(buf[3], "on") == 0 && status == 0) {
-            kill(pid, SIGUSR2);
-            printf("Frigorifero aperto.\n");
-        } else if (strcmp(buf[3], "off") == 0 && status == 1) {
-            kill(pid, SIGUSR2);
-            printf("Frigorifero chiuso.\n");
-        } else if (strcmp(buf[3], "off") == 0 && status == 0) {  // Chiudo frigo già chiuso
-            printf("Stai provando a chiudere un frigorigero già chiuso.\n");
-        } else if (strcmp(buf[3], "on") == 0 && status == 1) {  // Apro frigo già aperto
-            printf("Stai provando a aprire un frigorifero già aperto.\n");
+            printf("%d", fd);
+            fflush(stdout);
+
+            char* tmp2 = "0|0";
+            int out = write(fd, tmp2, sizeof(tmp2));
+            close(fd);
+
+            if (strcmp(buf[3], "on") == 0 && status == 0) {
+                kill(pid, SIGUSR2);
+                printf("Frigorifero aperto.\n");
+            } else if (strcmp(buf[3], "off") == 0 && status == 1) {
+                kill(pid, SIGUSR2);
+                printf("Frigorifero chiuso.\n");
+            } else if (strcmp(buf[3], "off") == 0 && status == 0) {  // Chiudo frigo già chiuso
+                printf("Stai provando a chiudere un frigorigero già chiuso.\n");
+            } else if (strcmp(buf[3], "on") == 0 && status == 1) {  // Apro frigo già aperto
+                printf("Stai provando a aprire un frigorifero già aperto.\n");
+            } else {
+                printf("Sintassi non corretta. Sintassi: switch <fridge> apertura <on/off>\n");
+            }
+
+            free(vars);
+        } else if (strcmp(buf[2], "temperatura") == 0) {
+    close(fd);
+
         } else {
-            printf("Sintassi non corretta. Sintassi: switch <fridge> apertura <on/off>\n");
+    close(fd);
+
+            printf("Operazione non permessa su un frigorifero! Operazioni permesse: <temperatura/apertura>");
         }
 
-        free(vars);
+        
     } else if (strncmp(tmp, "3", 1) == 0) {  // Window
+    close(fd);
+
         if (((strcmp(buf[2], "apertura") != 0) || (strcmp(buf[2], "apertura") == 0 && strcmp(buf[3], "off") == 0)) &&
             ((strcmp(buf[2], "chiusura") != 0) || (strcmp(buf[2], "chiusura") == 0 && strcmp(buf[3], "off") == 0))) {
             printf("Operazione non permessa: i pulsanti sono solo attivi!\n");

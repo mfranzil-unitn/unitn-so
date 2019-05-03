@@ -10,6 +10,7 @@
 #include <sys/types.h>
 #include <time.h>
 #include <unistd.h>
+#include "../util.h"
 
 // Frigo = 2
 
@@ -21,9 +22,8 @@ int status = 0;  // interruttore accensione
 time_t start;
 
 void sighandle_usr1(int sig) {
-    int fd = open(pipe_fd, O_WRONLY);
     time_t time_on;
-    char tmp[1024];
+    char tmp[MAX_BUF_SIZE];
 
     if (status) {
         time_on = (time(NULL) - start);
@@ -34,30 +34,37 @@ void sighandle_usr1(int sig) {
     sprintf(tmp, "2|%i|%i|%i|%i|%i|%i|%i|%s",
             status, (int)time_on, pid, name, delay, perc, temp, log_buf);
 
-    write(fd, tmp, 1024);
+    int fd = open(pipe_fd, O_WRONLY);
+    write(fd, tmp, MAX_BUF_SIZE);
+    close(fd);
 
     log_buf[0] = '\0';
-
-    close(fd);
 }
 
 void sighandle_usr2(int sig) {
     // Al ricevimento del segnale, il frigo apre la pipe in lettura e ottiene cosa deve fare.
-    // 1|... -> chiudi/apri frigo
-    // 2|TEMP -> setta temperatura del frigo
+    // 0|... -> chiudi/apri frigo
+    // 1|TEMP -> setta temperatura del frigo
 
- /*   int fd = open(pipe_fd, O_RDONLY);
-    char tmp[1024];
-    read(fd, tmp, 1024);
-*/     
+    char tmp[MAX_BUF_SIZE];
 
-    if (!status) {
-        status = 1;
-        start = time(NULL);
-    } else {
-        status = 0;
-        start = 0;
-    }
+    int fd = open(pipe_fd, O_RDONLY);
+    read(fd, tmp, MAX_BUF_SIZE);
+    close(fd);
+
+    char **vars = split(tmp, 2);
+
+    if (atoi(vars[0]) == 0) {
+        if (!status) {
+            status = 1;
+            start = time(NULL);
+        } else {
+            status = 0;
+            start = 0;
+        }
+    } else if (atoi(vars[1]) == 1) {
+        temp = atoi(vars[2]);
+    }  
 }
 
 int main(int argc, char* argv[]) {

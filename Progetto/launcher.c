@@ -24,11 +24,11 @@ pid_t shell_pid = -1;
 
 int main(int argc, char *argv[]) {
     char(*buf)[128] = malloc(128 * sizeof(char *));
-
     char c, i;
     int cur_cm;
-    //int children[4000];  // bisogna trovare un modo per contenere i figli....questo array è temporaneo.
-    // ad esempio se una lampadina ha pid 450 e indice 1 children[1] = 450
+    int index = 0;
+    int children[4000];  // bisogna trovare un modo per contenere i figli....questo array è temporaneo.
+                         // ad esempio se una lampadina ha pid 450 e indice 1 children[1] = 450
     system("clear");
     char *name = getUserName();
 
@@ -67,16 +67,18 @@ int main(int argc, char *argv[]) {
                     printf("Sintassi: user turn shell <pos>\n");
                 } else {
                     if (strcmp(buf[3], "on") == 0 && shell_pid == -1) {
+                            system("x-terminal-emulator");
+
                         pid_t pid = fork();
                         if (pid == 0) {
                             int ppid = (int)getppid();
-                            char *tmp = "./bin/shell";
+                            char* tmp = "./bin/shell";
                             char stringpid[6];
                             sprintf(stringpid, "%d", ppid);
                             strcat(tmp, stringpid);
-                            if (execl("/usr/bin/xterm", "xterm", "-e", tmp, NULL) == -1) {
+                            /*if (execl("/usr/bin/xterm", "xterm", "-e", tmp, NULL) == -1) {
                                 printf("Errore nell'apertura della centralina");
-                            }
+                            }*/
                         } else if (pid > 0) {
                             //Legge il pid della centralina dalla
                             char *shpm = "/tmp/myshpm";
@@ -103,9 +105,7 @@ int main(int argc, char *argv[]) {
                 if (cur_cm != 4) {
                     printf("Sintassi: user switch <id> <label> <pos>\nInterruttori disponibili:\n    bulb: accensione\n");
                 } else {
-                    printf("Codice da sistemare per l'interazione utente\n"); /*
                     // INIZIO CODICE DUPLICATO
-
                     char *pipe_str = malloc(4 * sizeof(char));
                     sprintf(pipe_str, "/tmp/%i", atoi(buf[1]));
 
@@ -149,22 +149,21 @@ int main(int argc, char *argv[]) {
                     } else {
                         printf("Da implementare");
                     }
-                }*/
                 }
-            } else if (strcmp(buf[0], "restart") == 0) {
-                char *const args[] = {NULL};
-                int pid = fork();
-                if (pid == 0) {
-                    execvp("make", args);
-                    exit(0);
-                } else {
-                    wait(NULL);
-                    execvp("./launcher", args);
-                }
-                exit(0);
-            } else {  //tutto il resto
-                printf("Comando non riconosciuto. Usa help per visualizzare i comandi disponibili\n");
             }
+        } else if (strcmp(buf[0], "restart") == 0) {
+            char *const args[] = {NULL};
+            int pid = fork();
+            if (pid == 0) {
+                execvp("make", args);
+                exit(0);
+            } else {
+                wait(NULL);
+                execvp("./launcher", args);
+            }
+            exit(0);
+        } else {  // tutto il resto
+            printf("Comando non riconosciuto. Usa help per visualizzare i comandi disponibili\n");
         }
     }
     free(buf);
