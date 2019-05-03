@@ -23,7 +23,7 @@ time_t start;
 void sighandle_usr1(int sig) {
     int fd = open(pipe_fd, O_WRONLY);
     time_t time_on;
-    char buffer[1024];
+    char tmp[1024];
 
     if (status) {
         time_on = (time(NULL) - start);
@@ -31,10 +31,10 @@ void sighandle_usr1(int sig) {
         time_on = 0;
     }
 
-    sprintf(buffer, "2|%i|%i|%i|%i|%i|%i|%i|%s",
+    sprintf(tmp, "2|%i|%i|%i|%i|%i|%i|%i|%s",
             status, (int)time_on, pid, name, delay, perc, temp, log_buf);
 
-    write(fd, buffer, 1024);
+    write(fd, tmp, 1024);
 
     log_buf[0] = '\0';
 
@@ -42,6 +42,15 @@ void sighandle_usr1(int sig) {
 }
 
 void sighandle_usr2(int sig) {
+    // Al ricevimento del segnale, il frigo apre la pipe in lettura e ottiene cosa deve fare.
+    // 1|... -> chiudi/apri frigo
+    // 2|TEMP -> setta temperatura del frigo
+
+ /*   int fd = open(pipe_fd, O_RDONLY);
+    char tmp[1024];
+    read(fd, tmp, 1024);
+*/     
+
     if (!status) {
         status = 1;
         start = time(NULL);

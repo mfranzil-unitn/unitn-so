@@ -1,0 +1,55 @@
+Comandi disponibili:
+    list						elenca tutti i dispositivi (quelli 
+                                disponibili con un nome, quelli attivi
+                                anche con un “id” univoco per ciascuno 
+                                e inoltre ne riepiloga le caratteristiche)
+    add <device>				aggiunge un <device> al sistema e ne
+                                mostra i dettagli (es. “add bulb”)
+    del <id>					rimuove il dispositivo <id>: se è di controllo
+                                rimuove anche i dispositivi sottostanti
+    link <id> to <id>			collega i due dispositivi tra loro (almeno uno
+                                dei due dev’essere di controllo: controller, hub o timer)
+    switch <id> <label> <pos>	del dispositivo <id> modifica l’interruttore
+                                <label> in posizione <pos>, ad esempio:
+                                "switch 3 open on" imposta per il dispositivo 3
+                                l’interruttore “open” su “on” (ad esempio apre una finestra)
+    info <id>					mostra i dettagli del dispositivo
+
+Si possono usare in generale quelle "standard", di seguito comunque un elenco (che cercherò di aggiornare nelle prossime settimane se necessario) che comprende quelle di cui è stata fatta richiesta esplicita o in ogni caso rilevanti.
+Per altre non indicate fare esplicita richiesta, a parte eventuali librerie per l'interfacciamento hardware su Raspberry.
+•	errno.h
+•	fcntl.h
+•	signal.h
+•	stdio.h
+•	stdlib.h
+•	sys/stat.h
+•	sys/time.h
+•	sys/wait.h
+•	sys/types.h
+•	stdarg.h
+•	stdbool.h
+•	stdint.h
+•	string.h
+•	time.h
+•	unistd.h
+
+•	con "mirroring" si intende in sostanza che se in un dispositivo di controllo si scrive un campo queste si deve aggiornare nei dispositivi controllati, mentre in lettura deve mostrare il valore contenuto che normalmente sarà uguale per tutti: in caso di "anomalie" (ad esempio un'azione manuale) deve essere indicato almeno che si è in tale situazione. Un controllo più fine potrebbe mostrare lo stato effettivo di tutti i dispositivi.
+•	i comandi "manuali" devono essere completamente "esterni" al sistema (in più si può anche fare che siano richiamabili dalla shell della centralina volendo, ma sarebbe una caratteristica AGGIUNTIVA): la comunicazione deve quindi avvenire con strumenti per processi non "direttamente imparentati" (quindi quasi tutto tranne ad esempio le PIPE anonime)
+•	l'uso dei processi e del file-system è possibile in entrambe le varianti: la valutazione cambia in base alla scelta. Ad esempio l'uso del file-system nella variante "processi" dovrebbe essere marginale o nullo, mentre l'uso dei processi nella variante "file-system" non è obbligatorio salvo quelli minimi necessari.
+•	all'avvio può esserci un insieme vuoto di dispositivi collegati: sarebbe meglio poter creare la rete dei dispositivi "da zero" attraverso la shell. Si potrebbe però mantenere una sorta di "configurazione" per esecuzioni successive per ripartire dallo configurazione già impostata (in questo caso si potrebbero tenere degli esempi di reti "pronte" da usare al bootstrap come modelli). Si potrebbe anche avere una sorta di configurazione di "magazzino" che elenca i dispositivi disponibili e volendo anche la loro quantità (cioè se posso usare ad esempio lampadine o meno e quante al massimo).
+•	per alcuni campi si possono fare scelte particolari e/o configurabili. Ad esempio il "tempo d'utilizzo" richiesto a un hub che controlla tre lampadine (che potrebbero avere tempi d'uso differenti) potrebbe essere il massimo dei valori o la loro somma o essere configurabile attraverso registri aggiuntivi (o possono esserci più registri di tempo).
+•	sono da preferire le comunicazioni tra processi con canali DEDICATI (ad esempio PIPE dedicata a due processi o anche FIFO) piuttosto che strutture globali o comunque condivise (ad esempio la memoria condivisa o una FIFO per tutti).
+•	la precisione e la granularità di alcuni dati possono essere scelte a piacere se ragionevoli. Ad esempio per il tempo d'uso d'una lampadina potrebbe andar bene un granularità in secondi e una precisione con un margine d'errore di pochi secondi (un paio al massimo circa).
+•	si possono avere dispositivi di controllo anche in cascata
+•	le "azioni manuali" (che devono avvenire con un "tool esterno") comandano gli "interruttori" (non agiscono direttamente sui valori degli stati): come minimo devono poter riferire un processo, ma sarebbe meglio poter usare "id" e/o "nome" dei dispositivi... in questo caso è necessario creare un modulo di ricerca per recuperare il pid di un processo a partire da "id" e/o "nome" ovviamente: il tool per le azioni manuali può interagire con la centralina per scambiare informazioni (non per eseguire azioni), ad esempio per soddisfare tale ricerca.
+•	i dispositivi di controllo DEVONO chiedere le informazioni ai dispositivi controllati (NON possono tenere i dati al loro interno), compresi "id" e "nome" possibilmente
+
+  	i dispositivi di controllo DEVONO chiedere le informazioni ai dispositivi controllati (NON possono tenere i dati al loro interno), compresi "id" e "nome" possibilmente
+"id" e "nome" potrebbero quindi essere memorizzati nel "livello superiore": è preferibile non farlo, ma non è invalidato il lavoro altrimenti.
+
+Gli "id" ci si aspetta siano univoci.
+I "pid" sono gli identificatori dei processi gestiti dal s.o.
+Gli "id" sono identificatori (univoci) gestiti dal sistema realizzato (possono essere numerici, alfanumerici, altro...)
+
+
+L'idea è che si possa scegliere un ben determinato dispositivo (attraverso ad esempio un comando per inviare un'azione manuale o per avere informazioni) e quindi che si utilizzi un "id" interno per questo (che quindi deve poter essere univoco), anche in considerazione del fatto che nel caso di "ricostruzione dell'albero" (ad esempio spostando un oggetto da un hub a un altro) il "pid" potrebbe variare...

@@ -3,16 +3,22 @@ CFLAGS = -std=gnu90
 
 main: build 
 
-build: shell bulb fridge window
+build: shell launcher bulb fridge window
 
-shell: shell.c
-	$(CC) $(CFLAGS) -o shell shell.c
+launcher: util shell
+	$(CC) $(CFLAGS) -o launcher launcher.c bin/util.o
 
-bulb: bulb.c
-	$(CC) $(CFLAGS) -o bulb bulb.c
+shell: util
+	$(CC) $(CFLAGS) -o bin/shell shell.c bin/util.o
 
-fridge: fridge.c
-	$(CC) $(CFLAGS) -o fridge fridge.c
+bulb:
+	$(CC) $(CFLAGS) -o bin/bulb devices/bulb.c
 
-window: window.c
-	$(CC) $(CFLAGS) -o window window.c
+fridge:
+	$(CC) $(CFLAGS) -o bin/fridge devices/fridge.c
+
+window: util
+	$(CC) $(CFLAGS) -o bin/window devices/window.c bin/util.o
+
+util:
+	$(CC) $(CFLAGS) -c util.c -o bin/util.o
