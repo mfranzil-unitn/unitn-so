@@ -1,5 +1,6 @@
 #include <errno.h>
 #include <fcntl.h>
+#include <limits.h>
 #include <pwd.h>
 #include <signal.h>
 #include <stdio.h>
@@ -10,10 +11,11 @@
 #include <time.h>
 #include <unistd.h>
 
-// BULB = 1
+// Frigo = 2
 
 char* pipe_fd = NULL;
-int pid, name;
+char log_buf[512];
+int pid, name, delay, perc, temp;
 
 int status = 0;  // interruttore accensione
 time_t start;
@@ -29,10 +31,13 @@ void sighandle_usr1(int sig) {
         time_on = 0;
     }
 
-    sprintf(buffer, "1|%i|%i|%i|%i",
-            status, (int)time_on, pid, name);
+    sprintf(buffer, "2|%i|%i|%i|%i|%i|%i|%i|%s",
+            status, (int)time_on, pid, name, delay, perc, temp, log_buf);
 
     write(fd, buffer, 1024);
+
+    log_buf[0] = '\0';
+
     close(fd);
 }
 
@@ -47,19 +52,29 @@ void sighandle_usr2(int sig) {
 }
 
 int main(int argc, char* argv[]) {
-    // argv = [./bulb, indice, /tmp/indice];
+    // argv = [./fridge, indice, /tmp/indice];
     pipe_fd = argv[2];
     pid = getpid();
     name = atoi(argv[1]);
 
-    // Converto il pid in stringa (che palle...)
-    // pid_str = malloc(4 * sizeof(char));
-    // sprintf(pid_str, "%d", pid);
+    delay = 15;
+    perc = 50;
+    temp = 3;
+
+    log_buf[0] = '\0'; // buffer di log vuoto
 
     signal(SIGUSR1, sighandle_usr1);
     signal(SIGUSR2, sighandle_usr2);
-    while (1)
-        ;
+
+    while (1) {
+        if (status == 1 && start < time(NULL) - delay) {
+            status = 0;
+            sprintf(log_buf, "Il frigorifero %d si è chiuso automaticamente dopo %d secondi",
+                    name, delay);
+            // Problema di estetica
+        }
+        sleep(1);
+    }
 
     return 0;
 }

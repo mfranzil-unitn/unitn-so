@@ -1,5 +1,6 @@
 #include <errno.h>
 #include <fcntl.h>
+#include <limits.h>
 #include <pwd.h>
 #include <signal.h>
 #include <stdio.h>
@@ -10,12 +11,22 @@
 #include <time.h>
 #include <unistd.h>
 
-// BULB = 1
+// Window = 3
+
+/*
+Suppongo che i due interruttori che comandano la finestra Interr_Aperto e
+ Interr_Chiuso siano sempre opposti. Quando ne premo uno questo resta in uno
+  stato OFF (non può più essere premuto) e l'altro cambia nello stato ON (può essere premuto).
+
+Sia lo switch della centarlina sia lo switch "manuale" modificano lo stato degli interruttori
+
+Con il comando switch permetto solo: switch <id> <Interr_Aperto/Chiuso> ON   	
+*/
 
 char* pipe_fd = NULL;
-int pid, name;
+int pid, name, delay;
 
-int status = 0;  // interruttore accensione
+int status = 0;  // interruttore apertura
 time_t start;
 
 void sighandle_usr1(int sig) {
@@ -29,7 +40,7 @@ void sighandle_usr1(int sig) {
         time_on = 0;
     }
 
-    sprintf(buffer, "1|%i|%i|%i|%i",
+    sprintf(buffer, "3|%i|%i|%i|%i",
             status, (int)time_on, pid, name);
 
     write(fd, buffer, 1024);
@@ -47,19 +58,14 @@ void sighandle_usr2(int sig) {
 }
 
 int main(int argc, char* argv[]) {
-    // argv = [./bulb, indice, /tmp/indice];
+    // argv = [./window, indice, /tmp/indice];
     pipe_fd = argv[2];
     pid = getpid();
     name = atoi(argv[1]);
-
-    // Converto il pid in stringa (che palle...)
-    // pid_str = malloc(4 * sizeof(char));
-    // sprintf(pid_str, "%d", pid);
 
     signal(SIGUSR1, sighandle_usr1);
     signal(SIGUSR2, sighandle_usr2);
     while (1)
         ;
-
     return 0;
 }
