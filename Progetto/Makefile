@@ -5,20 +5,20 @@ main: build
 
 build: shell bulb fridge window
 
-launcher: util shell
+launcher: util shell launcher.c
 	$(CC) $(CFLAGS) -o launcher launcher.c bin/util.o
 
-shell: util
+shell: shell.c util
 	$(CC) $(CFLAGS) -o bin/shell shell.c bin/util.o
 
-bulb:
-	$(CC) $(CFLAGS) -o bin/bulb devices/bulb.c
+bulb: devices/bulb.c util
+	$(CC) $(CFLAGS) -o bin/bulb devices/bulb.c bin/util.o
 
-fridge:
+fridge: devices/fridge.c util
 	$(CC) $(CFLAGS) -o bin/fridge devices/fridge.c bin/util.o
 
-window: util
-	$(CC) $(CFLAGS) -o bin/window devices/window.c
+window: devices/window.c util
+	$(CC) $(CFLAGS) -o bin/window devices/window.c bin/util.o
 
-util:
-	$(CC) $(CFLAGS) -c util.c -o bin/util.o
+util: util.c
+	$(CC) $(CFLAGS) -c -o bin/util.o util.c 

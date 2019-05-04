@@ -26,11 +26,13 @@ int main(int argc, char *argv[]) {
     system("clear");
     char *name = getUserName();
 
-    /*//PID del launcher
-    int ppid = atoi(argv[1]);*/
+    signal(SIGUSR1, ignore_sig);
+    /*
+    //PID del launcher.
+    int ppid = atoi(argv[1]);
 
     //Creo FIFO da shell a launcher.
-   /* char *shpm = "/tmp/myshpm";
+    char *shpm = "/tmp/myshpm";
     mkfifo(shpm, 0666);
     int fd = open(shpm, O_WRONLY);
 
@@ -38,9 +40,13 @@ int main(int argc, char *argv[]) {
     char str[16];
     sprintf(str, "%d", (int)getpid());
     write(fd, str, 16);
-    close(fd);*/
+    close(fd);
     ////FINE MODIFICAAAAAAAAAAAAAAAAAAAAAAA
 
+    /////MODIFICAAAAAAAAAAAAAAAAAAAAA
+    signal(SIGINT, handle_sig);
+    signal(SIGHUP, handle_sig);
+*/
     while (1) {
         printf("\e[92m%s\e[39m:\e[31mCentralina\033[0m$ ", name);
 
@@ -98,11 +104,10 @@ int main(int argc, char *argv[]) {
                 exit(0);
             } else {
                 wait(NULL);
-                execvp("./shell", args);
+                execvp("./bin/shell", args);
             }
             exit(0);
-        }
-        else {  //tutto il resto
+        } else {  //tutto il resto
             printf("Comando non riconosciuto. Usa help per visualizzare i comandi disponibili\n");
         }
     }
@@ -117,6 +122,33 @@ char *pipename(int pid) {
 }
 
 int get_by_index(int in, int *children_pids) {
+    // manda un messaggio in broadcast per inviare le informazioni di tutti sulle rispettive pipe.
+    // per adesso non ha molto senso, in quando dato l'indice i children_pids[i] ha il pid, ma questa info
+    // non possiamo tenerla e quindi bisogna usare il codice sotto, levando l'array come struttura dati
+    // (dovremo probabilmente creare una lista?).
+
+    // Per adesso fa segm. fault
+    /*
+    kill(0, SIGUSR1);
+    char tmp[512];
+    char *pipe_str;
+    char** vars;
+
+    int i;
+    for (i = 0; i < MAX_CHILDREN; i++) {
+        if (children_pids[i] != -1) {
+            pipe_str = pipename(children_pids[i]);
+            int fd = open(pipe_str, O_RDONLY);
+            if (fd > 0) {
+                read(fd, tmp, 512);
+                vars = split(tmp, 3);
+                if (atoi(vars[2]) == in) printf("%s\n", vars[3]);
+            }
+        }
+    }
+
+    sleep(3);
+*/
     if (in >= MAX_CHILDREN || in < 0) return -1;
     return children_pids[in] == -1 ? -1 : children_pids[in];
 }
@@ -144,32 +176,32 @@ void info(char buf[][MAX_BUF_SIZE], int *children_pids) {
 
     if (strncmp(tmp, "1", 1) == 0) {  // Lampadina
         char **vars = split(tmp, 5);
-        // parametri: tipo, stato, tempo di accensione, pid, indice
+        // parametri: tipo, pid, stato, tempo di accensione, indice
 
-        printf("Oggetto: Lampadina\nStato: %s\nTempo di accensione: %s\nPID: %s\nIndice: %s\n",
-               atoi(vars[1]) ? "ON" : "OFF", vars[2], vars[3], vars[4]);
+        printf("Oggetto: Lampadina\nPID: %s\nIndice: %s\nStato: %s\nTempo di accensione: %s\n",
+               vars[1], vars[2], atoi(vars[3]) ? "ON" : "OFF", vars[4]);
         free(vars);
     } else if (strncmp(tmp, "2", 1) == 0) {  // Frigo
         char **vars = split(tmp, 9);
-        // parametri: tipo, stato, tempo di apertura, pid, indice, delay
+        // parametri: tipo, pid, stato, tempo di apertura, indice, delay
         // percentuale riempimento, temperatura interna
 
         printf("Oggetto: Frigorifero\n");
 
-        if (vars[8] != NULL) {
+        if (vars[8] != NULL && vars[8] != "") {
             printf("[!!] Messaggio di log: <%s>\n", vars[8]);
         }
-        printf("Stato: %s\nTempo di apertura: %s sec\nPID: %s\nIndice: %s\n",
-               atoi(vars[1]) ? "Aperto" : "Chiuso", vars[2], vars[3], vars[4]);
+
+        printf("PID: %s\nIndice: %s\nStato: %s\nTempo di apertura: %s sec\n",
+               vars[1], vars[2], atoi(vars[3]) ? "Aperto" : "Chiuso", vars[4]);
         printf("Delay richiusura: %s sec\nPercentuale riempimento: %s\nTemperatura: %s°C\n",
                vars[5], vars[6], vars[7]);
         free(vars);
     } else if (strncmp(tmp, "3", 1) == 0) {  // Finestra
         char **vars = split(tmp, 5);
-
-        // parametri: tipo, stato, tempo di accensione, pid, indice
-        printf("Oggetto: Finestra\nStato: %s\nTempo di apertura: %s sec\nPID: %s\nIndice: %s\n",
-               atoi(vars[1]) ? "Aperto" : "Chiuso", vars[2], vars[3], vars[4]);
+        // parametri: tipo, pid, stato, tempo di accensione, indice
+        printf("Oggetto: Finestra\nPID: %s\nIndice: %s\nStato: %s\nTempo di apertura: %s sec\n",
+               vars[1], vars[2], atoi(vars[3]) ? "Aperto" : "Chiuso", vars[4]);
         free(vars);
     } else {
         printf("Dispositivo non supportato.\n");
@@ -186,11 +218,13 @@ void __switch(char buf[][MAX_BUF_SIZE], int *children_pids) {
         return;
     }
 
-    char *pipe_str = pipename(pid);
-    char tmp[MAX_BUF_SIZE];  // dove ci piazzo l'output della pipe
+    char *pipe_str = pipename(pid);  // Nome della pipe
+    char tmp[MAX_BUF_SIZE];          // dove ci piazzo l'output della pipe
+    char **vars;                     // output della pipe, opportunamente splittato da split()
+    char pipe_message[32];           // buffer per la pipe
 
-    // apertura della pipe fallita
     if (kill(pid, SIGUSR1) != 0) {
+        // apertura della pipe fallita
         printf("Errore! Impossibile notificare il dispositivo. Errno: %i\n", errno);
         return;
     }
@@ -199,91 +233,88 @@ void __switch(char buf[][MAX_BUF_SIZE], int *children_pids) {
     read(fd, tmp, MAX_BUF_SIZE);
 
     if (strncmp(tmp, "1", 1) == 0) {  // Lampadina
-    close(fd);
-
-        if (strcmp(buf[2], "accensione") != 0) {
-            printf("Operazione non permessa su una lampadina!\nOperazioni permesse: accensione\n");
-            return;
-        }
-
-        char **vars = split(tmp, 5);  // parametri: tipo, stato, tempo di accensione, pid, indice
-        int status = atoi(vars[1]);
-        if (strcmp(buf[3], "on") == 0 && status == 0) {
-            kill(pid, SIGUSR2);
-            printf("Lampadina accesa.\n");
-        } else if (strcmp(buf[3], "off") == 0 && status == 1) {
-            kill(pid, SIGUSR2);
-            printf("Lampadina spenta.\n");
-        } else if (strcmp(buf[3], "off") == 0 && status == 0) {  // Spengo una lampadina spenta
-            printf("Stai provando a spegnere una lampadina spenta!\n");
-        } else if (strcmp(buf[3], "on") == 0 && status == 1) {  // Spengo una lampadina accesa
-            printf("Stai provando a accendere una lampadina accesa!\n");
-        } else {
-            printf("Sintassi non corretta. Sintassi: switch <bulb> accensione <on/off>\n");
-        }
-        free(vars);
-    } else if (strncmp(tmp, "2", 1) == 0) {  // Fridge
-        if (strcmp(buf[2], "apertura") == 0) {
-            char **vars = split(tmp, 8);  // parametri: tipo, stato, tempo di accensione, pid, indice
-            int status = atoi(vars[1]);
-
-            printf("%d", fd);
-            fflush(stdout);
-
-            char* tmp2 = "0|0";
-            int out = write(fd, tmp2, sizeof(tmp2));
-            close(fd);
+        if (strcmp(buf[2], "accensione") == 0) {
+            vars = split(tmp, 5);  // parametri: tipo, stato, tempo di accensione, pid, indice
+            int status = atoi(vars[2]);
+            sprintf(pipe_message, "0|0");
 
             if (strcmp(buf[3], "on") == 0 && status == 0) {
+                write(fd, pipe_message, sizeof(pipe_message));
+                kill(pid, SIGUSR2);
+                printf("Lampadina accesa.\n");
+            } else if (strcmp(buf[3], "off") == 0 && status == 1) {
+                write(fd, pipe_message, sizeof(pipe_message));
+                kill(pid, SIGUSR2);
+                printf("Lampadina spenta.\n");
+            } else if (strcmp(buf[3], "off") == 0 && status == 0) {  // Spengo una lampadina spenta
+                printf("Stai provando a spegnere una lampadina spenta!\n");
+            } else if (strcmp(buf[3], "on") == 0 && status == 1) {  // Spengo una lampadina accesa
+                printf("Stai provando a accendere una lampadina accesa!\n");
+            } else {
+                printf("Sintassi non corretta. Sintassi: switch <bulb> accensione <on/off>\n");
+            }
+        } else {
+            printf("Operazione non permessa su una lampadina!\nOperazioni permesse: accensione\n");
+        }
+    } else if (strncmp(tmp, "2", 1) == 0) {  // Fridge
+        if (strcmp(buf[2], "apertura") == 0) {
+            vars = split(tmp, 8);  // parametri: tipo, stato, tempo di accensione, pid, indice
+            int status = atoi(vars[2]);
+            sprintf(pipe_message, "0|0");
+
+            if (strcmp(buf[3], "on") == 0 && status == 0) {
+                write(fd, pipe_message, sizeof(pipe_message));
                 kill(pid, SIGUSR2);
                 printf("Frigorifero aperto.\n");
             } else if (strcmp(buf[3], "off") == 0 && status == 1) {
+                write(fd, pipe_message, sizeof(pipe_message));
                 kill(pid, SIGUSR2);
                 printf("Frigorifero chiuso.\n");
             } else if (strcmp(buf[3], "off") == 0 && status == 0) {  // Chiudo frigo già chiuso
-                printf("Stai provando a chiudere un frigorigero già chiuso.\n");
+                printf("Stai provando a chiudere un frigorifero già chiuso.\n");
             } else if (strcmp(buf[3], "on") == 0 && status == 1) {  // Apro frigo già aperto
                 printf("Stai provando a aprire un frigorifero già aperto.\n");
             } else {
                 printf("Sintassi non corretta. Sintassi: switch <fridge> apertura <on/off>\n");
             }
-
-            free(vars);
         } else if (strcmp(buf[2], "temperatura") == 0) {
-    close(fd);
+            sprintf(pipe_message, "1|%s", buf[3]);
 
+            write(fd, pipe_message, sizeof(pipe_message));
+            kill(pid, SIGUSR2);
+            printf("Temperatura modificata con successo a %s°C.\n", buf[3]);
         } else {
-    close(fd);
-
-            printf("Operazione non permessa su un frigorifero! Operazioni permesse: <temperatura/apertura>");
+            printf("Operazione non permessa su un frigorifero! Operazioni permesse: <temperatura/apertura>\n");
         }
-
-        
     } else if (strncmp(tmp, "3", 1) == 0) {  // Window
-    close(fd);
-
         if (((strcmp(buf[2], "apertura") != 0) || (strcmp(buf[2], "apertura") == 0 && strcmp(buf[3], "off") == 0)) &&
             ((strcmp(buf[2], "chiusura") != 0) || (strcmp(buf[2], "chiusura") == 0 && strcmp(buf[3], "off") == 0))) {
             printf("Operazione non permessa: i pulsanti sono solo attivi!\n");
+            // se off non permetto
             return;
         }
-        // se off non permetto
-        char **vars = split(tmp, 5);  // parametri: tipo, stato, tempo di accensione, pid, indice
-        int status = atoi(vars[1]);
+
+        vars = split(tmp, 5);  // parametri: tipo, stato, tempo di accensione, pid, indice
+        int status = atoi(vars[2]);
+        sprintf(pipe_message, "0|0");
+
         if (strcmp(buf[2], "apertura") == 0 && status == 0) {
+            write(fd, pipe_message, sizeof(pipe_message));
             kill(pid, SIGUSR2);
             printf("Finestra aperta.\n");
         } else if (strcmp(buf[2], "chiusura") == 0 && status == 1) {
+            write(fd, pipe_message, sizeof(pipe_message));
             kill(pid, SIGUSR2);
             printf("Finestra chiusa.\n");
         } else {
             printf("Operazione non permessa: pulsante già premuto.\n");
         }
-        free(vars);
-
     } else {  // tutti gli altri dispositivi
         printf("Dispositivo non supportato.\n");
+        //  return; Possibile errore di allocazione perché vars non è stato allocato?
     }
+    free(vars);
+    close(fd);
 }
 
 void add(char buf[][MAX_BUF_SIZE], int *device_i, int *children_pids) {
@@ -318,3 +349,12 @@ void add(char buf[][MAX_BUF_SIZE], int *device_i, int *children_pids) {
         printf("Dispositivo non ancora supportato\n");
     }
 }
+
+void ignore_sig(int sig) {
+    return;
+}
+/*
+void handle_sig(int signal) {
+    printf("Spegnimento della centralina solo tramite Launcher, Premere invio per proseguire\n");
+}
+*/

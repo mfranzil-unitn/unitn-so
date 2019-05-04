@@ -36,15 +36,17 @@
 
 #define SWITCH_STRING \
     "Sintassi: switch <id> <label> <pos>\n\
-    Interruttori disponibili: bulb: accensione, fridge: apertura\n"
+    Interruttori disponibili: bulb: accensione, fridge: temperatura/apertura, window: apertura\n"
 
 #define ADD_STRING \
     "Sintassi: add <device>\nDispositivi disponibili: bulb, window, fridge, hub, timer\n"
 
+void handle_sig(int signal);
 char* pipename(int pid);
 int get_by_index(int in, int* children_pids);
 void info(char buf[][MAX_BUF_SIZE], int* children_pids);
 void __switch(char buf[][MAX_BUF_SIZE], int* children_pids);
 void add(char buf[][MAX_BUF_SIZE], int* device_i, int* children_pids);
+void ignore_sig(int sig);
 
 #endif
