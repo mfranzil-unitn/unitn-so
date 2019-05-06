@@ -489,4 +489,25 @@ Le pipe con nome vengono gestiti con file speciale, non hanno vincoli di gerarch
 #include <sys/stat.h>
 int mkfifo(const char *pathname, mode_t mode);
 \end{verbatim}
+
+\section{Message queues}
+
+Le code di messaggi sono liste linkate all'interno del kernel Unix, alla quale si può accedere dai processi utilizzando una opportuna chiave.
+
+Ogni coda viene generata volta per volta utilizzando il nome del processo e un intero, e fa uso dei classici permessi Unix. E' possibile aggiungere e recuperare messaggi nella coda, e ogni messaggio è caratterizzato da un tipo, una lunghezza $>0$ e un'insieme di dati.
+
+Le code sono "autosincrone", ovvero:
+\begin{itemize}
+    \item Se si legge si attende la presenza di un messaggio se la coda è vuota
+    \item Se si scrive e la coda è piena si attende che vi sia spazio
+\end{itemize}
+
+Si usano fondamentalmente 5 system call (che richiedono gli header \verb|sys/ipc.h|, \verb|sys/types.h|, \verb|sys/msg.h|):
+\begin{itemize}
+    \item \verb|int ftok(char* path, int id)|: restituisce una chiave per una nuova coda basandosi sul \textit{path} e sull'id fornito. La chiave è calcolata in maniera deterministica a parità di ambiente.
+    \item \verb|int msgget(key_t key, int msgflg)|: restituisce l'id di una coda basandosi sulla chiave. Come secondo argomento è possibile passare dei permessi Unix oppure due flag.
+    \item \verb|int msgsnd(int msqid, const void* msgp, size_t msgsz, int msgflg)|: aggiunge un messaggio alla coda.
+    \item \verb|size_t msgrcv(int msqid, void *msgp, size_t msgsz, long msgtyp, int msgflg)|: recupera un messaggio dalla coda.
+    \item \verb|int msgctl(int msqid, int cmd, struct msqid_ds *buf)|: effettua operazioni sulla coda. I comandi possibili comprendono la rimozione, i limiti della coda e l'impostazioni dei parametri.
+\end{itemize}
 \end{document}

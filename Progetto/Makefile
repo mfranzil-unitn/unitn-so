@@ -1,9 +1,13 @@
 CC = gcc
-CFLAGS = -std=gnu90
+CFLAGS = -std=gnu90 --pedantic
 
 main: build 
 
 build: shell bulb fridge window
+	rm -f -r /tmp/ipc
+	mkdir /tmp/ipc
+	echo "./bin/shell" > run
+	chmod +x run
 
 launcher: util shell launcher.c
 	$(CC) $(CFLAGS) -o launcher launcher.c bin/util.o
