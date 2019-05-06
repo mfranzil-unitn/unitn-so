@@ -1,11 +1,6 @@
 #include "shell.h"
 #include "util.h"
 
-// CENTRALINA = 0
-// BULB = 1
-// FRIDGE = 2
-// WINDOW = 3
-
 int main(int argc, char *argv[]) {
     signal(SIGINT, cleanup_sig);
     signal(SIGTERM, cleanup_sig);
@@ -61,6 +56,7 @@ int main(int argc, char *argv[]) {
         ch = ' ';
         ch_i = -1;
         cmd_n = 0;
+        buf[cmd_n][0] = '\0';
         while (ch != EOF && ch != '\n') {
             ch = getchar();
             if (ch == ' ') {
@@ -150,7 +146,7 @@ int get_by_index(int in, int *children_pids) {
             int fd = open(pipe_str, O_RDONLY);
             if (fd > 0) {
                 read(fd, tmp, 512);
-                vars = split(tmp, 3);
+                vars = sp-lit(tmp, 3);
                 if (atoi(vars[2]) == in) printf("%s\n", vars[3]);
             }
         }
@@ -164,18 +160,27 @@ int get_by_index(int in, int *children_pids) {
 
 void list(char buf[][MAX_BUF_SIZE], int *children_pids) {
     kill(0, SIGUSR1);
-    char tmp[512];
-    char *pipe_str;
-    char **vars;
+    char tmp[MAX_BUF_SIZE];
+    char *pipe_str = NULL;
 
     int i;
+    printf("Raccolta dati in corso...");
+    fflush(stdout);
+    sleep(2);
+    
     for (i = 0; i < MAX_CHILDREN; i++) {
         if (children_pids[i] != -1) {
             pipe_str = pipename(children_pids[i]);
             int fd = open(pipe_str, O_RDONLY);
             if (fd > 0) {
                 read(fd, tmp, 512);
-                printf("%s\n", tmp);
+                char **vars = split(tmp);
+                printf("Dispositivo: %s, PID %s, nome %s\n", vars[0], vars[1], vars[2]);
+                // Pulizia
+                free(vars);
+                free(pipe_str);
+                close(fd);
+                tmp[0] = '\0';
             }
         }
     }
@@ -205,13 +210,13 @@ void info(char buf[][MAX_BUF_SIZE], int *children_pids) {
     free(pipe_str);
 
     if (strncmp(tmp, "1", 1) == 0) {  // Lampadina
-        vars = split(tmp, 5);
+        vars = split(tmp);
         // parametri: tipo, pid, stato, tempo di accensione, indice
 
         printf("Oggetto: Lampadina\nPID: %s\nIndice: %s\nStato: %s\nTempo di accensione: %s\n",
                vars[1], vars[2], atoi(vars[3]) ? "ON" : "OFF", vars[4]);
     } else if (strncmp(tmp, "2", 1) == 0) {  // Frigo
-        vars = split(tmp, 9);
+        vars = split(tmp);
         // parametri: tipo, pid, stato, tempo di apertura, indice, delay
         // percentuale riempimento, temperatura interna
 
@@ -226,7 +231,7 @@ void info(char buf[][MAX_BUF_SIZE], int *children_pids) {
         printf("Delay richiusura: %s sec\nPercentuale riempimento: %s\nTemperatura: %s°C\n",
                vars[5], vars[6], vars[7]);
     } else if (strncmp(tmp, "3", 1) == 0) {  // Finestra
-        vars = split(tmp, 5);
+        vars = split(tmp);
         // parametri: tipo, pid, stato, tempo di accensione, indice
         printf("Oggetto: Finestra\nPID: %s\nIndice: %s\nStato: %s\nTempo di apertura: %s sec\n",
                vars[1], vars[2], atoi(vars[3]) ? "Aperto" : "Chiuso", vars[4]);
@@ -246,7 +251,7 @@ void __switch(char buf[][MAX_BUF_SIZE], int *children_pids) {
 
     char *pipe_str = pipename(pid);  // Nome della pipe
     char tmp[MAX_BUF_SIZE];          // dove ci piazzo l'output della pipe
-    char **vars = NULL;              // output della pipe, opportunamente splittato da split()
+    char **vars = NULL;              // output della pipe, opportunamente diviso
     char pipe_message[32];           // buffer per la pipe
 
     if (kill(pid, SIGUSR1) != 0) {
@@ -261,7 +266,7 @@ void __switch(char buf[][MAX_BUF_SIZE], int *children_pids) {
 
     if (strncmp(tmp, "1", 1) == 0) {  // Lampadina
         if (strcmp(buf[2], "accensione") == 0) {
-            vars = split(tmp, 5);  // parametri: tipo, pid, indice, stato, tempo di accensione,
+            vars = split(tmp);  // parametri: tipo, pid, indice, stato, tempo di accensione,
             int status = atoi(vars[3]);
             sprintf(pipe_message, "0|0");
 
@@ -285,7 +290,7 @@ void __switch(char buf[][MAX_BUF_SIZE], int *children_pids) {
         }
     } else if (strncmp(tmp, "2", 1) == 0) {  // Fridge
         if (strcmp(buf[2], "apertura") == 0) {
-            vars = split(tmp, 8);  // parametri: tipo, pid, indice, stato, tempo di accensione
+            vars = split(tmp);  // parametri: tipo, pid, indice, stato, tempo di accensione
             int status = atoi(vars[3]);
             sprintf(pipe_message, "0|0");
 
@@ -321,7 +326,7 @@ void __switch(char buf[][MAX_BUF_SIZE], int *children_pids) {
             return;
         }
 
-        vars = split(tmp, 5);  // parametri: tipo, pid, indice, stato, tempo di accensione
+        vars = split(tmp);  // parametri: tipo, pid, indice, stato, tempo di accensione
         int status = atoi(vars[3]);
         sprintf(pipe_message, "0|0");
 
@@ -381,13 +386,3 @@ void cleanup_sig(int sig) {
     printf("Chiusura della centralina in corso...\n");
     kill(0, 9);
 }
-/*
-void ignore_sig(int sig) {
-    signal(sig, SIG_IGN);
-    printf("Ignoro il segnale?\n");
-}*/
-/*
-void handle_sig(int signal) {
-    printf("Spegnimento della centralina solo tramite Launcher, Premere invio per proseguire\n");
-}
-*/

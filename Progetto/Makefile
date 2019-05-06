@@ -6,7 +6,8 @@ main: build
 build: shell bulb fridge window
 	rm -f -r /tmp/ipc
 	mkdir /tmp/ipc
-	echo "./bin/shell" > run
+	rm -f ./run
+	ln -s ./bin/shell ./run
 	chmod +x run
 
 launcher: util shell launcher.c

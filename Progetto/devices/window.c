@@ -48,7 +48,7 @@ void sighandle_usr2(int sig) {
     char tmp[MAX_BUF_SIZE];
 
     read(fd, tmp, MAX_BUF_SIZE);
-    char** vars = split(tmp, 2);
+    char** vars = split_fixed(tmp, 2);
 
     if (atoi(vars[0]) == 0) {
         if (!status) {
