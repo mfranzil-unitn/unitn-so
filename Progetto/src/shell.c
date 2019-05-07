@@ -160,28 +160,28 @@ int get_by_index(int in, int *children_pids) {
 
 void list(char buf[][MAX_BUF_SIZE], int *children_pids) {
     kill(0, SIGUSR1);
-    char tmp[MAX_BUF_SIZE];
+    char tmp[MAX_BUF_SIZE / 2];
     char *pipe_str = NULL;
 
-    int i;
+    int i;/*
     printf("Raccolta dati in corso...");
     fflush(stdout);
-    sleep(2);
-    
+    sleep(2);*/
+
     for (i = 0; i < MAX_CHILDREN; i++) {
         if (children_pids[i] != -1) {
             pipe_str = pipename(children_pids[i]);
             int fd = open(pipe_str, O_RDONLY);
             if (fd > 0) {
-                read(fd, tmp, 512);
+                read(fd, tmp, MAX_BUF_SIZE / 2);
                 char **vars = split(tmp);
                 printf("Dispositivo: %s, PID %s, nome %s\n", vars[0], vars[1], vars[2]);
                 // Pulizia
                 free(vars);
-                free(pipe_str);
                 close(fd);
                 tmp[0] = '\0';
             }
+            free(pipe_str);
         }
     }
 }

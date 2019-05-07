@@ -3,7 +3,12 @@ Materiale/
 Esami/
 Slide/
 .vscode/
-Progetto/ProgettoSO.pdf
+Progetto/.idea/
+Progetto/.vscode/
+Progetto/documents/
+Progetto/bin/
+Progetto/run
+
 
 # Prerequisites
 *.d

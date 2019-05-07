@@ -29,7 +29,8 @@ void sighandle_usr1(int sig) {
     sprintf(buffer, "1|%i|%i|%i|%i",
             pid, __index, status, (int)time_on);
 
-    write(fd, buffer, MAX_BUF_SIZE);
+    int writ = write(fd, buffer, MAX_BUF_SIZE);
+    printf("%d", writ);
 }
 
 void sighandle_usr2(int sig) {
