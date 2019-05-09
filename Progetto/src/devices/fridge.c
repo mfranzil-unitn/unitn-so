@@ -1,15 +1,15 @@
 #include <fcntl.h>
 #include <signal.h>
-#include <stdlib.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <time.h>
 #include "../util.h"
 
 // Frigo = 2
 
-int fd;                // file descriptor della pipe verso il padre
-char* pipe_fd = NULL;  // nome della pipe
-char log_buf[MAX_BUF_SIZE / 4];     // buffer della pipe // SE CI SONO PROBLEMI; GUARDA QUI
+int fd;                          // file descriptor della pipe verso il padre
+char* pipe_fd = NULL;            // nome della pipe
+char log_buf[MAX_BUF_SIZE / 4];  // buffer della pipe // SE CI SONO PROBLEMI; GUARDA QUI
 
 int pid, __index, delay, perc, temp;  // variabili di stato
 

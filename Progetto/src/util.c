@@ -1,6 +1,6 @@
 #include "util.h"
 
-char** split(char* __buf) {
+char **split(char *__buf) {
     // Divide una stringa presa dalla pipe
     // a seconda del dispositivo.
 
@@ -9,7 +9,7 @@ char** split(char* __buf) {
     int device = __buf[0] - '0';
     int __count;
 
-    switch(device) {
+    switch (device) {
         case BULB:
             __count = BULB_PARAMETERS;
             break;
@@ -36,8 +36,8 @@ char** split(char* __buf) {
     return vars;
 }
 
-char** split_fixed(char* __buf, int __count) {
-        char *tokenizer = strtok(__buf, "|");
+char **split_fixed(char *__buf, int __count) {
+    char *tokenizer = strtok(__buf, "|");
     char **vars = malloc(__count * sizeof(char *));
     int j = 0;
 
@@ -60,4 +60,3 @@ char *getUserName() {
     }
     return "host";
 }
-

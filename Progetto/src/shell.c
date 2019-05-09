@@ -2,15 +2,15 @@
 
 int ppid;
 
-void handle_sig(int sig){ 	
-	kill(ppid,SIGTERM);
-	}
-	
-// structure for message queue 
-struct mesg_buffer { 
-    long mesg_type; 
-    char mesg_text[MAX_BUF_SIZE]; 
-} message; 
+void handle_sig(int sig) {
+    kill(ppid, SIGTERM);
+}
+
+// structure for message queue
+struct mesg_buffer {
+    long mesg_type;
+    char mesg_text[MAX_BUF_SIZE];
+} message;
 
 int changed = 0;
 
@@ -38,16 +38,15 @@ int main(int argc, char *argv[]) {
     system("clear");
     char *name = getUserName();
 
-    
     //PID del launcher.
-	ppid = atoi(argv[1]);
+    ppid = atoi(argv[1]);
 
-	//Pipe per comunicazione del numero di devices.
+    //Pipe per comunicazione del numero di devices.
     int fd = open(SHPM, O_WRONLY);
 
     //Scrivo il pid della centralina, dato che non è figlia diretta di program manager, sulla pipe.
     char str[16];
-	sprintf(str, "%d", (int)getpid());
+    sprintf(str, "%d", (int)getpid());
     write(fd, str, 16);
     close(fd);
     ////FINE MODIFICAAAAAAAAAAAAAAAAAAAAAAA
@@ -55,51 +54,50 @@ int main(int argc, char *argv[]) {
     /////MODIFICAAAAAAAAAAAAAAAAAAAAA
     signal(SIGHUP, handle_sig);
 
-	//CREO MESSAGE QUEUE TRA SHELL E LAUNCHERRRRRRRRRRRRRRR
-	key_t key;
-	key = ftok("progfile",65);
-	int msgid;
-	msgid = msgget(key, 0666 | IPC_CREAT); 	
-	message.mesg_type = 1;
+    //CREO MESSAGE QUEUE TRA SHELL E LAUNCHERRRRRRRRRRRRRRR
+    key_t key;
+    key = ftok("progfile", 65);
+    int msgid;
+    msgid = msgget(key, 0666 | IPC_CREAT);
+    message.mesg_type = 1;
 
-	
-	char current_msg[MAX_BUF_SIZE] = "0|";
+    char current_msg[MAX_BUF_SIZE] = "0|";
 
     //setpgid(0, getpid());
 
     while (1) {
-	//Scrive numero devices e elenco dei pid a launcher.
-	if(changed){
-		//Ripulisco Forzatamente.
-		msgrcv(msgid, &message, MAX_BUF_SIZE, 1, IPC_NOWAIT); 
-		char tmp_c[MAX_BUF_SIZE];
-		sprintf(tmp_c, "%d|", device_i);
-		char child[8];
-		int i=1;
-		while(i <= device_i){
-			sprintf(child,"%d|", children_pids[i]);
-			strcat(tmp_c,child);
-			i++;
-		}
-		sprintf(message.mesg_text, "%s", tmp_c);
-		sprintf(current_msg,"%s", message.mesg_text);
-		msgsnd(msgid, &message, MAX_BUF_SIZE, 0); 
-		changed = 0;
-	}else{
-		//Ripulisco forzatamente.
-		msgrcv(msgid, &message, MAX_BUF_SIZE, 1, IPC_NOWAIT); 
-		sprintf(message.mesg_text,"%s", current_msg);
-		msgsnd(msgid,&message, MAX_BUF_SIZE,0);
-		}
-		
-		printf("\e[92m%s\e[39m:\e[31mCentralina\033[0m$ ", name);
+        //Scrive numero devices e elenco dei pid a launcher.
+        if (changed) {
+            //Ripulisco Forzatamente.
+            msgrcv(msgid, &message, MAX_BUF_SIZE, 1, IPC_NOWAIT);
+            char tmp_c[MAX_BUF_SIZE];
+            sprintf(tmp_c, "%d|", device_i);
+            char child[8];
+            int i = 1;
+            while (i <= device_i) {
+                sprintf(child, "%d|", children_pids[i]);
+                strcat(tmp_c, child);
+                i++;
+            }
+            sprintf(message.mesg_text, "%s", tmp_c);
+            sprintf(current_msg, "%s", message.mesg_text);
+            msgsnd(msgid, &message, MAX_BUF_SIZE, 0);
+            changed = 0;
+        } else {
+            //Ripulisco forzatamente.
+            msgrcv(msgid, &message, MAX_BUF_SIZE, 1, IPC_NOWAIT);
+            sprintf(message.mesg_text, "%s", current_msg);
+            msgsnd(msgid, &message, MAX_BUF_SIZE, 0);
+        }
+
+        printf("\e[92m%s\e[39m:\e[31mCentralina\033[0m$ ", name);
 
         // Parser dei comandi
         ch = ' ';
         ch_i = -1;
         cmd_n = 0;
         buf[cmd_n][0] = '\0';
-        while (ch != EOF && ch != '\n'){
+        while (ch != EOF && ch != '\n') {
             ch = getchar();
             if (ch == ' ') {
                 buf[cmd_n++][++ch_i] = '\0';
@@ -115,7 +113,7 @@ int main(int argc, char *argv[]) {
         //   }
 
         if (strcmp(buf[0], "exit") == 0) {  // supponiamo che l'utente scriva solo "exit" per uscire
-			kill(ppid,SIGTERM);
+            kill(ppid, SIGTERM);
             break;
         } else if (strcmp(buf[0], "\0") == 0) {  // a capo a vuoto
             continue;
@@ -152,7 +150,6 @@ int main(int argc, char *argv[]) {
         } else {  //tutto il resto
             printf("Comando non riconosciuto. Usa help per visualizzare i comandi disponibili\n");
         }
-        		
     }
     free(buf);
     return 0;
@@ -169,13 +166,13 @@ int get_by_index(int in, int *children_pids) {
     char *pipe_str = NULL;
     int res = -1;
 
-    int i;    
-    for (i = 0; i < MAX_CHILDREN; i++) { // l'indice i è logicamente indipendente dal nome/indice del dispositivo
+    int i;
+    for (i = 0; i < MAX_CHILDREN; i++) {  // l'indice i è logicamente indipendente dal nome/indice del dispositivo
         int children_pid = children_pids[i];
         char tmp[MAX_BUF_SIZE];
 
         if (children_pid == -1) {
-            continue; // dispositivo non più nei figli
+            continue;  // dispositivo non più nei figli
         }
 
         kill(children_pid, SIGUSR1);
@@ -191,7 +188,7 @@ int get_by_index(int in, int *children_pids) {
             free(pipe_str);
             close(fd);
 
-            if (tmp_int == in) {  
+            if (tmp_int == in) {
                 return children_pid;
             }
         }
@@ -200,17 +197,17 @@ int get_by_index(int in, int *children_pids) {
 }
 
 void list(char buf[][MAX_BUF_SIZE], int *children_pids) {
-        // prende come input l'indice/nome del dispositivo, ritorna il PID
+    // prende come input l'indice/nome del dispositivo, ritorna il PID
     char *pipe_str = NULL;
     int res = -1;
 
-    int i;    
-    for (i = 0; i < MAX_CHILDREN; i++) { // l'indice i è logicamente indipendente dal nome/indice del dispositivo
+    int i;
+    for (i = 0; i < MAX_CHILDREN; i++) {  // l'indice i è logicamente indipendente dal nome/indice del dispositivo
         int children_pid = children_pids[i];
         char tmp[MAX_BUF_SIZE];
 
         if (children_pid == -1) {
-            continue; // dispositivo non più nei figli
+            continue;  // dispositivo non più nei figli
         }
 
         kill(children_pid, SIGUSR1);
@@ -314,10 +311,10 @@ void __switch(char buf[][MAX_BUF_SIZE], int *children_pids) {
         return;
     }
 
-    char *pipe_str = pipename(pid);  // Nome della pipe
-    char tmp[MAX_BUF_SIZE];          // dove ci piazzo l'output della pipe
-    char **vars = NULL;              // output della pipe, opportunamente diviso
-    char pipe_message[MAX_BUF_SIZE];           // buffer per la pipe
+    char *pipe_str = pipename(pid);   // Nome della pipe
+    char tmp[MAX_BUF_SIZE];           // dove ci piazzo l'output della pipe
+    char **vars = NULL;               // output della pipe, opportunamente diviso
+    char pipe_message[MAX_BUF_SIZE];  // buffer per la pipe
 
     if (kill(pid, SIGUSR1) != 0) {
         // apertura della pipe fallita
@@ -421,7 +418,7 @@ void add(char buf[][MAX_BUF_SIZE], int *device_i, int *children_pids) {
         int actual_index = -1;
 
         if (*device_i >= MAX_CHILDREN) {
-            int i; // del ciclo
+            int i;  // del ciclo
             for (i = 0; i < MAX_CHILDREN; i++) {
                 if (children_pids[i] == -1) {
                     actual_index = i;
@@ -457,7 +454,7 @@ void add(char buf[][MAX_BUF_SIZE], int *device_i, int *children_pids) {
         } else {  // Padre
             children_pids[actual_index] = pid;
             printf("Aggiunta una %s con PID %i e indice %i\n", buf[1], pid, *device_i);
-			changed = 1;
+            changed = 1;
             return;
         }
     } else {
@@ -473,9 +470,9 @@ void del(char buf[][MAX_BUF_SIZE], int *children_pids) {
         return;
     }
 
-    char* pipe_str = pipename(pid);
-    char tmp[MAX_BUF_SIZE];          // dove ci piazzo l'output della pipe
-    char** vars = NULL;
+    char *pipe_str = pipename(pid);
+    char tmp[MAX_BUF_SIZE];  // dove ci piazzo l'output della pipe
+    char **vars = NULL;
 
     if (kill(pid, SIGUSR1) != 0) {
         printf("Errore! Sistema: codice errore %i\n", errno);
@@ -492,8 +489,8 @@ void del(char buf[][MAX_BUF_SIZE], int *children_pids) {
     free(pipe_str);
     free(vars);
 
-    kill(pid, 9); // da modificare con un comando opportuno...
-    remove(pipe_str); // RIP pipe
+    kill(pid, 9);      // da modificare con un comando opportuno...
+    remove(pipe_str);  // RIP pipe
 
     int i;
     for (i = 0; i < MAX_CHILDREN; i++) {
@@ -506,6 +503,6 @@ void del(char buf[][MAX_BUF_SIZE], int *children_pids) {
 
 void cleanup_sig(int sig) {
     printf("Chiusura della centralina in corso...\n");
-    kill(ppid,SIGTERM);
+    kill(ppid, SIGTERM);
     kill(0, 9);
 }

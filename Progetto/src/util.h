@@ -1,9 +1,9 @@
 #ifndef UTIL_H
 #define UTIL_H
 
+#include <pwd.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <pwd.h>
 #include <string.h>
 
 #define MAX_BUF_SIZE 1024
@@ -28,7 +28,7 @@
 #define PIPES_POSITIONS "/tmp/ipc/"
 #define SHPM "/tmp/myshpm"
 
-char* getUserName();
+char *getUserName();
 char **split(char *__buf);
 char **split_fixed(char *__buf, int __count);
 
