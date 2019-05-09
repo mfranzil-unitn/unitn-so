@@ -146,7 +146,7 @@ int main(int argc, char *argv[]) {
             if (cmd_n != 1) {
                 printf(DEL_STRING);
             } else {
-                del(buf, &device_i, children_pids);
+                del(buf, children_pids);
                 continue;
             }
         } else {  //tutto il resto
@@ -270,7 +270,6 @@ void info(char buf[][MAX_BUF_SIZE], int *children_pids) {
     }
 
     int fd = open(pipe_str, O_RDONLY);
-    printf("%d", fd);
     read(fd, tmp, MAX_BUF_SIZE);
     close(fd);
     free(pipe_str);
@@ -464,7 +463,45 @@ void add(char buf[][MAX_BUF_SIZE], int *device_i, int *children_pids) {
     } else {
         printf("Dispositivo non ancora supportato\n");
     }
+}
 
+void del(char buf[][MAX_BUF_SIZE], int *children_pids) {
+    int pid = get_by_index(atoi(buf[1]), children_pids);
+
+    if (pid == -1) {
+        printf("Errore! Non esiste questo dispositivo.\n");
+        return;
+    }
+
+    char* pipe_str = pipename(pid);
+    char tmp[MAX_BUF_SIZE];          // dove ci piazzo l'output della pipe
+    char** vars = NULL;
+
+    if (kill(pid, SIGUSR1) != 0) {
+        printf("Errore! Sistema: codice errore %i\n", errno);
+        return;
+    }
+
+    int fd = open(pipe_str, O_RDONLY);
+    read(fd, tmp, MAX_BUF_SIZE);
+
+    vars = split(tmp);
+    printf("Rimozione del dispositivo tipo (da modificare pls) %s con PID %s e indice %s\n", vars[0], vars[1], vars[2]);
+
+    close(fd);
+    free(pipe_str);
+    free(vars);
+
+    kill(pid, 9); // da modificare con un comando opportuno...
+    remove(pipe_str); // RIP pipe
+
+    int i;
+    for (i = 0; i < MAX_CHILDREN; i++) {
+        if (children_pids[i] == pid) {
+            children_pids[i] = -1;
+            return;
+        }
+    }
 }
 
 void cleanup_sig(int sig) {
@@ -472,5 +509,3 @@ void cleanup_sig(int sig) {
     kill(ppid,SIGTERM);
     kill(0, 9);
 }
-
-

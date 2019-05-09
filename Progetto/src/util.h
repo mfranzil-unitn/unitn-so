@@ -21,7 +21,7 @@
 #define FRIDGE_PARAMETERS 8
 #define WINDOW_PARAMETERS 5
 
-#define MAX_CHILDREN 20
+#define MAX_CHILDREN 10
 
 #define SHELL_POSITION "bin/shell"
 #define DEVICES_POSITIONS "bin/devices/"

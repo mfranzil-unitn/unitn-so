@@ -46,11 +46,15 @@
 
 void handle_sig(int signal);
 char* pipename(int pid);
+
 int get_by_index(int in, int* children_pids);
+
 void list(char buf[][MAX_BUF_SIZE], int* children_pids);
 void info(char buf[][MAX_BUF_SIZE], int* children_pids);
 void __switch(char buf[][MAX_BUF_SIZE], int* children_pids);
 void add(char buf[][MAX_BUF_SIZE], int* device_i, int* children_pids);
+void del(char buf[][MAX_BUF_SIZE], int *children_pids);
+
 void ignore_sig(int sig);
 void cleanup_sig(int sig);
 
