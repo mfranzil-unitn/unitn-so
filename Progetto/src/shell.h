@@ -1,18 +1,6 @@
 #ifndef SHELL_H
 #define SHELL_H
 
-#include <errno.h>
-#include <fcntl.h>
-#include <pwd.h>
-#include <signal.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <sys/ipc.h>
-#include <sys/msg.h>
-#include <sys/stat.h>
-#include <sys/types.h>
-#include <unistd.h>
 #include "util.h"
 
 #define HELP_STRING \
@@ -33,28 +21,11 @@
                                 l’interruttore “open” su “on” (ad esempio apre una finestra)\n\
     info <id>                   mostra i dettagli del dispositivo\n"
 
-#define SWITCH_STRING \
-    "Sintassi: switch <id> <label> <pos>\n\
-    Interruttori disponibili: bulb: accensione, fridge: temperatura/apertura, window: apertura\n"
-
-#define ADD_STRING \
-    "Sintassi: add <device>\nDispositivi disponibili: bulb, window, fridge, hub, timer\n"
-
-#define DEL_STRING \
-    "Sintassi del <device>\n"
-
-void handle_sig(int signal);
-char* pipename(int pid);
-
-int get_by_index(int in, int* children_pids);
-
 void list(char buf[][MAX_BUF_SIZE], int* children_pids);
-void info(char buf[][MAX_BUF_SIZE], int* children_pids);
-void __switch(char buf[][MAX_BUF_SIZE], int* children_pids);
 void add(char buf[][MAX_BUF_SIZE], int* device_i, int* children_pids);
 void del(char buf[][MAX_BUF_SIZE], int* children_pids);
 
-void ignore_sig(int sig);
 void cleanup_sig(int sig);
+void handle_sig(int signal);
 
 #endif
