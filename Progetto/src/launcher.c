@@ -23,7 +23,7 @@ pid_t shell_pid = -1;
                                       <label> in posizione <pos>, ad esempio:\n\
                                       \"switch 3 open on\" imposta per il dispositivo 3\n\
                                       l’interruttore “open” su “on” (ad esempio apre una finestra)\n\
-    info <id>                         mostra i dettagli del dispositivo"    
+    info <id>                         mostra i dettagli del dispositivo\n"  
 
 // structure for message queue 
 struct mesg_buffer { 
@@ -194,7 +194,7 @@ int main(int argc, char *argv[]) {
                     if (strcmp(buf[3], "on") == 0 && shell_pid == -1) { //Se non è ancora accesa => shell_pid == -1
                         pid_t pid = fork();
                         if(pid < 0){
-				printf("Error in fork\n");
+				printf("Errore durante il fork\n");
 				exit(1);
 			}
                         if (pid == 0) { //Processo figlio che aprirà terminale e lancerà la shell.
@@ -278,10 +278,10 @@ int main(int argc, char *argv[]) {
 							__switch(buf,device_pids);
 							}
 						else{
-							printf("Id non presente\n");
+							printf("ID non presente\n");
 							}
 						
-						}else{printf("Azione non disponibile a centralina spenta\n");}
+						}else{printf("Azione non disponibile a centralina spenta!\n");}
                 }
             }
         else if (strcmp(buf[0], "restart") == 0) {
