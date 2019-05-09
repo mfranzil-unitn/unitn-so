@@ -1,5 +1,4 @@
 #include "shell.h"
-#include "util.h"
 
 int ppid;
 
@@ -14,7 +13,7 @@ struct mesg_buffer {
 } message; 
 
 int changed = 0;
-  
+
 int main(int argc, char *argv[]) {
     signal(SIGINT, cleanup_sig);
     signal(SIGTERM, cleanup_sig);
@@ -44,8 +43,7 @@ int main(int argc, char *argv[]) {
 	ppid = atoi(argv[1]);
 
 	//Pipe per comunicazione del numero di devices.
-	char *shpm = "/tmp/myshpm";
-    int fd = open(shpm, O_WRONLY);
+    int fd = open(SHPM, O_WRONLY);
 
     //Scrivo il pid della centralina, dato che non è figlia diretta di program manager, sulla pipe.
     char str[16];
@@ -96,7 +94,6 @@ int main(int argc, char *argv[]) {
 		
 		printf("\e[92m%s\e[39m:\e[31mCentralina\033[0m$ ", name);
 
-
         // Parser dei comandi
         ch = ' ';
         ch_i = -1;
@@ -145,19 +142,13 @@ int main(int argc, char *argv[]) {
                 add(buf, &device_i, children_pids);
                 continue;
             }
-        } else if (strcmp(buf[0], "restart") == 0) {
-            char *const args[] = {NULL};
-            int pid = fork();
-            if (pid == 0) {
-                execvp("make", args);
-                exit(0);
+        } else if (strcmp(buf[0], "del") == 0) {
+            if (cmd_n != 1) {
+                printf(DEL_STRING);
             } else {
-                wait(NULL);
-                signal(SIGQUIT, SIG_IGN);
-                kill(-getppid(), SIGQUIT);
-                execvp("./bin/shell", args);
+                del(buf, &device_i, children_pids);
+                continue;
             }
-            exit(0);
         } else {  //tutto il resto
             printf("Comando non riconosciuto. Usa help per visualizzare i comandi disponibili\n");
         }
@@ -169,58 +160,85 @@ int main(int argc, char *argv[]) {
 
 char *pipename(int pid) {
     char *pipe_str = malloc(4 * sizeof(char));
-    sprintf(pipe_str, "/tmp/ipc/%i", pid);
+    sprintf(pipe_str, "%s%i", PIPES_POSITIONS, pid);
     return pipe_str;
 }
 
 int get_by_index(int in, int *children_pids) {
-    // manda un messaggio in broadcast per inviare le informazioni di tutti sulle rispettive pipe.
-    // per adesso non ha molto senso, in quando dato l'indice i children_pids[i] ha il pid, ma questa info
-    // non possiamo tenerla e quindi bisogna usare il codice sotto, levando l'array come struttura dati
-    // (dovremo probabilmente creare una lista?).
+    // prende come input l'indice/nome del dispositivo, ritorna il PID
+    char *pipe_str = NULL;
+    int res = -1;
 
-    // Per adesso fa segm. fault
-    /*
-    kill(0, SIGUSR1);
-    char tmp[512];
-    char *pipe_str;
-    char** vars;
+    int i;    
+    for (i = 0; i < MAX_CHILDREN; i++) { // l'indice i è logicamente indipendente dal nome/indice del dispositivo
+        int children_pid = children_pids[i];
+        char tmp[MAX_BUF_SIZE];
 
-    int i;
-    for (i = 0; i < MAX_CHILDREN; i++) {
-        if (children_pids[i] != -1) {
-            pipe_str = pipename(children_pids[i]);
-            int fd = open(pipe_str, O_RDONLY);
-            if (fd > 0) {
-                read(fd, tmp, 512);
-                vars = sp-lit(tmp, 3);
-                if (atoi(vars[2]) == in) printf("%s\n", vars[3]);
+        if (children_pid == -1) {
+            continue; // dispositivo non più nei figli
+        }
+
+        kill(children_pid, SIGUSR1);
+        pipe_str = pipename(children_pid);
+        int fd = open(pipe_str, O_RDONLY);
+
+        if (fd > 0) {
+            read(fd, tmp, MAX_BUF_SIZE);
+            char **vars = split(tmp);
+            int tmp_int = atoi(vars[2]);
+            // Pulizia
+            free(vars);
+            free(pipe_str);
+            close(fd);
+
+            if (tmp_int == in) {  
+                return children_pid;
             }
         }
     }
-
-    sleep(3);
-*/
-    if (in >= MAX_CHILDREN || in < 0) return -1;
-    return children_pids[in] == -1 ? -1 : children_pids[in];
+    return res;
 }
 
 void list(char buf[][MAX_BUF_SIZE], int *children_pids) {
-    kill(0, SIGUSR1);
+        // prende come input l'indice/nome del dispositivo, ritorna il PID
+    char *pipe_str = NULL;
+    int res = -1;
+
+    int i;    
+    for (i = 0; i < MAX_CHILDREN; i++) { // l'indice i è logicamente indipendente dal nome/indice del dispositivo
+        int children_pid = children_pids[i];
+        char tmp[MAX_BUF_SIZE];
+
+        if (children_pid == -1) {
+            continue; // dispositivo non più nei figli
+        }
+
+        kill(children_pid, SIGUSR1);
+        pipe_str = pipename(children_pid);
+        int fd = open(pipe_str, O_RDONLY);
+
+        if (fd > 0) {
+            read(fd, tmp, MAX_BUF_SIZE);
+            char **vars = split(tmp);
+            printf("Dispositivo: %s, PID %s, nome %s\n", vars[0], vars[1], vars[2]);
+            // Pulizia
+            free(vars);
+            free(pipe_str);
+            close(fd);
+        }
+    }
+
+    /*kill(0, SIGUSR1);
     char tmp[MAX_BUF_SIZE];
     char *pipe_str = NULL;
 
-    int i;
-    printf("Raccolta dati in corso...");
-    fflush(stdout);
-    sleep(2);
-    
+    int i;    
     for (i = 0; i < MAX_CHILDREN; i++) {
         if (children_pids[i] != -1) {
             pipe_str = pipename(children_pids[i]);
             int fd = open(pipe_str, O_RDONLY);
             if (fd > 0) {
-                read(fd, tmp, 512);
+                read(fd, tmp, MAX_BUF_SIZE);
                 char **vars = split(tmp);
                 printf("Dispositivo: %s, PID %s, nome %s\n", vars[0], vars[1], vars[2]);
                 // Pulizia
@@ -230,7 +248,7 @@ void list(char buf[][MAX_BUF_SIZE], int *children_pids) {
                 tmp[0] = '\0';
             }
         }
-    }
+    }*/
 }
 
 void info(char buf[][MAX_BUF_SIZE], int *children_pids) {
@@ -300,7 +318,7 @@ void __switch(char buf[][MAX_BUF_SIZE], int *children_pids) {
     char *pipe_str = pipename(pid);  // Nome della pipe
     char tmp[MAX_BUF_SIZE];          // dove ci piazzo l'output della pipe
     char **vars = NULL;              // output della pipe, opportunamente diviso
-    char pipe_message[32];           // buffer per la pipe
+    char pipe_message[MAX_BUF_SIZE];           // buffer per la pipe
 
     if (kill(pid, SIGUSR1) != 0) {
         // apertura della pipe fallita
@@ -319,11 +337,11 @@ void __switch(char buf[][MAX_BUF_SIZE], int *children_pids) {
             sprintf(pipe_message, "0|0");
 
             if (strcmp(buf[3], "on") == 0 && status == 0) {
-                write(fd, pipe_message, sizeof(pipe_message));
+                write(fd, pipe_message, MAX_BUF_SIZE);
                 kill(pid, SIGUSR2);
                 printf("Lampadina accesa.\n");
             } else if (strcmp(buf[3], "off") == 0 && status == 1) {
-                write(fd, pipe_message, sizeof(pipe_message));
+                write(fd, pipe_message, MAX_BUF_SIZE);
                 kill(pid, SIGUSR2);
                 printf("Lampadina spenta.\n");
             } else if (strcmp(buf[3], "off") == 0 && status == 0) {  // Spengo una lampadina spenta
@@ -343,11 +361,11 @@ void __switch(char buf[][MAX_BUF_SIZE], int *children_pids) {
             sprintf(pipe_message, "0|0");
 
             if (strcmp(buf[3], "on") == 0 && status == 0) {
-                write(fd, pipe_message, sizeof(pipe_message));
+                write(fd, pipe_message, MAX_BUF_SIZE);
                 kill(pid, SIGUSR2);
                 printf("Frigorifero aperto.\n");
             } else if (strcmp(buf[3], "off") == 0 && status == 1) {
-                write(fd, pipe_message, sizeof(pipe_message));
+                write(fd, pipe_message, MAX_BUF_SIZE);
                 kill(pid, SIGUSR2);
                 printf("Frigorifero chiuso.\n");
             } else if (strcmp(buf[3], "off") == 0 && status == 0) {  // Chiudo frigo già chiuso
@@ -360,7 +378,7 @@ void __switch(char buf[][MAX_BUF_SIZE], int *children_pids) {
         } else if (strcmp(buf[2], "temperatura") == 0) {
             sprintf(pipe_message, "1|%s", buf[3]);
 
-            write(fd, pipe_message, sizeof(pipe_message));
+            write(fd, pipe_message, MAX_BUF_SIZE);
             kill(pid, SIGUSR2);
             printf("Temperatura modificata con successo a %s°C.\n", buf[3]);
         } else {
@@ -401,6 +419,23 @@ void add(char buf[][MAX_BUF_SIZE], int *device_i, int *children_pids) {
     if (strcmp(buf[1], "bulb") == 0 || strcmp(buf[1], "fridge") == 0 || strcmp(buf[1], "window") == 0) {
         // Aumento l'indice progressivo dei dispositivi
         (*device_i)++;
+        int actual_index = -1;
+
+        if (*device_i >= MAX_CHILDREN) {
+            int i; // del ciclo
+            for (i = 0; i < MAX_CHILDREN; i++) {
+                if (children_pids[i] == -1) {
+                    actual_index = i;
+                    break;
+                }
+            }
+            if (i == MAX_CHILDREN) {
+                printf("Non c'è più spazio! Rimuovi qualche dispositivo.\n");
+                return;
+            }
+        } else {
+            actual_index = *device_i - 1;
+        }
 
         pid_t pid = fork();
         if (pid == 0) {  // Figlio
@@ -413,7 +448,7 @@ void add(char buf[][MAX_BUF_SIZE], int *device_i, int *children_pids) {
             sprintf(index_str, "%d", *device_i);
 
             char program_name[MAX_BUF_SIZE / 4];
-            sprintf(program_name, "./%s%s", "bin/", buf[1]);
+            sprintf(program_name, "./%s%s", DEVICES_POSITIONS, buf[1]);
 
             // Metto gli argomenti in un array e faccio exec
             char *const args[] = {program_name, index_str, pipe_str, NULL};
@@ -421,8 +456,8 @@ void add(char buf[][MAX_BUF_SIZE], int *device_i, int *children_pids) {
 
             exit(0);
         } else {  // Padre
+            children_pids[actual_index] = pid;
             printf("Aggiunta una %s con PID %i e indice %i\n", buf[1], pid, *device_i);
-            children_pids[*device_i] = pid;
 			changed = 1;
             return;
         }
@@ -436,7 +471,6 @@ void cleanup_sig(int sig) {
     printf("Chiusura della centralina in corso...\n");
     kill(ppid,SIGTERM);
     kill(0, 9);
-
 }
 
 

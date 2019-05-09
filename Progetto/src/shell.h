@@ -15,7 +15,6 @@
 #include <unistd.h>
 #include "util.h"
 
-#define MAX_CHILDREN 100
 
 #define HELP_STRING \
     "Comandi disponibili:\n\
@@ -33,8 +32,7 @@
                                 <label> in posizione <pos>, ad esempio:\n\
                                 \"switch 3 open on\" imposta per il dispositivo 3\n\
                                 l’interruttore “open” su “on” (ad esempio apre una finestra)\n\
-    info <id>                   mostra i dettagli del dispositivo\n\
-    restart                     ricompila il progetto e riavvia la shell\n"
+    info <id>                   mostra i dettagli del dispositivo\n"
 
 #define SWITCH_STRING \
     "Sintassi: switch <id> <label> <pos>\n\
@@ -42,6 +40,9 @@
 
 #define ADD_STRING \
     "Sintassi: add <device>\nDispositivi disponibili: bulb, window, fridge, hub, timer\n"
+
+#define DEL_STRING \
+    "Sintassi del <device>\n"
 
 void handle_sig(int signal);
 char* pipename(int pid);

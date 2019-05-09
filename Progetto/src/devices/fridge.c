@@ -9,7 +9,7 @@
 
 int fd;                // file descriptor della pipe verso il padre
 char* pipe_fd = NULL;  // nome della pipe
-char log_buf[512];     // buffer della pipe
+char log_buf[MAX_BUF_SIZE / 4];     // buffer della pipe // SE CI SONO PROBLEMI; GUARDA QUI
 
 int pid, __index, delay, perc, temp;  // variabili di stato
 

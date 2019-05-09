@@ -21,6 +21,13 @@
 #define FRIDGE_PARAMETERS 8
 #define WINDOW_PARAMETERS 5
 
+#define MAX_CHILDREN 20
+
+#define SHELL_POSITION "bin/shell"
+#define DEVICES_POSITIONS "bin/devices/"
+#define PIPES_POSITIONS "/tmp/ipc/"
+#define SHPM "/tmp/myshpm"
+
 char* getUserName();
 char **split(char *__buf);
 char **split_fixed(char *__buf, int __count);
