@@ -18,14 +18,14 @@ int main(int argc, char *argv[]) {
     int j;
 
     int device_i = 0;        // indice progressivo dei dispositivi
-    int children_pids[100];  // array contenenti i PID dei figli
+    int children_pids[MAX_CHILDREN];  // array contenenti i PID dei figli
 
     for (j = 0; j < MAX_CHILDREN; j++) {
         children_pids[j] = -1;  // se è -1 non contiene nulla
     }
 
     system("clear");
-    char *name = getUserName();
+    char *name = get_shell_text();
 
     //PID del launcher.
     ppid = atoi(argv[1]);
@@ -158,7 +158,7 @@ void list(char buf[][MAX_BUF_SIZE], int *children_pids) {
         }
 
         kill(children_pid, SIGUSR1);
-        pipe_str = pipename(children_pid);
+        pipe_str = get_pipe_name(children_pid);
         int fd = open(pipe_str, O_RDONLY);
 
         if (fd > 0) {
@@ -179,7 +179,7 @@ void list(char buf[][MAX_BUF_SIZE], int *children_pids) {
     int i;    
     for (i = 0; i < MAX_CHILDREN; i++) {
         if (children_pids[i] != -1) {
-            pipe_str = pipename(children_pids[i]);
+            pipe_str = get_pipe_name(children_pids[i]);
             int fd = open(pipe_str, O_RDONLY);
             if (fd > 0) {
                 read(fd, tmp, MAX_BUF_SIZE);
@@ -220,7 +220,7 @@ void add(char buf[][MAX_BUF_SIZE], int *device_i, int *children_pids) {
         pid_t pid = fork();
         if (pid == 0) {  // Figlio
             // Apro una pipe per padre-figlio
-            char *pipe_str = pipename(getpid());
+            char *pipe_str = get_pipe_name(getpid());
             mkfifo(pipe_str, 0666);
 
             // Conversione a stringa dell'indice
@@ -258,7 +258,7 @@ void del(char buf[][MAX_BUF_SIZE], int *children_pids) {
         return;
     }
 
-    char *pipe_str = pipename(pid);
+    char *pipe_str = get_pipe_name(pid);
     char tmp[MAX_BUF_SIZE];  // dove ci piazzo l'output della pipe
     char **vars = NULL;
 

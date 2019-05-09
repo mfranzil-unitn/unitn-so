@@ -26,7 +26,7 @@ int main(int argc, char *argv[]) {
     //Creo PIPE verso shell.
     char *shpm = "/tmp/myshpm";
     mkfifo(shpm, 0666);
-    char *name = getUserName();
+    char *name = get_shell_text();
     //CREO MESSAGE QUEUE TRA SHELL E LAUNCHERRRRRRRRRRRRRRR
     key_t key;
     key = ftok("progfile", 65);
@@ -47,7 +47,7 @@ int main(int argc, char *argv[]) {
                 n_dev_str[q] = '\0';
                 n_devices = atoi(n_dev_str);
                 int __count = n_devices;
-                char tmp_buf[1024];
+                char tmp_buf[MAX_BUF_SIZE];
                 sprintf(tmp_buf, "%s", message.mesg_text);
                 char *tokenizer = strtok(tmp_buf, "|");
                 char **vars = malloc(__count * sizeof(char *));
@@ -222,7 +222,7 @@ void switch_launcher(char buf[][MAX_BUF_SIZE], int msgid, int *device_pids) {
             n_dev_str[q] = '\0';
             n_devices = atoi(n_dev_str);
             int __count = n_devices;
-            char tmp_buf[1024];
+            char tmp_buf[MAX_BUF_SIZE];
             sprintf(tmp_buf, "%s", message.mesg_text);
             char *tokenizer = strtok(tmp_buf, "|");
             char **vars = malloc(__count * sizeof(char *));
@@ -262,7 +262,7 @@ void info_launcher(char buf[][MAX_BUF_SIZE], int msgid, int *device_pids) {
             n_dev_str[q] = '\0';
             n_devices = atoi(n_dev_str);
             int __count = n_devices;
-            char tmp_buf[1024];
+            char tmp_buf[MAX_BUF_SIZE];
             sprintf(tmp_buf, "%s", message.mesg_text);
             char *tokenizer = strtok(tmp_buf, "|");
             char **vars = malloc(__count * sizeof(char *));

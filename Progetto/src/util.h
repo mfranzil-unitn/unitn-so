@@ -52,11 +52,11 @@ struct mesg_buffer {
     char mesg_text[MAX_BUF_SIZE];
 } message;
 
-char *getUserName();
 char **split(char *__buf);
 char **split_fixed(char *__buf, int __count);
-char *pipename(int pid);
 
+char *get_shell_text();
+char *get_pipe_name(int pid);
 int get_device_pid(int in, int *children_pids);
 void get_device_name(int device_type, char* buf);
 

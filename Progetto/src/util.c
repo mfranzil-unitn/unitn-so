@@ -49,7 +49,7 @@ char **split_fixed(char *__buf, int __count) {
     return vars;
 }
 
-char *getUserName() {
+char *get_shell_text() {
     int uid = geteuid();
     struct passwd *pw = getpwuid(uid);
     if (pw) {
@@ -61,7 +61,7 @@ char *getUserName() {
     return "host";
 }
 
-char *pipename(int pid) {
+char *get_pipe_name(int pid) {
     char *pipe_str = malloc(4 * sizeof(char));
     sprintf(pipe_str, "%s%i", PIPES_POSITIONS, pid);
     return pipe_str;
@@ -102,7 +102,7 @@ int get_device_pid(int device_identifier, int *children_pids) {
         }
 
         kill(children_pid, SIGUSR1);
-        pipe_str = pipename(children_pid);
+        pipe_str = get_pipe_name(children_pid);
         int fd = open(pipe_str, O_RDONLY);
 
         if (fd > 0) {
@@ -130,7 +130,7 @@ void __switch(char buf[][MAX_BUF_SIZE], int *children_pids) {
         return;
     }
 
-    char *pipe_str = pipename(pid);   // Nome della pipe
+    char *pipe_str = get_pipe_name(pid);   // Nome della pipe
     char tmp[MAX_BUF_SIZE];           // dove ci piazzo l'output della pipe
     char **vars = NULL;               // output della pipe, opportunamente diviso
     char pipe_message[MAX_BUF_SIZE];  // buffer per la pipe
@@ -238,7 +238,7 @@ void __info(char buf[][MAX_BUF_SIZE], int *children_pids) {
         return;
     }
 
-    char *pipe_str = pipename(pid);
+    char *pipe_str = get_pipe_name(pid);
     char **vars = NULL;
     char tmp[MAX_BUF_SIZE];  // dove ci piazzo l'output della pipe
 
