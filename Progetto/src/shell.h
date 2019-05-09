@@ -1,6 +1,8 @@
 #ifndef SHELL_H
 #define SHELL_H
 
+#include <sys/ipc.h> 
+#include <sys/msg.h> 
 #include <errno.h>
 #include <fcntl.h>
 #include <pwd.h>

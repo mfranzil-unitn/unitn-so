@@ -1,7 +1,8 @@
 .PHONY: build clean help targets
 
 CC = gcc
-CFLAGS = -std=gnu90 --pedantic
+CFLAGS = -std=gnu90
+CPEDANTIC = -std=gnu90 --pedantic
 
 BOLD_RED=\033[1;31m
 BOLD_GREEN=\033[1;32m

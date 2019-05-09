@@ -1,7 +1,5 @@
 #include "shell.h"
 #include "util.h"
-#include <sys/ipc.h> 
-#include <sys/msg.h> 
 
 int ppid;
 
@@ -12,7 +10,7 @@ void handle_sig(int sig){
 // structure for message queue 
 struct mesg_buffer { 
     long mesg_type; 
-    char mesg_text[100]; 
+    char mesg_text[MAX_BUF_SIZE]; 
 } message; 
 
 int changed = 0;
@@ -67,7 +65,7 @@ int main(int argc, char *argv[]) {
 	message.mesg_type = 1;
 
 	
-	char current_msg[1024] = "0|";
+	char current_msg[MAX_BUF_SIZE] = "0|";
 
     //setpgid(0, getpid());
 
@@ -75,8 +73,8 @@ int main(int argc, char *argv[]) {
 	//Scrive numero devices e elenco dei pid a launcher.
 	if(changed){
 		//Ripulisco Forzatamente.
-		msgrcv(msgid, &message, sizeof(message), 1, IPC_NOWAIT); 
-		char tmp_c[1024];
+		msgrcv(msgid, &message, MAX_BUF_SIZE, 1, IPC_NOWAIT); 
+		char tmp_c[MAX_BUF_SIZE];
 		sprintf(tmp_c, "%d|", device_i);
 		char child[8];
 		int i=1;
@@ -87,13 +85,13 @@ int main(int argc, char *argv[]) {
 		}
 		sprintf(message.mesg_text, "%s", tmp_c);
 		sprintf(current_msg,"%s", message.mesg_text);
-		msgsnd(msgid, &message, sizeof(message), 0); 
+		msgsnd(msgid, &message, MAX_BUF_SIZE, 0); 
 		changed = 0;
 	}else{
 		//Ripulisco forzatamente.
-		msgrcv(msgid, &message, sizeof(message), 1, IPC_NOWAIT); 
+		msgrcv(msgid, &message, MAX_BUF_SIZE, 1, IPC_NOWAIT); 
 		sprintf(message.mesg_text,"%s", current_msg);
-		msgsnd(msgid,&message, sizeof(message),0);
+		msgsnd(msgid,&message, MAX_BUF_SIZE,0);
 		}
 		
 		printf("\e[92m%s\e[39m:\e[31mCentralina\033[0m$ ", name);
@@ -254,6 +252,7 @@ void info(char buf[][MAX_BUF_SIZE], int *children_pids) {
     }
 
     int fd = open(pipe_str, O_RDONLY);
+    printf("%d", fd);
     read(fd, tmp, MAX_BUF_SIZE);
     close(fd);
     free(pipe_str);
