@@ -1,6 +1,6 @@
 #include "launcher.h"
 
-pid_t shell_pid = -1;
+        pid_t shell_pid = -1;
 int n_devices = 0;
 int emergencyid;
 int shell_on = 0;
@@ -34,36 +34,14 @@ int main(int argc, char *argv[]) {
     key = ftok("progfile", 65);
     int msgid;
     msgid = msgget(key, 0666 | IPC_CREAT);
+    //RIPULISCO INIZIALMENTE PER EVITARE ERRORI
+    msgrcv(msgid, &message, sizeof(message), 1, IPC_NOWAIT);
     emergencyid = msgid;
 
     while (1) {
         //Leggo il numero di devices presenti.
         if (shell_pid > 0 && shell_on) {
-            int ret = msgrcv(msgid, &message, sizeof(message), 1, IPC_NOWAIT);
-            if (ret != -1) {
-                int q = 0;
-                char n_dev_str[100];
-                while (!(message.mesg_text[q] == '|')) {
-                    n_dev_str[q] = message.mesg_text[q];
-                    q++;
-                }
-                n_dev_str[q] = '\0';
-                n_devices = atoi(n_dev_str);
-                int __count = n_devices;
-                char tmp_buf[MAX_BUF_SIZE];
-                sprintf(tmp_buf, "%s", message.mesg_text);
-                char *tokenizer = strtok(tmp_buf, "|");
-                char **vars = malloc(__count * sizeof(char *));
-                int j = 0;
-                while (tokenizer != NULL && j <= __count) {
-                    vars[j++] = tokenizer;
-                    tokenizer = strtok(NULL, "|");
-                    if (j >= 2) {
-                        device_pids[j - 1] = atoi(vars[j - 1]);
-                    }
-                }
-                free(vars);
-            }
+            read_msgqueue(msgid, device_pids);
         } else {
             n_devices = 0;
         }
@@ -85,6 +63,7 @@ int main(int argc, char *argv[]) {
             }
 
             if (c == 's') {
+                msgctl(msgid, IPC_RMID, NULL);
                 if (shell_pid != -1) {
                     kill(shell_pid, SIGTERM);
                 }
@@ -164,33 +143,7 @@ void handle_sigint(int signal) {
 
 void switch_launcher(char buf[][MAX_BUF_SIZE], int msgid, int *device_pids) {
     if (shell_pid > 0 && shell_on) {
-        int ret = msgrcv(msgid, &message, sizeof(message), 1, IPC_NOWAIT);
-        if (ret != -1) {
-            int q = 0;
-            char n_dev_str[100];
-            while (!(message.mesg_text[q] == '|')) {
-                n_dev_str[q] = message.mesg_text[q];
-                q++;
-            }
-            n_dev_str[q] = '\0';
-            n_devices = atoi(n_dev_str);
-            int __count = n_devices;
-            char tmp_buf[MAX_BUF_SIZE];
-            sprintf(tmp_buf, "%s", message.mesg_text);
-            // SISTEMAMI
-            char *tokenizer = strtok(tmp_buf, "|");
-            char **vars = malloc(__count * sizeof(char *));
-            int j = 0;
-            while (tokenizer != NULL && j <= __count) {
-                vars[j++] = tokenizer;
-                tokenizer = strtok(NULL, "|");
-                if (j >= 2) {
-                    device_pids[j - 1] = atoi(vars[j - 1]);
-                }
-            }
-            free(vars);
-            // FINE SISTEMAMI
-        }
+        read_msgqueue(msgid, device_pids);
     }
     if (shell_pid > 0) {
         if (atoi(buf[1]) <= n_devices) {
@@ -205,37 +158,39 @@ void switch_launcher(char buf[][MAX_BUF_SIZE], int msgid, int *device_pids) {
     }
 }
 
-void info_launcher(char buf[][MAX_BUF_SIZE], int msgid, int *device_pids) {
-    if (shell_pid > 0 && shell_on) {
-        int ret = msgrcv(msgid, &message, sizeof(message), 1, IPC_NOWAIT);
-        printf("%s\n", message.mesg_text);
-        if (ret != -1) {
-            int q = 0;
-            char n_dev_str[100];
-            while (!(message.mesg_text[q] == '|')) {
-                n_dev_str[q] = message.mesg_text[q];
-                q++;
-            }
-            n_dev_str[q] = '\0';
-            n_devices = atoi(n_dev_str);
+
+void read_msgqueue(int msgid, int* device_pids){
+    int ret = msgrcv(msgid, &message, sizeof(message), 1, IPC_NOWAIT);
+    if (ret != -1) {
+        int q = 0;
+        char n_dev_str[100];
+        while (!(message.mesg_text[q] == '|')) {
+            n_dev_str[q] = message.mesg_text[q];
+            q++;
+        }
+        n_dev_str[q] = '\0';
+        n_devices = atoi(n_dev_str);
+        if(n_devices > 0){
             int __count = n_devices;
             char tmp_buf[MAX_BUF_SIZE];
             sprintf(tmp_buf, "%s", message.mesg_text);
             // SISTEMAMI
-            char *tokenizer = strtok(tmp_buf, "|");
-            char **vars = malloc(__count * sizeof(char *));
+            char **vars = NULL;
+            vars = split_fixed(tmp_buf, __count);
             int j = 0;
-            while (tokenizer != NULL && j <= __count) {
-                vars[j++] = tokenizer;
-                tokenizer = strtok(NULL, "|");
-                if (j >= 2) {
-                    device_pids[j - 1] = atoi(vars[j - 1]);
-                    printf(" %d: %d\n", j - 1, device_pids[j - 1]);
+            while (j <=__count) {
+                if(j>=1){
+                    device_pids[j-1] = atoi(vars[j]);
                 }
+                j++;
             }
-            free(vars);
-            // FINE SISTEMAMI
         }
+        // FINE SISTEMAMI
+    }
+}
+void info_launcher(char buf[][MAX_BUF_SIZE], int msgid, int *device_pids) {
+    if (shell_pid > 0 && shell_on) {
+        read_msgqueue(msgid, device_pids);
         __info(buf, device_pids);
     } else {
         printf("La centralina è spenta\n");

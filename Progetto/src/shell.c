@@ -52,6 +52,8 @@ int main(int argc, char *argv[]) {
     message.mesg_type = 1;
 
     char current_msg[MAX_BUF_SIZE] = "0|";
+    sprintf(message.mesg_text, "%s", current_msg);
+    msgsnd(msgid, &message, MAX_BUF_SIZE, 0);
 
     //setpgid(0, getpid());
 
@@ -61,7 +63,6 @@ int main(int argc, char *argv[]) {
             if (changed) {
                 //Ripulisco Forzatamente.
                 msgrcv(msgid, &message, MAX_BUF_SIZE, 1, IPC_NOWAIT);
-
                 char tmp_c[MAX_BUF_SIZE];
                 sprintf(tmp_c, "%d|", device_i);
                 char child[8];
@@ -202,6 +203,7 @@ void add(char buf[][MAX_BUF_SIZE], int *device_i, int *children_pids) {
             char *const args[] = {program_name, index_str, pipe_str, NULL};
             execvp(args[0], args);
 
+            free(index_str);
             exit(0);
         } else {  // Padre
             children_pids[actual_index] = pid;

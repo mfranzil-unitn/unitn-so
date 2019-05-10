@@ -62,12 +62,13 @@ char **split(char *__buf) {
     return vars;
 }
 
+//Fino a <= necessario per Launchers
 char **split_fixed(char *__buf, int __count) {
     char *tokenizer = strtok(__buf, "|");
     char **vars = malloc(__count * sizeof(char *));
     int j = 0;
 
-    while (tokenizer != NULL && j < __count) {
+    while (tokenizer != NULL && j <=__count) {
         vars[j++] = tokenizer;
         tokenizer = strtok(NULL, "|");
     }
