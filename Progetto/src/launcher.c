@@ -3,6 +3,7 @@
 pid_t shell_pid = -1;
 int n_devices = 0;
 int emergencyid;
+int shell_on = 0;
 
 int main(int argc, char *argv[]) {
     signal(SIGTERM, handle_sig);
@@ -33,9 +34,10 @@ int main(int argc, char *argv[]) {
     int msgid;
     msgid = msgget(key, 0666 | IPC_CREAT);
     emergencyid = msgid;
+
     while (1) {
         //Leggo il numero di devices presenti.
-        if (shell_pid > 0) {
+        if (shell_pid > 0 && shell_on) {
             int ret = msgrcv(msgid, &message, sizeof(message), 1, IPC_NOWAIT);
             if (ret != -1) {
                 int q = 0;
@@ -139,16 +141,18 @@ int main(int argc, char *argv[]) {
                                 shell_pid = atoi(tmp);
                             }
                             close(fd);
+                            shell_on = 1;
                             system("clear");
                             printf("La centralina è aperta\n");
                             continue;
                         }
                     } else if (strcmp(buf[3], "off") == 0 && shell_pid != -1) {
-                        kill(shell_pid, SIGTERM);
-                        shell_pid = -1;
+                        kill(shell_pid, SIGINT);
+                        shell_on = 0;
                         continue;
                     } else if (strcmp(buf[3], "on") == 0 && shell_pid != -1) {
-                        printf("Centralina già accesa\n");
+                        kill(shell_pid, SIGINT);
+                        shell_on = 1;
                     } else if (strcmp(buf[3], "off") == 0 && shell_pid == -1) {
                         printf("Centralina già spenta\n");
                     } else {
@@ -210,7 +214,7 @@ void handle_sigint(int signal) {
 
 void switch_launcher(char buf[][MAX_BUF_SIZE], int msgid, int *device_pids) {
     //CODICE DUPLICATO
-    if (shell_pid > 0) {
+    if (shell_pid > 0 && shell_on) {
         int ret = msgrcv(msgid, &message, sizeof(message), 1, IPC_NOWAIT);
         if (ret != -1) {
             int q = 0;
@@ -250,8 +254,9 @@ void switch_launcher(char buf[][MAX_BUF_SIZE], int msgid, int *device_pids) {
 }
 
 void info_launcher(char buf[][MAX_BUF_SIZE], int msgid, int *device_pids) {
-    if (shell_pid > 0) {
+    if (shell_pid > 0 && shell_on) {
         int ret = msgrcv(msgid, &message, sizeof(message), 1, IPC_NOWAIT);
+        printf("%s\n", message.mesg_text);
         if (ret != -1) {
             int q = 0;
             char n_dev_str[100];
@@ -272,10 +277,10 @@ void info_launcher(char buf[][MAX_BUF_SIZE], int msgid, int *device_pids) {
                 tokenizer = strtok(NULL, "|");
                 if (j >= 2) {
                     device_pids[j - 1] = atoi(vars[j - 1]);
+                    printf(" %d: %d\n", j - 1, device_pids[j - 1]);
                 }
             }
         }
-
         __info(buf, device_pids);
     } else {
         printf("La centralina è spenta\n");

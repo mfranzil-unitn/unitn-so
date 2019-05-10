@@ -26,6 +26,7 @@ void add(char buf[][MAX_BUF_SIZE], int* device_i, int* children_pids);
 void del(char buf[][MAX_BUF_SIZE], int* children_pids);
 
 void cleanup_sig(int sig);
-void handle_sig(int signal);
+void handle_sig(int sig);
+void stop_sig(int sig);
 
 #endif

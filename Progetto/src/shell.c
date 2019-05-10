@@ -2,9 +2,10 @@
 
 int ppid;
 int changed = 0;
+int stato = 1;  //Stato della centralina.
 
 int main(int argc, char *argv[]) {
-    signal(SIGINT, cleanup_sig);
+    signal(SIGINT, stop_sig);
     signal(SIGTERM, cleanup_sig);
     signal(SIGUSR1, SIG_IGN);
 
@@ -17,7 +18,7 @@ int main(int argc, char *argv[]) {
 
     int j;
 
-    int device_i = 0;        // indice progressivo dei dispositivi
+    int device_i = 0;                 // indice progressivo dei dispositivi
     int children_pids[MAX_CHILDREN];  // array contenenti i PID dei figli
 
     for (j = 0; j < MAX_CHILDREN; j++) {
@@ -55,89 +56,90 @@ int main(int argc, char *argv[]) {
     //setpgid(0, getpid());
 
     while (1) {
-        //Scrive numero devices e elenco dei pid a launcher.
-        if (changed) {
-            //Ripulisco Forzatamente.
-            msgrcv(msgid, &message, MAX_BUF_SIZE, 1, IPC_NOWAIT);
-            char tmp_c[MAX_BUF_SIZE];
-            sprintf(tmp_c, "%d|", device_i);
-            char child[8];
-            int i = 1;
-            while (i <= device_i) {
-                sprintf(child, "%d|", children_pids[i]);
-                strcat(tmp_c, child);
-                i++;
+        if (stato) {
+            //Scrive numero devices e elenco dei pid a launcher.
+            if (changed) {
+                //Ripulisco Forzatamente.
+                msgrcv(msgid, &message, MAX_BUF_SIZE, 1, IPC_NOWAIT);
+
+                char tmp_c[MAX_BUF_SIZE];
+                sprintf(tmp_c, "%d|", device_i);
+                char child[8];
+                int i = 0;
+                while (i < device_i) {
+                    sprintf(child, "%d|", children_pids[i]);
+                    strcat(tmp_c, child);
+                    i++;
+                }
+                sprintf(message.mesg_text, "%s", tmp_c);
+                sprintf(current_msg, "%s", message.mesg_text);
+                msgsnd(msgid, &message, MAX_BUF_SIZE, 0);
+                changed = 0;
+            } else {
+                //Ripulisco forzatamente.
+                msgrcv(msgid, &message, MAX_BUF_SIZE, 1, IPC_NOWAIT);
+                sprintf(message.mesg_text, "%s", current_msg);
+                msgsnd(msgid, &message, MAX_BUF_SIZE, 0);
             }
-            sprintf(message.mesg_text, "%s", tmp_c);
-            sprintf(current_msg, "%s", message.mesg_text);
-            msgsnd(msgid, &message, MAX_BUF_SIZE, 0);
-            changed = 0;
+
+            printf("\e[92m%s\e[39m:\e[31mCentralina\033[0m$ ", name);
+
+            // Parser dei comandi
+            ch = ' ';
+            ch_i = -1;
+            cmd_n = 0;
+            buf[cmd_n][0] = '\0';
+            while (ch != EOF && ch != '\n') {
+                ch = getchar();
+                if (ch == ' ') {
+                    buf[cmd_n++][++ch_i] = '\0';
+                    ch_i = -1;
+                } else {
+                    buf[cmd_n][++ch_i] = ch;
+                }
+            }
+            buf[cmd_n][ch_i] = '\0';
+
+            if (strcmp(buf[0], "exit") == 0) {  // supponiamo che l'utente scriva solo "exit" per uscire
+                kill(ppid, SIGTERM);
+                break;
+            } else if (strcmp(buf[0], "\0") == 0) {  // a capo a vuoto
+                continue;
+            } else if (strcmp(buf[0], "help") == 0) {  // guida
+                printf("%s", HELP_STRING);
+            } else if (strcmp(buf[0], "list") == 0) {
+                list(buf, children_pids);
+            } else if (strcmp(buf[0], "info") == 0) {
+                if (cmd_n != 1) {
+                    printf("Sintassi: info <device>\n");
+                } else {
+                    __info(buf, children_pids);
+                }
+            } else if (strcmp(buf[0], "switch") == 0) {
+                if (cmd_n != 3) {
+                    printf(SWITCH_STRING);
+                } else {
+                    __switch(buf, children_pids);
+                }
+            } else if (strcmp(buf[0], "add") == 0) {
+                if (cmd_n != 1) {
+                    printf(ADD_STRING);
+                } else {
+                    add(buf, &device_i, children_pids);
+                    continue;
+                }
+            } else if (strcmp(buf[0], "del") == 0) {
+                if (cmd_n != 1) {
+                    printf(DEL_STRING);
+                } else {
+                    del(buf, children_pids);
+                    continue;
+                }
+            } else {  //tutto il resto
+                printf("Comando non riconosciuto. Usa help per visualizzare i comandi disponibili\n");
+            }
         } else {
-            //Ripulisco forzatamente.
-            msgrcv(msgid, &message, MAX_BUF_SIZE, 1, IPC_NOWAIT);
-            sprintf(message.mesg_text, "%s", current_msg);
-            msgsnd(msgid, &message, MAX_BUF_SIZE, 0);
-        }
-
-        printf("\e[92m%s\e[39m:\e[31mCentralina\033[0m$ ", name);
-
-        // Parser dei comandi
-        ch = ' ';
-        ch_i = -1;
-        cmd_n = 0;
-        buf[cmd_n][0] = '\0';
-        while (ch != EOF && ch != '\n') {
-            ch = getchar();
-            if (ch == ' ') {
-                buf[cmd_n++][++ch_i] = '\0';
-                ch_i = -1;
-            } else {
-                buf[cmd_n][++ch_i] = ch;
-            }
-        }
-        buf[cmd_n][ch_i] = '\0';
-
-        //   for (int k = cmd_n; k >= 0; k--) {
-        //       printf(buf[k]);
-        //   }
-
-        if (strcmp(buf[0], "exit") == 0) {  // supponiamo che l'utente scriva solo "exit" per uscire
-            kill(ppid, SIGTERM);
-            break;
-        } else if (strcmp(buf[0], "\0") == 0) {  // a capo a vuoto
-            continue;
-        } else if (strcmp(buf[0], "help") == 0) {  // guida
-            printf("%s", HELP_STRING);
-        } else if (strcmp(buf[0], "list") == 0) {
-            list(buf, children_pids);
-        } else if (strcmp(buf[0], "info") == 0) {
-            if (cmd_n != 1) {
-                printf("Sintassi: info <device>\n");
-            } else {
-                __info(buf, children_pids);
-            }
-        } else if (strcmp(buf[0], "switch") == 0) {
-            if (cmd_n != 3) {
-                printf(SWITCH_STRING);
-            } else {
-                __switch(buf, children_pids);
-            }
-        } else if (strcmp(buf[0], "add") == 0) {
-            if (cmd_n != 1) {
-                printf(ADD_STRING);
-            } else {
-                add(buf, &device_i, children_pids);
-                continue;
-            }
-        } else if (strcmp(buf[0], "del") == 0) {
-            if (cmd_n != 1) {
-                printf(DEL_STRING);
-            } else {
-                del(buf, children_pids);
-                continue;
-            }
-        } else {  //tutto il resto
-            printf("Comando non riconosciuto. Usa help per visualizzare i comandi disponibili\n");
+            getchar();  //Per ignorare i comandi quando non accessa.
         }
     }
     free(buf);
@@ -303,4 +305,16 @@ void cleanup_sig(int sig) {
 
 void handle_sig(int sig) {
     kill(ppid, SIGTERM);
+}
+
+void stop_sig(int sig) {
+    printf("STOP_SIG\n");
+    if (stato) {
+        stato = 0;
+        printf("La centralina è stata spenta. Nessun comando sarà accettato\n");
+    } else {
+        stato = 1;
+        system("clear");
+        printf("\nLa centralina è accessa. Premi Invio per proseguire.\n");
+    }
 }
