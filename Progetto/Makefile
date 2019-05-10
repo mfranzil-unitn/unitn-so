@@ -3,6 +3,7 @@
 CC = gcc
 CFLAGS = -std=gnu90
 
+RED=\033[0;31m
 BOLD_RED=\033[1;31m
 BOLD_GREEN=\033[1;32m
 GREEN=\033[0;32m

@@ -1,5 +1,28 @@
 #include "util.h"
 
+int parse(char buf[][MAX_BUF_SIZE], int cmd_n) {
+    char ch;   // carattere usato per la lettura dei comandi
+    int ch_i;  // indice del carattere corrente
+    
+    ch = ' ';
+    ch_i = -1;
+    cmd_n = 0;
+    buf[cmd_n][0] = '\0';
+    while (ch != EOF && ch != '\n') {
+        ch = getchar();
+        if (ch == ' ') {
+            buf[cmd_n++][++ch_i] = '\0';
+            ch_i = -1;
+        } else {
+            buf[cmd_n][++ch_i] = ch;
+        }
+    }
+    buf[cmd_n][ch_i] = '\0';
+    buf[cmd_n + 1][0] = '\0';
+
+    return cmd_n;
+}
+
 char **split(char *__buf) {
     // Divide una stringa presa dalla pipe
     // a seconda del dispositivo.
@@ -67,8 +90,8 @@ char *get_pipe_name(int pid) {
     return pipe_str;
 }
 
-void get_device_name(int device_type, char* buf) {
-    switch(device_type) {
+void get_device_name(int device_type, char *buf) {
+    switch (device_type) {
         case BULB:
             sprintf(buf, "lampadina");
             break;
@@ -130,10 +153,10 @@ void __switch(char buf[][MAX_BUF_SIZE], int *children_pids) {
         return;
     }
 
-    char *pipe_str = get_pipe_name(pid);   // Nome della pipe
-    char tmp[MAX_BUF_SIZE];           // dove ci piazzo l'output della pipe
-    char **vars = NULL;               // output della pipe, opportunamente diviso
-    char pipe_message[MAX_BUF_SIZE];  // buffer per la pipe
+    char *pipe_str = get_pipe_name(pid);  // Nome della pipe
+    char tmp[MAX_BUF_SIZE];               // dove ci piazzo l'output della pipe
+    char **vars = NULL;                   // output della pipe, opportunamente diviso
+    char pipe_message[MAX_BUF_SIZE];      // buffer per la pipe
 
     if (kill(pid, SIGUSR1) != 0) {
         // apertura della pipe fallita

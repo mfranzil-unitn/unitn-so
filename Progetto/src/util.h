@@ -20,16 +20,19 @@
 #define BULB 1
 #define FRIDGE 2
 #define WINDOW 3
+#define HUB 4
 
 #define BULB_S "1"
 #define FRIDGE_S "2"
 #define WINDOW_S "3"
+#define HUB_S "4"
 
 #define BULB_PARAMETERS 5
 #define FRIDGE_PARAMETERS 8
 #define WINDOW_PARAMETERS 5
 
 #define MAX_CHILDREN 10
+#define MAX_HUB_CONNECTED_DEVICES 4
 
 #define SHELL_POSITION "bin/shell"
 #define DEVICES_POSITIONS "bin/devices/"
@@ -46,12 +49,16 @@
 #define DEL_STRING \
     "Sintassi del <device>\n"
 
+#define INFO_STRING \
+    "Sintassi: info <device>\n"
+
 // structure for message queue
 struct mesg_buffer {
     long mesg_type;
     char mesg_text[MAX_BUF_SIZE];
 } message;
 
+int parse(char buf[][MAX_BUF_SIZE], int cmd_n);
 char **split(char *__buf);
 char **split_fixed(char *__buf, int __count);
 

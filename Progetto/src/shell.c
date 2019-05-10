@@ -83,22 +83,7 @@ int main(int argc, char *argv[]) {
             }
 
             printf("\e[92m%s\e[39m:\e[31mCentralina\033[0m$ ", name);
-
-            // Parser dei comandi
-            ch = ' ';
-            ch_i = -1;
-            cmd_n = 0;
-            buf[cmd_n][0] = '\0';
-            while (ch != EOF && ch != '\n') {
-                ch = getchar();
-                if (ch == ' ') {
-                    buf[cmd_n++][++ch_i] = '\0';
-                    ch_i = -1;
-                } else {
-                    buf[cmd_n][++ch_i] = ch;
-                }
-            }
-            buf[cmd_n][ch_i] = '\0';
+            cmd_n = parse(buf, cmd_n);
 
             if (strcmp(buf[0], "exit") == 0) {  // supponiamo che l'utente scriva solo "exit" per uscire
                 kill(ppid, SIGTERM);
@@ -111,7 +96,7 @@ int main(int argc, char *argv[]) {
                 list(buf, children_pids);
             } else if (strcmp(buf[0], "info") == 0) {
                 if (cmd_n != 1) {
-                    printf("Sintassi: info <device>\n");
+                    printf(INFO_STRING);
                 } else {
                     __info(buf, children_pids);
                 }
@@ -126,14 +111,12 @@ int main(int argc, char *argv[]) {
                     printf(ADD_STRING);
                 } else {
                     add(buf, &device_i, children_pids);
-                    continue;
                 }
             } else if (strcmp(buf[0], "del") == 0) {
                 if (cmd_n != 1) {
                     printf(DEL_STRING);
                 } else {
                     del(buf, children_pids);
-                    continue;
                 }
             } else {  //tutto il resto
                 printf("Comando non riconosciuto. Usa help per visualizzare i comandi disponibili\n");

@@ -11,8 +11,6 @@ int main(int argc, char *argv[]) {
     signal(SIGINT, handle_sigint);
 
     char(*buf)[MAX_BUF_SIZE] = malloc(MAX_BUF_SIZE * sizeof(char *));  // array che conterrà i comandi da eseguire
-    char ch;                                                           // carattere usato per la lettura dei comandi
-    int ch_i;                                                          // indice del carattere corrente
 
     int cmd_n;  // numero di comandi disponibili
 
@@ -25,9 +23,9 @@ int main(int argc, char *argv[]) {
 
     system("clear");
     //Creo PIPE verso shell.
-    char *shpm = "/tmp/myshpm";
-    mkfifo(shpm, 0666);
+    mkfifo(SHPM, 0666);
     char *name = get_shell_text();
+
     //CREO MESSAGE QUEUE TRA SHELL E LAUNCHERRRRRRRRRRRRRRR
     key_t key;
     key = ftok("progfile", 65);
@@ -61,6 +59,7 @@ int main(int argc, char *argv[]) {
                         device_pids[j - 1] = atoi(vars[j - 1]);
                     }
                 }
+                free(vars);
             }
         } else {
             n_devices = 0;
@@ -68,22 +67,7 @@ int main(int argc, char *argv[]) {
 
         //Stampa del nome utente
         printf("\e[92m%s\e[39m:\e[34mLauncher\033[0m$ ", name);
-        //Sono presi i valori in input e divisi in buffer[0...n] per ogni parola.
-        // Parser dei comandi
-        ch = ' ';
-        ch_i = -1;
-        cmd_n = 0;
-        buf[cmd_n][0] = '\0';
-        while (ch != EOF && ch != '\n') {
-            ch = getchar();
-            if (ch == ' ') {
-                buf[cmd_n++][++ch_i] = '\0';
-                ch_i = -1;
-            } else {
-                buf[cmd_n][++ch_i] = ch;
-            }
-        }
-        buf[cmd_n][ch_i] = '\0';
+        cmd_n = parse(buf, cmd_n);
 
         if (strcmp(buf[0], "exit") == 0) {  // supponiamo che l'utente scriva solo "exit" per uscire
             //Se la shell è aperta => shell_pid != -1 mando un SIGTERM per chiuderla.
@@ -97,74 +81,21 @@ int main(int argc, char *argv[]) {
             printf(HELP_STRING_LAUNCHER);
         } else if (strcmp(buf[0], "info") == 0) {  // info su dispositivo
             if (cmd_n != 1) {
-                printf("Sintassi: info <device>\n");
-            }
-            ////CODICE DUPLICATOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO
-            else {
+                printf(INFO_STRING);
+            } else {
                 info_launcher(buf, msgid, device_pids);
-            }
-        } else if (strcmp(buf[0], "user") == 0) {  //I comandi da launcher fuorchè per help ed exit devono cominciare per user.
-            if (strcmp(buf[1], "turn") == 0 && strcmp(buf[2], "shell") == 0) {
-                if (cmd_n != 3) {  //Controllo correttezza nel conteggio degli argomenti.
-                    printf("Sintassi: user turn shell <pos>\n");
-                } else {
-                    if (strcmp(buf[3], "on") == 0 && shell_pid == -1) {  //Se non è ancora accesa => shell_pid == -1
-                        pid_t pid = fork();
-                        if (pid < 0) {
-                            printf("Errore durante il fork\n");
-                            exit(1);
-                        }
-                        if (pid == 0) {  //Processo figlio che aprirà terminale e lancerà la shell.
-
-                            //Sarà passato per argomento alla shell.
-                            int ppid = (int)getppid();
-
-                            //Eseguibili sono in bin apro terminale parallelo.
-                            char tmp[50] = "./bin/shell ";
-                            char stringpid[6];
-                            sprintf(stringpid, "%d", ppid);
-                            strcat(tmp, stringpid);
-                            if (execl("/usr/bin/gnome-terminal", "gnome-terminal", "-e", tmp, NULL) == -1) {
-                                int fd = open(shpm, O_WRONLY);
-                                char tmp[16] = "Errore";
-                                write(fd, tmp, 16);
-                                close(fd);
-                            }
-                        } else if (pid > 0) {
-                            //Legge il contenuto della pipe => Se = "Errore" la finestra è stata aperta.
-                            int fd = open(shpm, O_RDONLY);
-                            char tmp[16];
-                            read(fd, tmp, 16);
-                            if (strcmp(tmp, "Errore") == 0) {
-                                printf("Errore nell'apertura della Shell\n");
-                            } else {
-                                shell_pid = atoi(tmp);
-                            }
-                            close(fd);
-                            shell_on = 1;
-                            system("clear");
-                            printf("La centralina è aperta\n");
-                            continue;
-                        }
-                    } else if (strcmp(buf[3], "off") == 0 && shell_pid != -1) {
-                        kill(shell_pid, SIGINT);
-                        shell_on = 0;
-                        continue;
-                    } else if (strcmp(buf[3], "on") == 0 && shell_pid != -1) {
-                        kill(shell_pid, SIGINT);
-                        shell_on = 1;
-                    } else if (strcmp(buf[3], "off") == 0 && shell_pid == -1) {
-                        printf("Centralina già spenta\n");
-                    } else {
-                        printf("Comando non riconosciuto\n");
-                    }
-                }
             }
         } else if (strcmp(buf[0], "switch") == 0) {
             if (cmd_n != 3) {
-                printf("Sintassi: switch <id> <label> <pos>\nInterruttori disponibili:\n    bulb: accensione\n");
+                printf(SWITCH_STRING);
             } else {
                 switch_launcher(buf, msgid, device_pids);
+            }
+        } else if (strcmp(buf[0], "user") == 0) {  //I comandi da launcher fuorchè per help ed exit devono cominciare per user.
+            if (cmd_n != 3) {                      //Controllo correttezza nel conteggio degli argomenti.
+                printf(USER_STRING);
+            } else {
+                user_launcher(buf, msgid, device_pids);
             }
         } else if (strcmp(buf[0], "restart") == 0) {
             char *const args[] = {NULL};
@@ -213,7 +144,6 @@ void handle_sigint(int signal) {
 }
 
 void switch_launcher(char buf[][MAX_BUF_SIZE], int msgid, int *device_pids) {
-    //CODICE DUPLICATO
     if (shell_pid > 0 && shell_on) {
         int ret = msgrcv(msgid, &message, sizeof(message), 1, IPC_NOWAIT);
         if (ret != -1) {
@@ -228,6 +158,7 @@ void switch_launcher(char buf[][MAX_BUF_SIZE], int msgid, int *device_pids) {
             int __count = n_devices;
             char tmp_buf[MAX_BUF_SIZE];
             sprintf(tmp_buf, "%s", message.mesg_text);
+            // SISTEMAMI
             char *tokenizer = strtok(tmp_buf, "|");
             char **vars = malloc(__count * sizeof(char *));
             int j = 0;
@@ -238,6 +169,8 @@ void switch_launcher(char buf[][MAX_BUF_SIZE], int msgid, int *device_pids) {
                     device_pids[j - 1] = atoi(vars[j - 1]);
                 }
             }
+            free(vars);
+            // FINE SISTEMAMI
         }
     }
     if (shell_pid > 0) {
@@ -269,6 +202,7 @@ void info_launcher(char buf[][MAX_BUF_SIZE], int msgid, int *device_pids) {
             int __count = n_devices;
             char tmp_buf[MAX_BUF_SIZE];
             sprintf(tmp_buf, "%s", message.mesg_text);
+            // SISTEMAMI
             char *tokenizer = strtok(tmp_buf, "|");
             char **vars = malloc(__count * sizeof(char *));
             int j = 0;
@@ -280,9 +214,68 @@ void info_launcher(char buf[][MAX_BUF_SIZE], int msgid, int *device_pids) {
                     printf(" %d: %d\n", j - 1, device_pids[j - 1]);
                 }
             }
+            free(vars);
+            // FINE SISTEMAMI
         }
         __info(buf, device_pids);
     } else {
         printf("La centralina è spenta\n");
+    }
+}
+
+void user_launcher(char buf[][MAX_BUF_SIZE], int msgid, int *device_pids) {
+    if (strcmp(buf[1], "turn") != 0 || strcmp(buf[2], "shell") != 0) {
+        printf("Sintassi: user turn shell <pos>\n");
+    }
+
+    if (strcmp(buf[3], "on") == 0 && shell_pid == -1) {  //Se non è ancora accesa => shell_pid == -1
+        pid_t pid = fork();
+        if (pid < 0) {
+            printf("Errore durante il fork\n");
+            exit(1);
+        }
+        if (pid == 0) {  //Processo figlio che aprirà terminale e lancerà la shell.
+
+            //Sarà passato per argomento alla shell.
+            int ppid = (int)getppid();
+
+            //Eseguibili sono in bin apro terminale parallelo.
+            char tmp[50] = "./bin/shell ";
+            char stringpid[6];
+            sprintf(stringpid, "%d", ppid);
+            strcat(tmp, stringpid);
+            if (execl("/usr/bin/gnome-terminal", "gnome-terminal", "-e", tmp, NULL) == -1) {
+                int fd = open(SHPM, O_WRONLY);
+                char tmp[16] = "Errore";
+                write(fd, tmp, 16);
+                close(fd);
+            }
+        } else if (pid > 0) {
+            //Legge il contenuto della pipe => Se = "Errore" la finestra è stata aperta.
+            int fd = open(SHPM, O_RDONLY);
+            char tmp[16];
+            read(fd, tmp, 16);
+            if (strcmp(tmp, "Errore") == 0) {
+                printf("Errore nell'apertura della shell\n");
+            } else {
+                shell_pid = atoi(tmp);
+            }
+            close(fd);
+            shell_on = 1;
+            system("clear");
+            printf("La centralina è aperta\n");
+            return;
+        }
+    } else if (strcmp(buf[3], "off") == 0 && shell_pid != -1) {
+        kill(shell_pid, SIGINT);
+        shell_on = 0;
+        return;
+    } else if (strcmp(buf[3], "on") == 0 && shell_pid != -1) {
+        kill(shell_pid, SIGINT);
+        shell_on = 1;
+    } else if (strcmp(buf[3], "off") == 0 && shell_pid == -1) {
+        printf("Centralina già spenta\n");
+    } else {
+        printf("Comando non riconosciuto\n");
     }
 }
