@@ -1,4 +1,4 @@
-.PHONY: build clean help targets
+.PHONY: build clean help targets devices
 
 CC = gcc
 CFLAGS = -std=gnu90
@@ -15,7 +15,9 @@ NC=\033[0m
 
 default: help
 
-targets: bin/launcher bin/shell bin/devices/bulb bin/devices/fridge bin/devices/window
+targets: bin/launcher bin/shell devices
+
+devices: bin/devices/hub bin/devices/bulb bin/devices/fridge bin/devices/window
 
 bin/launcher: src/launcher.c bin/util.o
 	$(CC) $(CFLAGS) -o bin/launcher src/launcher.c bin/util.o
@@ -31,6 +33,9 @@ bin/devices/fridge: src/devices/fridge.c bin/util.o
 
 bin/devices/window: src/devices/window.c bin/util.o
 	$(CC) $(CFLAGS) -o bin/devices/window src/devices/window.c bin/util.o
+
+bin/devices/hub: src/devices/hub.c bin/util.o
+	$(CC) $(CFLAGS) -o bin/devices/hub src/devices/hub.c bin/util.o
 
 bin/util.o: src/util.c
 	$(CC) $(CFLAGS) -c -o bin/util.o src/util.c 

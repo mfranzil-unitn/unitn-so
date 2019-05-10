@@ -3,7 +3,7 @@
 int parse(char buf[][MAX_BUF_SIZE], int cmd_n) {
     char ch;   // carattere usato per la lettura dei comandi
     int ch_i;  // indice del carattere corrente
-    
+
     ch = ' ';
     ch_i = -1;
     cmd_n = 0;
@@ -41,6 +41,9 @@ char **split(char *__buf) {
             break;
         case WINDOW:
             __count = WINDOW_PARAMETERS;
+            break;
+        case HUB:
+            __count = HUB_PARAMETERS;
             break;
         default:
             __count = 1;
@@ -104,9 +107,28 @@ void get_device_name(int device_type, char *buf) {
         case CONTROLLER:
             sprintf(buf, "centralina");
             break;
+        case HUB:
+            sprintf(buf, "hub");
+            break;
         default:
             sprintf(buf, "-");
             break;
+    }
+}
+
+void get_device_name_str(char *device_type, char *buf) {
+    if (strcmp(device_type, "bulb") == 0) {
+        sprintf(buf, "lampadina");
+    } else if (strcmp(device_type, "fridge") == 0) {
+        sprintf(buf, "frigo");
+    } else if (strcmp(device_type, "window") == 0) {
+        sprintf(buf, "finestra");
+    } else if (strcmp(device_type, "controller") == 0) {
+        sprintf(buf, "centralina");
+    } else if (strcmp(device_type, "hub") == 0) {
+        sprintf(buf, "hub");
+    } else {
+        sprintf(buf, "-");
     }
 }
 
@@ -276,20 +298,19 @@ void __info(char buf[][MAX_BUF_SIZE], int *children_pids) {
     close(fd);
     free(pipe_str);
 
-    if (strncmp(tmp, "1", 1) == 0) {  // Lampadina
+    if (strncmp(tmp, "1", 1) == 0) {
+        // Lampadina - parametri: tipo, pid, indice, stato, tempo di accensione
         vars = split(tmp);
-        // parametri: tipo, pid, stato, tempo di accensione, indice
 
         printf("Oggetto: Lampadina\nPID: %s\nIndice: %s\nStato: %s\nTempo di accensione: %s\n",
                vars[1], vars[2], atoi(vars[3]) ? "ON" : "OFF", vars[4]);
-    } else if (strncmp(tmp, "2", 1) == 0) {  // Frigo
-        vars = split(tmp);
-        // parametri: tipo, pid, stato, tempo di apertura, indice, delay
+    } else if (strncmp(tmp, "2", 1) == 0) {
+        // Frigo -  parametri: tipo, pid, indice, stato, tempo di apertura, delay
         // percentuale riempimento, temperatura interna
+        vars = split(tmp);
 
         printf("Oggetto: Frigorifero\n");
-
-        if (vars[8] != NULL && vars[8] != "" && vars[8][0] != 0) {
+        if (vars[8] != NULL) {  //&& vars[8] != "" && vars[8][0] != 0) {
             printf("[!!] Messaggio di log: <%s>\n", vars[8]);
         }
 
@@ -297,11 +318,16 @@ void __info(char buf[][MAX_BUF_SIZE], int *children_pids) {
                vars[1], vars[2], atoi(vars[3]) ? "Aperto" : "Chiuso", vars[4]);
         printf("Delay richiusura: %s sec\nPercentuale riempimento: %s\nTemperatura: %s°C\n",
                vars[5], vars[6], vars[7]);
-    } else if (strncmp(tmp, "3", 1) == 0) {  // Finestra
+    } else if (strncmp(tmp, "3", 1) == 0) {
+        // Finestra - parametri: tipo, pid, indice, stato, tempo di accensione
         vars = split(tmp);
-        // parametri: tipo, pid, stato, tempo di accensione, indice
         printf("Oggetto: Finestra\nPID: %s\nIndice: %s\nStato: %s\nTempo di apertura: %s sec\n",
                vars[1], vars[2], atoi(vars[3]) ? "Aperto" : "Chiuso", vars[4]);
+    } else if (strncmp(tmp, "4", 1) == 0) {
+        // Hub -  parametri: tipo, pid, stato indice
+        vars = split(tmp);
+        printf("Oggetto: Hub\nPID: %s\nIndice: %s\nStato: %s\n",
+               vars[1], vars[2], atoi(vars[3]) ? "ON" : "OFF");
     } else {
         printf("Dispositivo non supportato.\n");
     }

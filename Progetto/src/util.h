@@ -30,6 +30,7 @@
 #define BULB_PARAMETERS 5
 #define FRIDGE_PARAMETERS 8
 #define WINDOW_PARAMETERS 5
+#define HUB_PARAMETERS 4
 
 #define MAX_CHILDREN 10
 #define MAX_HUB_CONNECTED_DEVICES 4
@@ -66,6 +67,7 @@ char *get_shell_text();
 char *get_pipe_name(int pid);
 int get_device_pid(int in, int *children_pids);
 void get_device_name(int device_type, char *buf);
+void get_device_name_str(char* device_type, char* buf);
 
 void __switch(char buf[][MAX_BUF_SIZE], int *children_pids);
 void __info(char buf[][MAX_BUF_SIZE], int *children_pids);

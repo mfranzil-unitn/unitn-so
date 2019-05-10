@@ -149,39 +149,22 @@ void list(char buf[][MAX_BUF_SIZE], int *children_pids) {
         if (fd > 0) {
             read(fd, tmp, MAX_BUF_SIZE);
             char **vars = split(tmp);
-            printf("Dispositivo: %s, PID %s, nome %s\n", vars[0], vars[1], vars[2]);
+
+            char device_name[MAX_BUF_SIZE];
+            get_device_name(atoi(vars[0]), device_name);
+            device_name[0] += 'A' - 'a';
+
+            printf("Dispositivo: %s, PID %s, nome %s\n", device_name, vars[1], vars[2]);
             // Pulizia
             free(vars);
             free(pipe_str);
             close(fd);
         }
     }
-
-    /*kill(0, SIGUSR1);
-    char tmp[MAX_BUF_SIZE];
-    char *pipe_str = NULL;
-
-    int i;    
-    for (i = 0; i < MAX_CHILDREN; i++) {
-        if (children_pids[i] != -1) {
-            pipe_str = get_pipe_name(children_pids[i]);
-            int fd = open(pipe_str, O_RDONLY);
-            if (fd > 0) {
-                read(fd, tmp, MAX_BUF_SIZE);
-                char **vars = split(tmp);
-                printf("Dispositivo: %s, PID %s, nome %s\n", vars[0], vars[1], vars[2]);
-                // Pulizia
-                free(vars);
-                free(pipe_str);
-                close(fd);
-                tmp[0] = '\0';
-            }
-        }
-    }*/
 }
 
 void add(char buf[][MAX_BUF_SIZE], int *device_i, int *children_pids) {
-    if (strcmp(buf[1], "bulb") == 0 || strcmp(buf[1], "fridge") == 0 || strcmp(buf[1], "window") == 0) {
+    if (strcmp(buf[1], "bulb") == 0 || strcmp(buf[1], "fridge") == 0 || strcmp(buf[1], "window") == 0 || strcmp(buf[1], "hub") == 0) {
         // Aumento l'indice progressivo dei dispositivi
         (*device_i)++;
         int actual_index = -1;
@@ -224,7 +207,7 @@ void add(char buf[][MAX_BUF_SIZE], int *device_i, int *children_pids) {
             children_pids[actual_index] = pid;
 
             char device_name[MAX_BUF_SIZE];
-            get_device_name(atoi(buf[1]), device_name);
+            get_device_name_str(buf[1], device_name);
 
             printf("Aggiunto un dispositivo di tipo %s con PID %i e indice %i\n", device_name, pid, *device_i);
             changed = 1;

@@ -21,7 +21,10 @@ int main(int argc, char *argv[]) {
         device_pids[j] = -1;  // se è -1 non contiene nulla
     }
 
-    system("clear");
+    if (argc != 2 || strcmp(argv[1], "--no-clear") != 0) {
+        system("clear");
+    }
+
     //Creo PIPE verso shell.
     mkfifo(SHPM, 0666);
     char *name = get_shell_text();
@@ -69,12 +72,26 @@ int main(int argc, char *argv[]) {
         printf("\e[92m%s\e[39m:\e[34mLauncher\033[0m$ ", name);
         cmd_n = parse(buf, cmd_n);
 
-        if (strcmp(buf[0], "exit") == 0) {  // supponiamo che l'utente scriva solo "exit" per uscire
+        if (strcmp(buf[0], "exit") == 0) {
+            // supponiamo che l'utente scriva solo "exit" per uscire
             //Se la shell è aperta => shell_pid != -1 mando un SIGTERM per chiuderla.
-            if (shell_pid != -1) {
-                kill(shell_pid, SIGTERM);
+            char c = '\0';
+            printf("Sei sicuro di voler uscire dal launcher? Tutte le modifiche verranno perse!");
+
+            while (c != 's' && c != 'n') {
+                printf("\n[s/n]: ");
+                c = getchar();
+                getchar();  // ignoro lo \0
             }
-            break;
+
+            if (c == 's') {
+                if (shell_pid != -1) {
+                    kill(shell_pid, SIGTERM);
+                }
+                return 0;
+            } else {
+                continue;
+            }
         } else if (strcmp(buf[0], "\0") == 0) {  //a capo a vuoto
             continue;
         } else if (strcmp(buf[0], "help") == 0) {  // guida
@@ -98,16 +115,18 @@ int main(int argc, char *argv[]) {
                 user_launcher(buf, msgid, device_pids);
             }
         } else if (strcmp(buf[0], "restart") == 0) {
-            char *const args[] = {NULL};
-            int pid = fork();
-            if (pid == 0) {
-                execvp("make build", args);
-                exit(0);
-            } else {
-                wait(NULL);
-                execvp("./run", args);
+            //  int pid = fork();
+            //if (pid == 0) {
+            if (shell_pid != -1) {
+                kill(shell_pid, SIGTERM);
             }
-            exit(0);
+            printf("Riavvio in corso...\n");
+            system("make build");
+            system("./run --no-clear");
+            //  } else {
+            //    wait(NULL);
+            //  }
+            //  exit(0);
         } else {  //tutto il resto
             printf("Comando non riconosciuto. Usa help per visualizzare i comandi disponibili\n");
         }
