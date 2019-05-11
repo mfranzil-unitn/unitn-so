@@ -61,16 +61,7 @@ char **split(char *__buf) {
             break;
     }
 
-    char *tokenizer = strtok(__buf, "|");
-    char **vars = malloc(__count * sizeof(char *));
-    int j = 0;
-
-    while (tokenizer != NULL && j < __count) {
-        vars[j++] = tokenizer;
-        tokenizer = strtok(NULL, "|");
-    }
-
-    return vars;
+    return split_fixed(__buf, __count);
 }
 
 char **split_fixed(char *__buf, int __count) {
@@ -98,10 +89,8 @@ char *get_shell_text() {
     return "host";
 }
 
-char *get_pipe_name(int pid) {
-    char *pipe_str = malloc(4 * sizeof(char));
+void get_pipe_name(int pid, char *pipe_str) {
     sprintf(pipe_str, "%s%i", PIPES_POSITIONS, pid);
-    return pipe_str;
 }
 
 void get_device_name(int device_type, char *buf) {
@@ -145,35 +134,40 @@ void get_device_name_str(char *device_type, char *buf) {
 
 int get_device_pid(int device_identifier, int *children_pids) {
     // prende come input l'indice/nome del dispositivo, ritorna il PID
-    char *pipe_str = NULL;
-    int res = -1;
-
     int i;
     for (i = 0; i < MAX_CHILDREN; i++) {  // l'indice i è logicamente indipendente dal nome/indice del dispositivo
         int children_pid = children_pids[i];
-        char tmp[MAX_BUF_SIZE];
-
-        if (children_pid == -1) {
-            continue;  // dispositivo non più nei figli
-        }
-
-        kill(children_pid, SIGUSR1);
-        pipe_str = get_pipe_name(children_pid);
-        int fd = open(pipe_str, O_RDONLY);
-
-        if (fd > 0) {
-            read(fd, tmp, MAX_BUF_SIZE);
-            char **vars = split(tmp);
-            int tmp_int = atoi(vars[2]);
-            // Pulizia
-            free(vars);
-            free(pipe_str);
-            close(fd);
-
-            if (tmp_int == device_identifier) {
+        if (children_pid != -1) {
+            char **vars = NULL;
+            get_device_info(children_pid, vars);
+            fflush(stdout);
+           // printf("%s, %s, %s", vars[0], vars[1], vars[2]);
+            // I primi 3 parametri sono sempre tipo, pid, indice
+            if (vars != NULL && atoi(vars[2]) == device_identifier) {
+                free(vars);
                 return children_pid;
             }
         }
     }
-    return res;
+    return -1;
+}
+
+void get_device_info(int pid, char **vars) {
+    char tmp[MAX_BUF_SIZE];
+
+    kill(pid, SIGUSR1);
+
+    char pipe_str[MAX_BUF_SIZE];
+    get_pipe_name(pid, pipe_str);
+
+    int fd = open(pipe_str, O_RDONLY);
+
+    if (fd > 0) {
+        read(fd, tmp, MAX_BUF_SIZE);
+        vars = split(tmp);
+        printf("%s, %s, %s; ", vars[0], vars[1], vars[2]);
+
+        // Pulizia
+        close(fd);
+    }
 }

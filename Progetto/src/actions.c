@@ -1,6 +1,6 @@
 #include "actions.h"
 
-void __switch(int device, char* action, char* position, int *children_pids) {
+void __switch(int device, char *action, char *position, int *children_pids) {
     // Prova a impostare un interruttore ACTION su POSITION di un certo DEVICE
     int pid = get_device_pid(device, children_pids);
 
@@ -9,10 +9,12 @@ void __switch(int device, char* action, char* position, int *children_pids) {
         return;
     }
 
-    char *pipe_str = get_pipe_name(pid);  // Nome della pipe
-    char tmp[MAX_BUF_SIZE];               // dove ci piazzo l'output della pipe
-    char **vars = NULL;                   // output della pipe, opportunamente diviso
-    char pipe_message[MAX_BUF_SIZE];      // buffer per la pipe
+    char pipe_str[MAX_BUF_SIZE];
+    get_pipe_name(pid, pipe_str);  // Nome della pipe
+
+    char tmp[MAX_BUF_SIZE];           // dove ci piazzo l'output della pipe
+    char **vars = NULL;               // output della pipe, opportunamente diviso
+    char pipe_message[MAX_BUF_SIZE];  // buffer per la pipe
 
     if (kill(pid, SIGUSR1) != 0) {
         // apertura della pipe fallita
@@ -22,7 +24,6 @@ void __switch(int device, char* action, char* position, int *children_pids) {
 
     int fd = open(pipe_str, O_RDWR);
     read(fd, tmp, MAX_BUF_SIZE);
-    free(pipe_str);
 
     if (strncmp(tmp, BULB_S, 1) == 0) {  // Lampadina
         if (strcmp(action, "accensione") == 0) {
@@ -116,7 +117,8 @@ void __info(int index, int *children_pids) {
         return;
     }
 
-    char *pipe_str = get_pipe_name(pid);
+    char pipe_str[MAX_BUF_SIZE];
+    get_pipe_name(pid, pipe_str);
     char **vars = NULL;
     char tmp[MAX_BUF_SIZE];  // dove ci piazzo l'output della pipe
 
@@ -129,7 +131,6 @@ void __info(int index, int *children_pids) {
     int fd = open(pipe_str, O_RDONLY);
     read(fd, tmp, MAX_BUF_SIZE);
     close(fd);
-    free(pipe_str);
 
     if (strncmp(tmp, "1", 1) == 0) {
         // Lampadina - parametri: tipo, pid, indice, stato, tempo di accensione
@@ -191,7 +192,8 @@ int __add(char *device, int *device_i, int *children_pids, char *__out_buf) {
     pid_t pid = fork();
     if (pid == 0) {  // Figlio
         // Apro una pipe per padre-figlio
-        char *pipe_str = get_pipe_name(getpid());
+        char pipe_str[MAX_BUF_SIZE];
+        get_pipe_name(getpid(), pipe_str);
         mkfifo(pipe_str, 0666);
 
         // Conversione a stringa dell'indice
@@ -233,7 +235,8 @@ void __list(int *children_pids) {
         }
 
         kill(children_pid, SIGUSR1);
-        pipe_str = get_pipe_name(children_pid);
+        char pipe_str[MAX_BUF_SIZE];
+        get_pipe_name(children_pid, pipe_str);
         int fd = open(pipe_str, O_RDONLY);
 
         if (fd > 0) {
@@ -247,13 +250,12 @@ void __list(int *children_pids) {
             cprintf("Dispositivo: %s, PID %s, nome %s\n", device_name, vars[1], vars[2]);
             // Pulizia
             free(vars);
-            free(pipe_str);
             close(fd);
         }
     }
 }
 
-void __del(int index, int *children_pids, char* __out_buf) {
+void __del(int index, int *children_pids, char *__out_buf) {
     int pid = get_device_pid(index, children_pids);
 
     if (pid == -1) {
@@ -261,7 +263,9 @@ void __del(int index, int *children_pids, char* __out_buf) {
         return;
     }
 
-    char *pipe_str = get_pipe_name(pid);
+    char pipe_str[MAX_BUF_SIZE];
+    get_pipe_name(pid, pipe_str);
+
     char tmp[MAX_BUF_SIZE];  // dove ci piazzo l'output della pipe
     char **vars = NULL;
 
@@ -283,7 +287,6 @@ void __del(int index, int *children_pids, char* __out_buf) {
             device_name, vars[1], vars[2]);
 
     close(fd);
-    free(pipe_str);
     free(vars);
 
     kill(pid, 9);      // da modificare con un comando opportuno...
@@ -296,4 +299,15 @@ void __del(int index, int *children_pids, char* __out_buf) {
             return;
         }
     }
+}
+
+void __link(int index, int controller, int *children_pids) {
+    int device_pid = get_device_pid(index, children_pids);
+
+    if (device_pid == -1) {
+        cprintf("Errore! Non esiste questo dispositivo.\n");
+        return;
+    }
+
+    //int controller_pid = get_controller_pid();
 }
