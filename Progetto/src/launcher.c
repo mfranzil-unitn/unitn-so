@@ -31,8 +31,6 @@ int main(int argc, char *argv[]) {
         system("clear");
     }
 
-    // Creo pipe verso shell.
-    mkfifo(SHPM, 0666);
     char *name = get_shell_text();
 
     // Creo message queue tra shell e launcher.
@@ -155,7 +153,7 @@ void switch_launcher(char buf[][MAX_BUF_SIZE], int msgid, int *device_pids) {
     if (shell_pid > 0) {
         if (atoi(buf[1]) <= n_devices) {
             // Chiamata a util.c
-            __switch(atoi(buf[1]), buf[2], buf[3], device_pids);
+            __switch(buf, device_pids);
         } else {
             cprintf("ID non presente\n");
         }
@@ -216,6 +214,7 @@ void user_launcher(char buf[][MAX_BUF_SIZE], int msgid, int *device_pids) {
             exit(1);
         }
         if (pid == 0) {  //Processo figlio che aprirà terminale e lancerà la shell.
+
             //Sarà passato per argomento alla shell.
             int ppid = (int)getppid();
 
@@ -225,22 +224,18 @@ void user_launcher(char buf[][MAX_BUF_SIZE], int msgid, int *device_pids) {
             sprintf(stringpid, "%d", ppid);
             strcat(tmp, stringpid);
             if (execl("/usr/bin/gnome-terminal", "gnome-terminal", "-e", tmp, NULL) == -1) {
-                int fd = open(SHPM, O_WRONLY);
-                char tmp[16] = "Errore";
-                write(fd, tmp, 16);
-                close(fd);
+                sprintf(message.mesg_text, "%s", "Errore");
+                msgsnd(msgid, &message, MAX_BUF_SIZE, 0);
             }
         } else if (pid > 0) {
             //Legge il contenuto della pipe => Se = "Errore" la finestra è stata aperta.
-            int fd = open(SHPM, O_RDONLY);
-            char tmp[16];
-            read(fd, tmp, 16);
-            if (strcmp(tmp, "Errore") == 0) {
+            msgrcv(msgid, &message, sizeof(message), 1, 0);
+            if (strcmp(message.mesg_text, "Errore") == 0) {
                 cprintf("Errore nell'apertura della shell\n");
             } else {
-                shell_pid = atoi(tmp);
+                shell_pid = atoi(message.mesg_text);
+                //printf("Shell pid: %d\n", shell_pid);
             }
-            close(fd);
             shell_on = 1;
             system("clear");
             cprintf("La centralina è aperta\n");

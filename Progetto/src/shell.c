@@ -28,14 +28,6 @@ int main(int argc, char *argv[]) {
     // PID del launcher.
     ppid = atoi(argv[1]);
 
-    // Pipe per comunicazione del numero di devices.
-    // Scrivo il pid della centralina, dato che non è figlia diretta di program manager, sulla pipe.
-    int fd = open(SHPM, O_WRONLY);
-    char str[16];
-    sprintf(str, "%d", (int)getpid());
-    write(fd, str, 16);
-    close(fd);
-
     signal(SIGHUP, handle_sig);
 
     // Credo message queue tra shell e launcher
@@ -46,7 +38,7 @@ int main(int argc, char *argv[]) {
     message.mesg_type = 1;
 
     char current_msg[MAX_BUF_SIZE] = "0|";
-    sprintf(message.mesg_text, "%s", current_msg);
+    sprintf(message.mesg_text, "%d", (int)getpid());
     msgsnd(msgid, &message, MAX_BUF_SIZE, 0);
 
     // Ready
@@ -100,7 +92,7 @@ int main(int argc, char *argv[]) {
                 if (cmd_n != 3) {
                     cprintf(SWITCH_STRING);
                 } else {
-                    __switch(atoi(buf[1]), buf[2], buf[3], children_pids);
+                    __switch(buf, children_pids);
                 }
             } else if (strcmp(buf[0], "add") == 0) {
                 if (cmd_n != 1) {
