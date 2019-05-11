@@ -37,7 +37,6 @@ void sighandle_usr2(int sig) {
     if (atoi(vars[0]) == 0) {
         status = !status;
     }
-
 }
 
 int main(int argc, char* argv[]) {
@@ -47,6 +46,11 @@ int main(int argc, char* argv[]) {
     __index = atoi(argv[1]);
 
     fd = open(pipe_fd, O_RDWR);
+
+    int i;
+    for (i = 0; i < MAX_HUB_CONNECTED_DEVICES; i++) {
+        children_pids[i] = -1;
+    }
 
     signal(SIGUSR1, sighandle_usr1);
     signal(SIGUSR2, sighandle_usr2);

@@ -1,8 +1,10 @@
 #include "shell.h"
 
+extern int print_mode;
+
 int ppid;
-int changed = 0;
-int stato = 1;  //Stato della centralina.
+int changed = 0;  // Modifiche alla message queue?
+int stato = 1;    //Stato della centralina.
 
 int main(int argc, char *argv[]) {
     signal(SIGINT, stop_sig);
@@ -11,16 +13,12 @@ int main(int argc, char *argv[]) {
 
     char(*buf)[MAX_BUF_SIZE] = malloc(MAX_BUF_SIZE * sizeof(char *));  // array che conterrà i comandi da eseguire
 
-    char ch;   // carattere usato per la lettura dei comandi
-    int ch_i;  // indice del carattere corrente
-
     int cmd_n;  // numero di comandi disponibili
-
-    int j;
 
     int device_i = 0;                 // indice progressivo dei dispositivi
     int children_pids[MAX_CHILDREN];  // array contenenti i PID dei figli
 
+    int j;
     for (j = 0; j < MAX_CHILDREN; j++) {
         children_pids[j] = -1;  // se è -1 non contiene nulla
     }
@@ -63,6 +61,7 @@ int main(int argc, char *argv[]) {
             if (changed) {
                 //Ripulisco Forzatamente.
                 msgrcv(msgid, &message, MAX_BUF_SIZE, 1, IPC_NOWAIT);
+
                 char tmp_c[MAX_BUF_SIZE];
                 sprintf(tmp_c, "%d|", device_i);
                 char child[8];
@@ -83,7 +82,7 @@ int main(int argc, char *argv[]) {
                 msgsnd(msgid, &message, MAX_BUF_SIZE, 0);
             }
 
-            printf("\e[92m%s\e[39m:\e[31mCentralina\033[0m$ ", name);
+            cprintf("\e[92m%s\e[39m:\e[31mCentralina\033[0m$ ", name);
             cmd_n = parse(buf, cmd_n);
 
             if (strcmp(buf[0], "exit") == 0) {  // supponiamo che l'utente scriva solo "exit" per uscire
@@ -92,35 +91,35 @@ int main(int argc, char *argv[]) {
             } else if (strcmp(buf[0], "\0") == 0) {  // a capo a vuoto
                 continue;
             } else if (strcmp(buf[0], "help") == 0) {  // guida
-                printf("%s", HELP_STRING);
+                cprintf("%s", HELP_STRING);
             } else if (strcmp(buf[0], "list") == 0) {
                 list(buf, children_pids);
             } else if (strcmp(buf[0], "info") == 0) {
                 if (cmd_n != 1) {
-                    printf(INFO_STRING);
+                    cprintf(INFO_STRING);
                 } else {
                     __info(buf, children_pids);
                 }
             } else if (strcmp(buf[0], "switch") == 0) {
                 if (cmd_n != 3) {
-                    printf(SWITCH_STRING);
+                    cprintf(SWITCH_STRING);
                 } else {
                     __switch(buf, children_pids);
                 }
             } else if (strcmp(buf[0], "add") == 0) {
                 if (cmd_n != 1) {
-                    printf(ADD_STRING);
+                    cprintf(ADD_STRING);
                 } else {
                     add(buf, &device_i, children_pids);
                 }
             } else if (strcmp(buf[0], "del") == 0) {
                 if (cmd_n != 1) {
-                    printf(DEL_STRING);
+                    cprintf(DEL_STRING);
                 } else {
                     del(buf, children_pids);
                 }
             } else {  //tutto il resto
-                printf("Comando non riconosciuto. Usa help per visualizzare i comandi disponibili\n");
+                cprintf("Comando non riconosciuto. Usa help per visualizzare i comandi disponibili\n");
             }
         } else {
             getchar();  //Per ignorare i comandi quando non accessa.
@@ -155,7 +154,7 @@ void list(char buf[][MAX_BUF_SIZE], int *children_pids) {
             get_device_name(atoi(vars[0]), device_name);
             device_name[0] += 'A' - 'a';
 
-            printf("Dispositivo: %s, PID %s, nome %s\n", device_name, vars[1], vars[2]);
+            cprintf("Dispositivo: %s, PID %s, nome %s\n", device_name, vars[1], vars[2]);
             // Pulizia
             free(vars);
             free(pipe_str);
@@ -179,7 +178,7 @@ void add(char buf[][MAX_BUF_SIZE], int *device_i, int *children_pids) {
                 }
             }
             if (i == MAX_CHILDREN) {
-                printf("Non c'è più spazio! Rimuovi qualche dispositivo.\n");
+                cprintf("Non c'è più spazio! Rimuovi qualche dispositivo.\n");
                 return;
             }
         } else {
@@ -211,12 +210,12 @@ void add(char buf[][MAX_BUF_SIZE], int *device_i, int *children_pids) {
             char device_name[MAX_BUF_SIZE];
             get_device_name_str(buf[1], device_name);
 
-            printf("Aggiunto un dispositivo di tipo %s con PID %i e indice %i\n", device_name, pid, *device_i);
+            cprintf("Aggiunto un dispositivo di tipo %s con PID %i e indice %i\n", device_name, pid, *device_i);
             changed = 1;
             return;
         }
     } else {
-        printf("Dispositivo non ancora supportato\n");
+        cprintf("Dispositivo non ancora supportato\n");
     }
 }
 
@@ -224,7 +223,7 @@ void del(char buf[][MAX_BUF_SIZE], int *children_pids) {
     int pid = get_device_pid(atoi(buf[1]), children_pids);
 
     if (pid == -1) {
-        printf("Errore! Non esiste questo dispositivo.\n");
+        cprintf("Errore! Non esiste questo dispositivo.\n");
         return;
     }
 
@@ -233,7 +232,7 @@ void del(char buf[][MAX_BUF_SIZE], int *children_pids) {
     char **vars = NULL;
 
     if (kill(pid, SIGUSR1) != 0) {
-        printf("Errore! Sistema: codice errore %i\n", errno);
+        cprintf("Errore! Sistema: codice errore %i\n", errno);
         return;
     }
 
@@ -246,8 +245,8 @@ void del(char buf[][MAX_BUF_SIZE], int *children_pids) {
     get_device_name(atoi(vars[0]), device_name);
     device_name[0] += 'A' - 'a';
 
-    printf("Rimozione in corso...\nDispositivo di tipo %s con PID %s e indice %s rimosso.\n",
-           device_name, vars[1], vars[2]);
+    cprintf("ispositivo di tipo %s con PID %s e indice %s rimosso.\n",
+            device_name, vars[1], vars[2]);
 
     close(fd);
     free(pipe_str);
@@ -266,7 +265,7 @@ void del(char buf[][MAX_BUF_SIZE], int *children_pids) {
 }
 
 void cleanup_sig(int sig) {
-    printf("Chiusura della centralina in corso...\n");
+    cprintf("Chiusura della centralina in corso...\n");
     kill(ppid, SIGTERM);
     kill(0, 9);
 }
@@ -276,13 +275,13 @@ void handle_sig(int sig) {
 }
 
 void stop_sig(int sig) {
-    printf("STOP_SIG\n");
+    cprintf("STOP_SIG\n");
     if (stato) {
         stato = 0;
-        printf("La centralina è stata spenta. Nessun comando sarà accettato\n");
+        cprintf("La centralina è stata spenta. Nessun comando sarà accettato\n");
     } else {
         stato = 1;
         system("clear");
-        printf("\nLa centralina è accessa. Premi Invio per proseguire.\n");
+        cprintf("\nLa centralina è accessa. Premi Invio per proseguire.\n");
     }
 }

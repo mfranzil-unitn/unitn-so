@@ -1,7 +1,7 @@
 .PHONY: build clean help targets devices
 
 CC = gcc
-CFLAGS = -std=gnu90
+CFLAGS = -std=gnu90 --pedantic -Wall
 
 RED=\033[0;31m
 BOLD_RED=\033[1;31m

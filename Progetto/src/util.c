@@ -1,5 +1,16 @@
 #include "util.h"
 
+int print_mode = 1;
+
+void cprintf(const char *__restrict__ __format, ...) {
+    if (print_mode) {
+        va_list(args);
+        //  cprintf("%d - ", time(NULL));
+        va_start(args, __format);
+        vprintf(__format, args);
+    }
+}
+
 int parse(char buf[][MAX_BUF_SIZE], int cmd_n) {
     char ch;   // carattere usato per la lettura dei comandi
     int ch_i;  // indice del carattere corrente
@@ -62,13 +73,12 @@ char **split(char *__buf) {
     return vars;
 }
 
-//Fino a <= necessario per Launchers
 char **split_fixed(char *__buf, int __count) {
     char *tokenizer = strtok(__buf, "|");
     char **vars = malloc(__count * sizeof(char *));
     int j = 0;
 
-    while (tokenizer != NULL && j <=__count) {
+    while (tokenizer != NULL && j <= __count) {
         vars[j++] = tokenizer;
         tokenizer = strtok(NULL, "|");
     }
@@ -172,7 +182,7 @@ void __switch(char buf[][MAX_BUF_SIZE], int *children_pids) {
     int pid = get_device_pid(atoi(buf[1]), children_pids);
 
     if (pid == -1) {
-        printf("Errore! Non esiste questo dispositivo.\n");
+        cprintf("Errore! Non esiste questo dispositivo.\n");
         return;
     }
 
@@ -183,7 +193,7 @@ void __switch(char buf[][MAX_BUF_SIZE], int *children_pids) {
 
     if (kill(pid, SIGUSR1) != 0) {
         // apertura della pipe fallita
-        printf("Errore! Impossibile notificare il dispositivo. Errno: %i\n", errno);
+        cprintf("Errore! Impossibile notificare il dispositivo. Errno: %i\n", errno);
         return;
     }
 
@@ -200,20 +210,20 @@ void __switch(char buf[][MAX_BUF_SIZE], int *children_pids) {
             if (strcmp(buf[3], "on") == 0 && status == 0) {
                 write(fd, pipe_message, MAX_BUF_SIZE);
                 kill(pid, SIGUSR2);
-                printf("Lampadina accesa.\n");
+                cprintf("Lampadina accesa.\n");
             } else if (strcmp(buf[3], "off") == 0 && status == 1) {
                 write(fd, pipe_message, MAX_BUF_SIZE);
                 kill(pid, SIGUSR2);
-                printf("Lampadina spenta.\n");
+                cprintf("Lampadina spenta.\n");
             } else if (strcmp(buf[3], "off") == 0 && status == 0) {  // Spengo una lampadina spenta
-                printf("Stai provando a spegnere una lampadina spenta!\n");
+                cprintf("Stai provando a spegnere una lampadina spenta!\n");
             } else if (strcmp(buf[3], "on") == 0 && status == 1) {  // Spengo una lampadina accesa
-                printf("Stai provando a accendere una lampadina accesa!\n");
+                cprintf("Stai provando a accendere una lampadina accesa!\n");
             } else {
-                printf("Sintassi non corretta. Sintassi: switch <bulb> accensione <on/off>\n");
+                cprintf("Sintassi non corretta. Sintassi: switch <bulb> accensione <on/off>\n");
             }
         } else {
-            printf("Operazione non permessa su una lampadina!\nOperazioni permesse: accensione\n");
+            cprintf("Operazione non permessa su una lampadina!\nOperazioni permesse: accensione\n");
         }
     } else if (strncmp(tmp, "2", 1) == 0) {  // Fridge
         if (strcmp(buf[2], "apertura") == 0) {
@@ -224,31 +234,31 @@ void __switch(char buf[][MAX_BUF_SIZE], int *children_pids) {
             if (strcmp(buf[3], "on") == 0 && status == 0) {
                 write(fd, pipe_message, MAX_BUF_SIZE);
                 kill(pid, SIGUSR2);
-                printf("Frigorifero aperto.\n");
+                cprintf("Frigorifero aperto.\n");
             } else if (strcmp(buf[3], "off") == 0 && status == 1) {
                 write(fd, pipe_message, MAX_BUF_SIZE);
                 kill(pid, SIGUSR2);
-                printf("Frigorifero chiuso.\n");
+                cprintf("Frigorifero chiuso.\n");
             } else if (strcmp(buf[3], "off") == 0 && status == 0) {  // Chiudo frigo già chiuso
-                printf("Stai provando a chiudere un frigorifero già chiuso.\n");
+                cprintf("Stai provando a chiudere un frigorifero già chiuso.\n");
             } else if (strcmp(buf[3], "on") == 0 && status == 1) {  // Apro frigo già aperto
-                printf("Stai provando a aprire un frigorifero già aperto.\n");
+                cprintf("Stai provando a aprire un frigorifero già aperto.\n");
             } else {
-                printf("Sintassi non corretta. Sintassi: switch <fridge> apertura <on/off>\n");
+                cprintf("Sintassi non corretta. Sintassi: switch <fridge> apertura <on/off>\n");
             }
         } else if (strcmp(buf[2], "temperatura") == 0) {
             sprintf(pipe_message, "1|%s", buf[3]);
 
             write(fd, pipe_message, MAX_BUF_SIZE);
             kill(pid, SIGUSR2);
-            printf("Temperatura modificata con successo a %s°C.\n", buf[3]);
+            cprintf("Temperatura modificata con successo a %s°C.\n", buf[3]);
         } else {
-            printf("Operazione non permessa su un frigorifero! Operazioni permesse: <temperatura/apertura>\n");
+            cprintf("Operazione non permessa su un frigorifero! Operazioni permesse: <temperatura/apertura>\n");
         }
     } else if (strncmp(tmp, "3", 1) == 0) {  // Window
         if (((strcmp(buf[2], "apertura") != 0) || (strcmp(buf[2], "apertura") == 0 && strcmp(buf[3], "off") == 0)) &&
             ((strcmp(buf[2], "chiusura") != 0) || (strcmp(buf[2], "chiusura") == 0 && strcmp(buf[3], "off") == 0))) {
-            printf("Operazione non permessa: i pulsanti sono solo attivi!\n");
+            cprintf("Operazione non permessa: i pulsanti sono solo attivi!\n");
             // se off non permetto
             return;
         }
@@ -260,16 +270,16 @@ void __switch(char buf[][MAX_BUF_SIZE], int *children_pids) {
         if (strcmp(buf[2], "apertura") == 0 && status == 0) {
             write(fd, pipe_message, sizeof(pipe_message));
             kill(pid, SIGUSR2);
-            printf("Finestra aperta.\n");
+            cprintf("Finestra aperta.\n");
         } else if (strcmp(buf[2], "chiusura") == 0 && status == 1) {
             write(fd, pipe_message, sizeof(pipe_message));
             kill(pid, SIGUSR2);
-            printf("Finestra chiusa.\n");
+            cprintf("Finestra chiusa.\n");
         } else {
-            printf("Operazione non permessa: pulsante già premuto.\n");
+            cprintf("Operazione non permessa: pulsante già premuto.\n");
         }
     } else {  // tutti gli altri dispositivi
-        printf("Dispositivo non supportato.\n");
+        cprintf("Dispositivo non supportato.\n");
         //  return; Possibile errore di allocazione perché vars non è stato allocato?
     }
     close(fd);
@@ -280,7 +290,7 @@ void __info(char buf[][MAX_BUF_SIZE], int *children_pids) {
     int pid = get_device_pid(atoi(buf[1]), children_pids);
 
     if (pid == -1) {
-        printf("Errore! Non esiste questo dispositivo.\n");
+        cprintf("Errore! Non esiste questo dispositivo.\n");
         return;
     }
 
@@ -290,7 +300,7 @@ void __info(char buf[][MAX_BUF_SIZE], int *children_pids) {
 
     // apertura della pipe fallita
     if (kill(pid, SIGUSR1) != 0) {
-        printf("Errore! Sistema: codice errore %i\n", errno);
+        cprintf("Errore! Sistema: codice errore %i\n", errno);
         return;
     }
 
@@ -303,34 +313,34 @@ void __info(char buf[][MAX_BUF_SIZE], int *children_pids) {
         // Lampadina - parametri: tipo, pid, indice, stato, tempo di accensione
         vars = split(tmp);
 
-        printf("Oggetto: Lampadina\nPID: %s\nIndice: %s\nStato: %s\nTempo di accensione: %s\n",
-               vars[1], vars[2], atoi(vars[3]) ? "ON" : "OFF", vars[4]);
+        cprintf("Oggetto: Lampadina\nPID: %s\nIndice: %s\nStato: %s\nTempo di accensione: %s\n",
+                vars[1], vars[2], atoi(vars[3]) ? "ON" : "OFF", vars[4]);
     } else if (strncmp(tmp, "2", 1) == 0) {
         // Frigo -  parametri: tipo, pid, indice, stato, tempo di apertura, delay
         // percentuale riempimento, temperatura interna
         vars = split(tmp);
 
-        printf("Oggetto: Frigorifero\n");
+        cprintf("Oggetto: Frigorifero\n");
         if (vars[8] != NULL) {  //&& vars[8] != "" && vars[8][0] != 0) {
-            printf("[!!] Messaggio di log: <%s>\n", vars[8]);
+            cprintf("[!!] Messaggio di log: <%s>\n", vars[8]);
         }
 
-        printf("PID: %s\nIndice: %s\nStato: %s\nTempo di apertura: %s sec\n",
-               vars[1], vars[2], atoi(vars[3]) ? "Aperto" : "Chiuso", vars[4]);
-        printf("Delay richiusura: %s sec\nPercentuale riempimento: %s\nTemperatura: %s°C\n",
-               vars[5], vars[6], vars[7]);
+        cprintf("PID: %s\nIndice: %s\nStato: %s\nTempo di apertura: %s sec\n",
+                vars[1], vars[2], atoi(vars[3]) ? "Aperto" : "Chiuso", vars[4]);
+        cprintf("Delay richiusura: %s sec\nPercentuale riempimento: %s\nTemperatura: %s°C\n",
+                vars[5], vars[6], vars[7]);
     } else if (strncmp(tmp, "3", 1) == 0) {
         // Finestra - parametri: tipo, pid, indice, stato, tempo di accensione
         vars = split(tmp);
-        printf("Oggetto: Finestra\nPID: %s\nIndice: %s\nStato: %s\nTempo di apertura: %s sec\n",
-               vars[1], vars[2], atoi(vars[3]) ? "Aperto" : "Chiuso", vars[4]);
+        cprintf("Oggetto: Finestra\nPID: %s\nIndice: %s\nStato: %s\nTempo di apertura: %s sec\n",
+                vars[1], vars[2], atoi(vars[3]) ? "Aperto" : "Chiuso", vars[4]);
     } else if (strncmp(tmp, "4", 1) == 0) {
         // Hub -  parametri: tipo, pid, stato indice
         vars = split(tmp);
-        printf("Oggetto: Hub\nPID: %s\nIndice: %s\nStato: %s\n",
-               vars[1], vars[2], atoi(vars[3]) ? "ON" : "OFF");
+        cprintf("Oggetto: Hub\nPID: %s\nIndice: %s\nStato: %s\n",
+                vars[1], vars[2], atoi(vars[3]) ? "ON" : "OFF");
     } else {
-        printf("Dispositivo non supportato.\n");
+        cprintf("Dispositivo non supportato.\n");
     }
     free(vars);
 }

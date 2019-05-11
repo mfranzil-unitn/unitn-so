@@ -1,6 +1,8 @@
 #include "launcher.h"
 
-        pid_t shell_pid = -1;
+extern int print_mode;
+
+pid_t shell_pid = -1;
 int n_devices = 0;
 int emergencyid;
 int shell_on = 0;
@@ -15,26 +17,30 @@ int main(int argc, char *argv[]) {
     int cmd_n;  // numero di comandi disponibili
 
     int device_pids[MAX_CHILDREN];  // array contenenti i PID dei figli
-    int j;
 
+    print_mode = 1;  // abilito la stampa
+
+    int j;
     for (j = 0; j < MAX_CHILDREN; j++) {
+        // Inizializzo l'array dei figli
         device_pids[j] = -1;  // se è -1 non contiene nulla
     }
 
     if (argc != 2 || strcmp(argv[1], "--no-clear") != 0) {
+        // Parametro opzionale
         system("clear");
     }
 
-    //Creo PIPE verso shell.
+    // Creo pipe verso shell.
     mkfifo(SHPM, 0666);
     char *name = get_shell_text();
 
-    //CREO MESSAGE QUEUE TRA SHELL E LAUNCHERRRRRRRRRRRRRRR
+    // Creo message queue tra shell e launcher.
     key_t key;
     key = ftok("progfile", 65);
     int msgid;
     msgid = msgget(key, 0666 | IPC_CREAT);
-    //RIPULISCO INIZIALMENTE PER EVITARE ERRORI
+    // Ripulisco inizialmente per evitare errori.
     msgrcv(msgid, &message, sizeof(message), 1, IPC_NOWAIT);
     emergencyid = msgid;
 
@@ -46,24 +52,23 @@ int main(int argc, char *argv[]) {
             n_devices = 0;
         }
 
-        //Stampa del nome utente
-        printf("\e[92m%s\e[39m:\e[34mLauncher\033[0m$ ", name);
+        // Stampa del nome utente
+        cprintf("\e[92m%s\e[39m:\e[34mLauncher\033[0m$ ", name);
         cmd_n = parse(buf, cmd_n);
 
         if (strcmp(buf[0], "exit") == 0) {
             // supponiamo che l'utente scriva solo "exit" per uscire
             //Se la shell è aperta => shell_pid != -1 mando un SIGTERM per chiuderla.
             char c = '\0';
-            printf("Sei sicuro di voler uscire dal launcher? Tutte le modifiche verranno perse!");
+            cprintf("Sei sicuro di voler uscire dal launcher? Tutte le modifiche verranno perse!");
 
             while (c != 's' && c != 'n') {
-                printf("\n[s/n]: ");
+                cprintf("\n[s/n]: ");
                 c = getchar();
                 getchar();  // ignoro lo \0
             }
 
             if (c == 's') {
-                msgctl(msgid, IPC_RMID, NULL);
                 if (shell_pid != -1) {
                     kill(shell_pid, SIGTERM);
                 }
@@ -74,22 +79,22 @@ int main(int argc, char *argv[]) {
         } else if (strcmp(buf[0], "\0") == 0) {  //a capo a vuoto
             continue;
         } else if (strcmp(buf[0], "help") == 0) {  // guida
-            printf(HELP_STRING_LAUNCHER);
+            cprintf(HELP_STRING_LAUNCHER);
         } else if (strcmp(buf[0], "info") == 0) {  // info su dispositivo
             if (cmd_n != 1) {
-                printf(INFO_STRING);
+                cprintf(INFO_STRING);
             } else {
                 info_launcher(buf, msgid, device_pids);
             }
         } else if (strcmp(buf[0], "switch") == 0) {
             if (cmd_n != 3) {
-                printf(SWITCH_STRING);
+                cprintf(SWITCH_STRING);
             } else {
                 switch_launcher(buf, msgid, device_pids);
             }
         } else if (strcmp(buf[0], "user") == 0) {  //I comandi da launcher fuorchè per help ed exit devono cominciare per user.
             if (cmd_n != 3) {                      //Controllo correttezza nel conteggio degli argomenti.
-                printf(USER_STRING);
+                cprintf(USER_STRING);
             } else {
                 user_launcher(buf, msgid, device_pids);
             }
@@ -99,7 +104,7 @@ int main(int argc, char *argv[]) {
             if (shell_pid != -1) {
                 kill(shell_pid, SIGTERM);
             }
-            printf("Riavvio in corso...\n");
+            cprintf("Riavvio in corso...\n");
             system("make build");
             system("./run --no-clear");
             //  } else {
@@ -107,7 +112,7 @@ int main(int argc, char *argv[]) {
             //  }
             //  exit(0);
         } else {  //tutto il resto
-            printf("Comando non riconosciuto. Usa help per visualizzare i comandi disponibili\n");
+            cprintf("Comando non riconosciuto. Usa help per visualizzare i comandi disponibili\n");
         }
     }
 
@@ -120,7 +125,7 @@ int main(int argc, char *argv[]) {
 //Da togliere, ma aspetta.
 void handle_sighup(int signal) {
     system("clear");
-    printf("La centralina è stata chiusa, Premere Invio per proseguire\n");
+    cprintf("La centralina è stata chiusa, Premere Invio per proseguire\n");
     if (shell_pid != -1) {
         kill(shell_pid, SIGTERM);
     }
@@ -129,13 +134,13 @@ void handle_sighup(int signal) {
 
 void handle_sig(int signal) {
     system("clear");
-    printf("La centralina è stata chiusa, Premere Invio per proseguire\n");
+    cprintf("La centralina è stata chiusa, Premere Invio per proseguire\n");
     shell_pid = -1;
 }
 
 void handle_sigint(int signal) {
     msgctl(emergencyid, IPC_RMID, NULL);
-    if (shell_pid = ! - 1) {
+    if (shell_pid != -1) {
         kill(shell_pid, SIGTERM);
     }
     exit(0);
@@ -150,16 +155,15 @@ void switch_launcher(char buf[][MAX_BUF_SIZE], int msgid, int *device_pids) {
             // Chiamata a util.c
             __switch(buf, device_pids);
         } else {
-            printf("ID non presente\n");
+            cprintf("ID non presente\n");
         }
 
     } else {
-        printf("Azione non disponibile a centralina spenta!\n");
+        cprintf("Azione non disponibile a centralina spenta!\n");
     }
 }
 
-
-void read_msgqueue(int msgid, int* device_pids){
+void read_msgqueue(int msgid, int *device_pids) {
     int ret = msgrcv(msgid, &message, sizeof(message), 1, IPC_NOWAIT);
     if (ret != -1) {
         int q = 0;
@@ -170,7 +174,7 @@ void read_msgqueue(int msgid, int* device_pids){
         }
         n_dev_str[q] = '\0';
         n_devices = atoi(n_dev_str);
-        if(n_devices > 0){
+        if (n_devices > 0) {
             int __count = n_devices;
             char tmp_buf[MAX_BUF_SIZE];
             sprintf(tmp_buf, "%s", message.mesg_text);
@@ -178,9 +182,9 @@ void read_msgqueue(int msgid, int* device_pids){
             char **vars = NULL;
             vars = split_fixed(tmp_buf, __count);
             int j = 0;
-            while (j <=__count) {
-                if(j>=1){
-                    device_pids[j-1] = atoi(vars[j]);
+            while (j <= __count) {
+                if (j >= 1) {
+                    device_pids[j - 1] = atoi(vars[j]);
                 }
                 j++;
             }
@@ -188,24 +192,25 @@ void read_msgqueue(int msgid, int* device_pids){
         // FINE SISTEMAMI
     }
 }
+
 void info_launcher(char buf[][MAX_BUF_SIZE], int msgid, int *device_pids) {
     if (shell_pid > 0 && shell_on) {
         read_msgqueue(msgid, device_pids);
         __info(buf, device_pids);
     } else {
-        printf("La centralina è spenta\n");
+        cprintf("La centralina è spenta\n");
     }
 }
 
 void user_launcher(char buf[][MAX_BUF_SIZE], int msgid, int *device_pids) {
     if (strcmp(buf[1], "turn") != 0 || strcmp(buf[2], "shell") != 0) {
-        printf("Sintassi: user turn shell <pos>\n");
+        cprintf("Sintassi: user turn shell <pos>\n");
     }
 
     if (strcmp(buf[3], "on") == 0 && shell_pid == -1) {  //Se non è ancora accesa => shell_pid == -1
         pid_t pid = fork();
         if (pid < 0) {
-            printf("Errore durante il fork\n");
+            cprintf("Errore durante il fork\n");
             exit(1);
         }
         if (pid == 0) {  //Processo figlio che aprirà terminale e lancerà la shell.
@@ -230,14 +235,14 @@ void user_launcher(char buf[][MAX_BUF_SIZE], int msgid, int *device_pids) {
             char tmp[16];
             read(fd, tmp, 16);
             if (strcmp(tmp, "Errore") == 0) {
-                printf("Errore nell'apertura della shell\n");
+                cprintf("Errore nell'apertura della shell\n");
             } else {
                 shell_pid = atoi(tmp);
             }
             close(fd);
             shell_on = 1;
             system("clear");
-            printf("La centralina è aperta\n");
+            cprintf("La centralina è aperta\n");
             return;
         }
     } else if (strcmp(buf[3], "off") == 0 && shell_pid != -1) {
@@ -248,8 +253,8 @@ void user_launcher(char buf[][MAX_BUF_SIZE], int msgid, int *device_pids) {
         kill(shell_pid, SIGINT);
         shell_on = 1;
     } else if (strcmp(buf[3], "off") == 0 && shell_pid == -1) {
-        printf("Centralina già spenta\n");
+        cprintf("Centralina già spenta\n");
     } else {
-        printf("Comando non riconosciuto\n");
+        cprintf("Comando non riconosciuto\n");
     }
 }

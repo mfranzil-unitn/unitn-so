@@ -11,6 +11,7 @@
 #include <sys/ipc.h>
 #include <sys/msg.h>
 #include <sys/stat.h>
+#include <stdarg.h> 
 #include <sys/types.h>
 #include <unistd.h>
 
