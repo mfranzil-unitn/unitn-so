@@ -88,13 +88,13 @@ int main(int argc, char *argv[]) {
                 if (cmd_n != 0) {
                     cprintf(LIST_STRING);
                 } else {
-                    __list(buf, children_pids);
+                    __list(children_pids);
                 }
             } else if (strcmp(buf[0], "info") == 0) {
                 if (cmd_n != 1) {
                     cprintf(INFO_STRING);
                 } else {
-                    __info(buf, children_pids);
+                    __info(atoi(buf[1]), children_pids);
                 }
             } else if (strcmp(buf[0], "switch") == 0) {
                 if (cmd_n != 3) {
@@ -113,7 +113,8 @@ int main(int argc, char *argv[]) {
                 if (cmd_n != 1) {
                     cprintf(DEL_STRING);
                 } else {
-                    __del(buf, children_pids);
+                    __del(atoi(buf[1]), children_pids, __out_buf);
+                    cprintf(__out_buf);
                 }
             } else if (strcmp(buf[0], "exit") == 0) {  // supponiamo che l'utente scriva solo "exit" per uscire
                 kill(ppid, SIGTERM);

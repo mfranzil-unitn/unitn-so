@@ -108,8 +108,8 @@ void __switch(char buf[][MAX_BUF_SIZE], int *children_pids) {
     free(vars);
 }
 
-void __info(char buf[][MAX_BUF_SIZE], int *children_pids) {
-    int pid = get_device_pid(atoi(buf[1]), children_pids);
+void __info(int index, int *children_pids) {
+    int pid = get_device_pid(index, children_pids);
 
     if (pid == -1) {
         cprintf("Errore! Non esiste questo dispositivo.\n");
@@ -219,7 +219,7 @@ int __add(char *device, int *device_i, int *children_pids, char *__out_buf) {
     return 1;
 }
 
-void __list(char buf[][MAX_BUF_SIZE], int *children_pids) {
+void __list(int *children_pids) {
     // prende come input l'indice/nome del dispositivo, ritorna il PID
     char *pipe_str = NULL;
 
@@ -253,11 +253,11 @@ void __list(char buf[][MAX_BUF_SIZE], int *children_pids) {
     }
 }
 
-void __del(char buf[][MAX_BUF_SIZE], int *children_pids) {
-    int pid = get_device_pid(atoi(buf[1]), children_pids);
+void __del(int index, int *children_pids, char* __out_buf) {
+    int pid = get_device_pid(index, children_pids);
 
     if (pid == -1) {
-        cprintf("Errore! Non esiste questo dispositivo.\n");
+        sprintf(__out_buf, "Errore! Non esiste questo dispositivo.\n");
         return;
     }
 
@@ -266,7 +266,7 @@ void __del(char buf[][MAX_BUF_SIZE], int *children_pids) {
     char **vars = NULL;
 
     if (kill(pid, SIGUSR1) != 0) {
-        cprintf("Errore! Sistema: codice errore %i\n", errno);
+        sprintf(__out_buf, "Errore! Sistema: codice errore %i\n", errno);
         return;
     }
 
@@ -279,7 +279,7 @@ void __del(char buf[][MAX_BUF_SIZE], int *children_pids) {
     get_device_name(atoi(vars[0]), device_name);
     device_name[0] += 'A' - 'a';
 
-    cprintf("ispositivo di tipo %s con PID %s e indice %s rimosso.\n",
+    sprintf(__out_buf, "Dispositivo di tipo %s con PID %s e indice %s rimosso.\n",
             device_name, vars[1], vars[2]);
 
     close(fd);
