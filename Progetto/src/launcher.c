@@ -198,7 +198,7 @@ void read_msgqueue(int msgid, int *device_pids) {
 void info_launcher(char buf[][MAX_BUF_SIZE], int msgid, int *device_pids) {
     if (shell_pid > 0 && shell_on) {
         read_msgqueue(msgid, device_pids);
-        __info(buf, device_pids);
+        __info(atoi(buf[1]), device_pids);
     } else {
         cprintf("La centralina è spenta\n");
     }
