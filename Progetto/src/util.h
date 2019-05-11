@@ -83,6 +83,4 @@ char **get_device_info(int pid);
 
 int is_controller(int pid);
 
-void __add_ex(char** vars, int actual_index, int *children_pids);
-
 #endif

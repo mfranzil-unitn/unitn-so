@@ -205,17 +205,3 @@ int is_controller(int pid) {
     int id = atoi(vars[0]);
     return id == HUB;
 }
-
-void __add_ex(char **vars, int actual_index, int *children_pids) {
-    char __out_buf[MAX_BUF_SIZE];
-
-    if (strcmp(vars[0], BULB_S) == 0) {  // Lampadina
-        // Dati in entrata:  1, pid, __index, status, time_on
-        __add("bulb", vars[2], actual_index, children_pids, __out_buf);
-        __switch(vars[2], "accensione", "on", children_pids);
-        // Chiaramente minchia posso replicare il time_on...
-        // se scollego una lampadina quella si spegne
-    } else {
-        cprintf("Da implementare...");
-    }
-}

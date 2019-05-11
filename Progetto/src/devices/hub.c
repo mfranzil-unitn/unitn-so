@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <time.h>
 #include "../util.h"
+#include "../actions.h"
 
 // BULB = 1
 

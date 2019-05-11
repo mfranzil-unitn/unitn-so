@@ -284,3 +284,18 @@ void __link(int index, int controller, int *children_pids) {
         free(buf);
     }
 }
+
+void __add_ex(char **vars, int actual_index, int *children_pids) {
+    char __out_buf[MAX_BUF_SIZE];
+
+    if (strcmp(vars[0], BULB_S) == 0) {  // Lampadina
+        cprintf("Ci sono!!!\n");
+        // Dati in entrata:  1, pid, __index, status, time_on
+        __add("bulb", atoi(vars[2]), actual_index, children_pids, __out_buf);
+        __switch(atoi(vars[2]), "accensione", "on", children_pids); //AAAAAA
+        // Chiaramente minchia posso replicare il time_on...
+        // se scollego una lampadina quella si spegne
+    } else {
+        cprintf("Da implementare...");
+    }
+}

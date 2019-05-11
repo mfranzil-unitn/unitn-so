@@ -34,8 +34,8 @@ bin/devices/fridge: src/devices/fridge.c bin/util.o
 bin/devices/window: src/devices/window.c bin/util.o
 	$(CC) $(CFLAGS) -o bin/devices/window src/devices/window.c bin/util.o
 
-bin/devices/hub: src/devices/hub.c bin/util.o
-	$(CC) $(CFLAGS) -o bin/devices/hub src/devices/hub.c bin/util.o
+bin/devices/hub: src/devices/hub.c bin/util.o bin/actions.o
+	$(CC) $(CFLAGS) -o bin/devices/hub src/devices/hub.c bin/util.o bin/actions.o
 
 bin/util.o: src/util.c
 	$(CC) $(CFLAGS) -c -o bin/util.o src/util.c 
