@@ -180,7 +180,6 @@ void read_msgqueue(int msgid, int *device_pids) {
             int __count = n_devices;
             char tmp_buf[MAX_BUF_SIZE];
             sprintf(tmp_buf, "%s", message.mesg_text);
-            // SISTEMAMI
             char **vars = NULL;
             vars = split_fixed(tmp_buf, __count);
             int j = 0;
@@ -191,7 +190,6 @@ void read_msgqueue(int msgid, int *device_pids) {
                 j++;
             }
         }
-        // FINE SISTEMAMI
     }
 }
 
@@ -236,7 +234,6 @@ void user_launcher(char buf[][MAX_BUF_SIZE], int msgid, int *device_pids) {
                 cprintf("Errore nell'apertura della shell\n");
             } else {
                 shell_pid = atoi(message.mesg_text);
-                //printf("Shell pid: %d\n", shell_pid);
             }
             shell_on = 1;
             system("clear");
