@@ -15,13 +15,30 @@ int pid, __index;  // variabili di stato
 int status = 0;  // interruttore accensione
 
 int children_pids[MAX_HUB_CONNECTED_DEVICES];
+int device_i = 0;
 
 void sighandle_usr1(int sig) {
     // bisogna controllare se i dispositivi sono allineati o meno (override)
     char buffer[MAX_BUF_SIZE];
 
-    sprintf(buffer, "4|%i|%i|%i",
-            pid, __index, status);
+    sprintf(buffer, "4|%i|%i|%i|%i",
+            pid, __index, status, device_i);
+
+    int i;
+    for (i = 0; i < MAX_HUB_CONNECTED_DEVICES; i++) {
+        if (children_pids[i] != -1) {
+            char** vars = get_device_info(children_pids[i]);
+
+            strcat(buffer, "<");
+            int j = 0;
+            while (vars[j] != "0") {
+                strcat(buffer, vars[j++]);
+            }
+
+            strcat(buffer, ">");
+            free(vars);
+        }
+    }
 
     write(fd, buffer, MAX_BUF_SIZE);
 }

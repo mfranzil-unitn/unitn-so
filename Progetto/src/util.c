@@ -66,13 +66,15 @@ char **split(char *__buf) {
 
 char **split_fixed(char *__buf, int __count) {
     char *tokenizer = strtok(__buf, "|");
-    char **vars = malloc(__count * sizeof(char *));
+    char **vars = malloc((__count + 1) * sizeof(*vars));
     int j = 0;
 
     while (tokenizer != NULL && j <= __count) {
         vars[j++] = tokenizer;
         tokenizer = strtok(NULL, "|");
     }
+
+    vars[j] = "\0";
 
     return vars;
 }
@@ -152,23 +154,31 @@ int get_device_pid(int device_identifier, int *children_pids) {
 }
 
 char **get_device_info(int pid) {
-    char tmp[MAX_BUF_SIZE];
-
     if (kill(pid, SIGUSR1) != 0) {
         return NULL;
     }
 
     char pipe_str[MAX_BUF_SIZE];
+    char tmp[MAX_BUF_SIZE];
+
     get_pipe_name(pid, pipe_str);
 
     int fd = open(pipe_str, O_RDONLY);
 
+    fflush(stdout);
+
     if (fd > 0) {
         read(fd, tmp, MAX_BUF_SIZE);
-        char** vars = split(tmp);
+        char **vars = split(tmp);
         // Pulizia
         close(fd);
         return vars;
     }
     return NULL;
+}
+
+int is_controller(int pid) {
+    char **vars = get_device_info(pid);
+    int id = atoi(vars[0]);
+    return id == HUB;
 }

@@ -29,9 +29,9 @@
 #define HUB_S "4"
 
 #define BULB_PARAMETERS 5
-#define FRIDGE_PARAMETERS 8
+#define FRIDGE_PARAMETERS 9
 #define WINDOW_PARAMETERS 5
-#define HUB_PARAMETERS 4
+#define HUB_PARAMETERS 5
 
 #define MAX_CHILDREN 10
 #define MAX_HUB_CONNECTED_DEVICES 4
@@ -57,6 +57,9 @@
 #define LIST_STRING \
     "Sintassi: list\n"
 
+#define LINK_STRING \
+    "Sintassi: link <id> to <controller>\n"
+
 // structure for message queue
 struct mesg_buffer {
     long mesg_type;
@@ -75,5 +78,7 @@ int get_device_pid(int device_identifier, int *children_pids);
 void get_device_name(int device_type, char *buf);
 void get_device_name_str(char *device_type, char *buf);
 char **get_device_info(int pid);
+
+int is_controller(int pid);
 
 #endif

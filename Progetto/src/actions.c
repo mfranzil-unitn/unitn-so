@@ -11,7 +11,6 @@ void __switch(int device, char *action, char *position, int *children_pids) {
 
     char **vars = get_device_info(pid);
 
-
     char pipe_str[MAX_BUF_SIZE];
     get_pipe_name(pid, pipe_str);  // Nome della pipe
 
@@ -130,8 +129,31 @@ void __info(int index, int *children_pids) {
                 vars[1], vars[2], atoi(vars[3]) ? "Aperto" : "Chiuso", vars[4]);
     } else if (strcmp(vars[0], "4") == 0) {
         // Hub -  parametri: tipo, pid, stato indice
-        cprintf("Oggetto: Hub\nPID: %s\nIndice: %s\nStato: %s\n",
-                vars[1], vars[2], atoi(vars[3]) ? "ON" : "OFF");
+        /*cprintf("Oggetto: Hub\nPID: %s\nIndice: %s\nStato: %s\n",
+                vars[1], vars[2], atoi(vars[3]) ? "ON" : "OFF");*/
+
+        /*
+        
+        
+        int i;
+        while (vars[i] != "\0") {
+            cprintf(vars[i++]);
+        }*/
+
+        char tmp[MAX_BUF_SIZE];
+        kill(pid, SIGUSR1);
+        char pipe_str[MAX_BUF_SIZE];
+        get_pipe_name(pid, pipe_str);
+
+        int fd = open(pipe_str, O_RDONLY);
+
+        if (fd > 0) {
+            read(fd, tmp, MAX_BUF_SIZE);
+            printf(tmp);
+            // Pulizia
+            close(fd);
+        }
+
     } else {
         cprintf("Dispositivo non supportato.\n");
     }
@@ -156,7 +178,7 @@ int __add(char *device, int *device_i, int *children_pids, char *__out_buf) {
             return;
         }
     } else {
-        actual_index = *device_i - 1;  // compenso per gli array indicizzati a 0
+        actual_index = (*device_i) - 1;  // compenso per gli array indicizzati a 0
     }
 
     pid_t pid = fork();
@@ -167,7 +189,7 @@ int __add(char *device, int *device_i, int *children_pids, char *__out_buf) {
         mkfifo(pipe_str, 0666);
 
         // Conversione a stringa dell'indice
-        char *index_str = malloc(4 * sizeof(char));
+        char index_str[MAX_BUF_SIZE / 4];
         sprintf(index_str, "%d", *device_i);
 
         char program_name[MAX_BUF_SIZE / 4];
@@ -177,7 +199,6 @@ int __add(char *device, int *device_i, int *children_pids, char *__out_buf) {
         char *const args[] = {program_name, index_str, pipe_str, NULL};
         execvp(args[0], args);
 
-        free(index_str);
         exit(0);
     } else {  // Padre
         children_pids[actual_index] = pid;
@@ -193,26 +214,23 @@ int __add(char *device, int *device_i, int *children_pids, char *__out_buf) {
 
 void __list(int *children_pids) {
     // prende come input l'indice/nome del dispositivo, ritorna il PID
-    char *pipe_str = NULL;
-
     int i;
+    char **vars = NULL;
+
     for (i = 0; i < MAX_CHILDREN; i++) {  // l'indice i è logicamente indipendente dal nome/indice del dispositivo
         int children_pid = children_pids[i];
-        char tmp[MAX_BUF_SIZE];
 
-        if (children_pid == -1) {
-            continue;  // dispositivo non più nei figli
+        if (children_pid != -1) {
+            vars = get_device_info(children_pid);
+
+            char device_name[MAX_BUF_SIZE];
+            get_device_name(atoi(vars[0]), device_name);
+            device_name[0] += 'A' - 'a';
+
+            cprintf("Dispositivo: %s, PID %s, nome %s\n", device_name, vars[1], vars[2]);
+            // Pulizia
+            free(vars);
         }
-
-        char **vars = get_device_info(children_pid);
-
-        char device_name[MAX_BUF_SIZE];
-        get_device_name(atoi(vars[0]), device_name);
-        device_name[0] += 'A' - 'a';
-
-        cprintf("Dispositivo: %s, PID %s, nome %s\n", device_name, vars[1], vars[2]);
-        // Pulizia
-        free(vars);
     }
 }
 
@@ -254,9 +272,28 @@ void __link(int index, int controller, int *children_pids) {
     int device_pid = get_device_pid(index, children_pids);
 
     if (device_pid == -1) {
-        cprintf("Errore! Non esiste questo dispositivo.\n");
+        cprintf("Errore! Non esiste il dispositivo %d.\n", index);
         return;
     }
 
-    //int controller_pid = get_controller_pid();
+    int controller_pid = get_device_pid(controller, children_pids);
+
+    if (device_pid == -1) {
+        cprintf("Errore! Non esiste il dispositivo %d.\n", controller);
+        return;
+    }
+
+    if (is_controller(controller_pid)) {
+        char **vars = get_device_info(device_pid);
+
+        if (vars == NULL){
+            cprintf("Errore gravissimo che non doveva succedere.\n");
+        }
+        cprintf("Posso attaccare %s/%s/%s\n", vars[0], vars[1], vars[2]);
+
+        char __out_buf[MAX_BUF_SIZE];  // verrà scartato
+        __del(index, children_pids, __out_buf);
+
+        free(vars);
+    }
 }

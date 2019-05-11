@@ -108,6 +108,12 @@ int main(int argc, char *argv[]) {
                     __del(atoi(buf[1]), children_pids, __out_buf);
                     cprintf(__out_buf);
                 }
+            } else if (strcmp(buf[0], "link") == 0) {
+                if (cmd_n != 3) {
+                    cprintf(LINK_STRING);
+                } else {
+                    __link(atoi(buf[1]), atoi(buf[3]), children_pids);
+                }
             } else if (strcmp(buf[0], "exit") == 0) {  // supponiamo che l'utente scriva solo "exit" per uscire
                 kill(ppid, SIGTERM);
                 break;

@@ -32,7 +32,7 @@ void sighandle_usr1(int sig) {
     write(fd, tmp, MAX_BUF_SIZE);
 
     // Resetto il contenuto del buffer
-    log_buf[0] = '\0';
+    sprintf(log_buf, " - ");
 }
 
 void sighandle_usr2(int sig) {
@@ -67,7 +67,7 @@ int main(int argc, char* argv[]) {
     perc = 50;
     temp = 5;
 
-    log_buf[0] = '\0';  // buffer di log vuoto
+    sprintf(log_buf, " - ");
 
     fd = open(pipe_fd, O_RDWR);
 
