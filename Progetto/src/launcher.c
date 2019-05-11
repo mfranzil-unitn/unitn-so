@@ -155,7 +155,7 @@ void switch_launcher(char buf[][MAX_BUF_SIZE], int msgid, int *device_pids) {
     if (shell_pid > 0) {
         if (atoi(buf[1]) <= n_devices) {
             // Chiamata a util.c
-            __switch(buf, device_pids);
+            __switch(atoi(buf[1]), buf[2], buf[3], device_pids);
         } else {
             cprintf("ID non presente\n");
         }

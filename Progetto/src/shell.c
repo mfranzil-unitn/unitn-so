@@ -92,7 +92,7 @@ int main(int argc, char *argv[]) {
                 if (cmd_n != 3) {
                     cprintf(SWITCH_STRING);
                 } else {
-                    __switch(buf, children_pids);
+                    __switch(atoi(buf[1]), buf[2], buf[3], children_pids);
                 }
             } else if (strcmp(buf[0], "add") == 0) {
                 if (cmd_n != 1) {
