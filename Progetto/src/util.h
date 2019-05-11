@@ -5,13 +5,13 @@
 #include <fcntl.h>
 #include <pwd.h>
 #include <signal.h>
+#include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/ipc.h>
 #include <sys/msg.h>
 #include <sys/stat.h>
-#include <stdarg.h> 
 #include <sys/types.h>
 #include <unistd.h>
 
@@ -54,6 +54,9 @@
 #define INFO_STRING \
     "Sintassi: info <device>\n"
 
+#define LIST_STRING \
+    "Sintassi: list\n"
+
 // structure for message queue
 struct mesg_buffer {
     long mesg_type;
@@ -61,6 +64,7 @@ struct mesg_buffer {
 } message;
 
 int parse(char buf[][MAX_BUF_SIZE], int cmd_n);
+
 char **split(char *__buf);
 char **split_fixed(char *__buf, int __count);
 
@@ -68,8 +72,6 @@ char *get_shell_text();
 char *get_pipe_name(int pid);
 int get_device_pid(int in, int *children_pids);
 void get_device_name(int device_type, char *buf);
-void get_device_name_str(char* device_type, char* buf);
+void get_device_name_str(char *device_type, char *buf);
 
-void __switch(char buf[][MAX_BUF_SIZE], int *children_pids);
-void __info(char buf[][MAX_BUF_SIZE], int *children_pids);
 #endif

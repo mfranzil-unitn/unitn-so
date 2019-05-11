@@ -1,6 +1,7 @@
 #ifndef SHELL_H
 #define SHELL_H
 
+#include "actions.h"
 #include "util.h"
 
 #define HELP_STRING \
@@ -21,9 +22,7 @@
                                 l’interruttore “open” su “on” (ad esempio apre una finestra)\n\
     info <id>                   mostra i dettagli del dispositivo\n"
 
-void list(char buf[][MAX_BUF_SIZE], int* children_pids);
-void add(char buf[][MAX_BUF_SIZE], int* device_i, int* children_pids);
-void del(char buf[][MAX_BUF_SIZE], int* children_pids);
+int add_shell(char buf[][MAX_BUF_SIZE], int *device_i, int *children_pids, char *__out_buf);
 
 void cleanup_sig(int sig);
 void handle_sig(int sig);

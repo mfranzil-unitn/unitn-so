@@ -1,18 +1,7 @@
 #ifndef LAUNCHER_H
 #define LAUNCHER_H
 
-#include <errno.h>
-#include <fcntl.h>
-#include <pwd.h>
-#include <signal.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <sys/ipc.h>
-#include <sys/msg.h>
-#include <sys/stat.h>
-#include <sys/types.h>
-#include <unistd.h>
+#include "actions.h"
 #include "util.h"
 
 #define HELP_STRING_LAUNCHER \
@@ -35,5 +24,7 @@ void handle_sighup(int signal);
 void switch_launcher(char buf[][MAX_BUF_SIZE], int msgid, int* device_pids);
 void info_launcher(char buf[][MAX_BUF_SIZE], int msgid, int* device_pids);
 void user_launcher(char buf[][MAX_BUF_SIZE], int msgid, int *device_pids);
+
 void read_msgqueue(int msgid, int*device_pids);
+
 #endif

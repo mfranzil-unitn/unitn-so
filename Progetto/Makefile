@@ -1,7 +1,7 @@
 .PHONY: build clean help targets devices
 
 CC = gcc
-CFLAGS = -std=gnu90 --pedantic -Wall
+CFLAGS = -std=gnu90
 
 RED=\033[0;31m
 BOLD_RED=\033[1;31m
@@ -19,11 +19,11 @@ targets: bin/launcher bin/shell devices
 
 devices: bin/devices/hub bin/devices/bulb bin/devices/fridge bin/devices/window
 
-bin/launcher: src/launcher.c bin/util.o
-	$(CC) $(CFLAGS) -o bin/launcher src/launcher.c bin/util.o
+bin/launcher: src/launcher.c bin/util.o bin/actions.o
+	$(CC) $(CFLAGS) -o bin/launcher src/launcher.c bin/util.o bin/actions.o
 
-bin/shell: src/shell.c bin/util.o
-	$(CC) $(CFLAGS) -o bin/shell src/shell.c bin/util.o
+bin/shell: src/shell.c bin/util.o bin/actions.o
+	$(CC) $(CFLAGS) -o bin/shell src/shell.c bin/util.o bin/actions.o
 
 bin/devices/bulb: src/devices/bulb.c bin/util.o
 	$(CC) $(CFLAGS) -o bin/devices/bulb src/devices/bulb.c bin/util.o
@@ -39,6 +39,9 @@ bin/devices/hub: src/devices/hub.c bin/util.o
 
 bin/util.o: src/util.c
 	$(CC) $(CFLAGS) -c -o bin/util.o src/util.c 
+
+bin/actions.o: src/actions.c
+	$(CC) $(CFLAGS) -c -o bin/actions.o src/actions.c 
 
 clean:
 	@rm -f -r /tmp/ipc
