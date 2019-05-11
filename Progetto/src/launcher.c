@@ -69,6 +69,7 @@ int main(int argc, char *argv[]) {
             }
 
             if (c == 's') {
+                //Eliminazione messagequeue verso shell.
                 msgctl(msgid, IPC_RMID, NULL);
                 if (shell_pid != -1) {
                     kill(shell_pid, SIGTERM);
