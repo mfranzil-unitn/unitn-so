@@ -155,7 +155,7 @@ void switch_launcher(char buf[][MAX_BUF_SIZE], int msgid, int *device_pids) {
     if (shell_pid > 0) {
         if (atoi(buf[1]) <= n_devices) {
             // Chiamata a util.c
-            __switch(buf, device_pids);
+            __switch(atoi(buf[1]), buf[2], buf[3], device_pids);
         } else {
             cprintf("ID non presente\n");
         }
@@ -198,7 +198,7 @@ void read_msgqueue(int msgid, int *device_pids) {
 void info_launcher(char buf[][MAX_BUF_SIZE], int msgid, int *device_pids) {
     if (shell_pid > 0 && shell_on) {
         read_msgqueue(msgid, device_pids);
-        __info(buf, device_pids);
+        __info(atoi(buf[1]), device_pids);
     } else {
         cprintf("La centralina è spenta\n");
     }
@@ -216,7 +216,6 @@ void user_launcher(char buf[][MAX_BUF_SIZE], int msgid, int *device_pids) {
             exit(1);
         }
         if (pid == 0) {  //Processo figlio che aprirà terminale e lancerà la shell.
-
             //Sarà passato per argomento alla shell.
             int ppid = (int)getppid();
 
