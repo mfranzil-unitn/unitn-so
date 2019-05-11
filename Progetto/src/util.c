@@ -177,8 +177,45 @@ char **get_device_info(int pid) {
     return NULL;
 }
 
+char *get_raw_device_info(int pid) {
+    if (kill(pid, SIGUSR1) != 0) {
+        return NULL;
+    }
+
+    char pipe_str[MAX_BUF_SIZE];
+    char *tmp = malloc(MAX_BUF_SIZE * sizeof(*tmp));
+
+    get_pipe_name(pid, pipe_str);
+
+    int fd = open(pipe_str, O_RDONLY);
+
+    fflush(stdout);
+
+    if (fd > 0) {
+        read(fd, tmp, MAX_BUF_SIZE);
+        // Pulizia
+        close(fd);
+        return tmp;
+    }
+    return NULL;
+}
+
 int is_controller(int pid) {
     char **vars = get_device_info(pid);
     int id = atoi(vars[0]);
     return id == HUB;
+}
+
+void __add_ex(char **vars, int actual_index, int *children_pids) {
+    char __out_buf[MAX_BUF_SIZE];
+
+    if (strcmp(vars[0], BULB_S) == 0) {  // Lampadina
+        // Dati in entrata:  1, pid, __index, status, time_on
+        __add("bulb", vars[2], actual_index, children_pids, __out_buf);
+        __switch(vars[2], "accensione", "on", children_pids);
+        // Chiaramente minchia posso replicare il time_on...
+        // se scollego una lampadina quella si spegne
+    } else {
+        cprintf("Da implementare...");
+    }
 }

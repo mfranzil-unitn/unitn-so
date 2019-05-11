@@ -39,6 +39,8 @@ void sighandle_usr2(int sig) {
     // Al ricevimento del segnale, il frigo apre la pipe in lettura e ottiene cosa deve fare.
     // 0|... -> chiudi/apri frigo
     // 1|TEMP -> setta temperatura del frigo
+    // 2|DELAY -> setta delay di chiusura
+    // 3|PERCENT -> setta contenuto
     char tmp[MAX_BUF_SIZE];
 
     read(fd, tmp, MAX_BUF_SIZE);
@@ -54,6 +56,10 @@ void sighandle_usr2(int sig) {
         }
     } else if (atoi(vars[0]) == 1) {
         temp = atoi(vars[1]);
+    } else if (atoi(vars[0]) == 2) {
+        delay = atoi(vars[1]);
+    } else if (atoi(vars[0]) == 3) {
+        perc = atoi(vars[1]);
     }
 }
 

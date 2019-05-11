@@ -1,8 +1,8 @@
 #include "actions.h"
 
-void __switch(int device, char *action, char *position, int *children_pids) {
+void __switch(int index, char *action, char *position, int *children_pids) {
     // Prova a impostare un interruttore ACTION su POSITION di un certo DEVICE
-    int pid = get_device_pid(device, children_pids);
+    int pid = get_device_pid(index, children_pids);
 
     if (pid == -1) {
         cprintf("Errore! Non esiste questo dispositivo.\n");
@@ -160,27 +160,7 @@ void __info(int index, int *children_pids) {
     free(vars);
 }
 
-int __add(char *device, int *device_i, int *children_pids, char *__out_buf) {
-    // Aumento l'indice progressivo dei dispositivi
-    (*device_i)++;
-    int actual_index = -1;
-
-    if (*device_i >= MAX_CHILDREN) {
-        int i;  // del ciclo
-        for (i = 0; i < MAX_CHILDREN; i++) {
-            if (children_pids[i] == -1) {
-                actual_index = i;
-                break;
-            }
-        }
-        if (i == MAX_CHILDREN) {
-            sprintf(__out_buf, "Non c'è più spazio! Rimuovi qualche dispositivo.\n");
-            return;
-        }
-    } else {
-        actual_index = (*device_i) - 1;  // compenso per gli array indicizzati a 0
-    }
-
+int __add(char *device, int device_index, int actual_index, int *children_pids, char *__out_buf) {
     pid_t pid = fork();
     if (pid == 0) {  // Figlio
         // Apro una pipe per padre-figlio
@@ -190,7 +170,7 @@ int __add(char *device, int *device_i, int *children_pids, char *__out_buf) {
 
         // Conversione a stringa dell'indice
         char index_str[MAX_BUF_SIZE / 4];
-        sprintf(index_str, "%d", *device_i);
+        sprintf(index_str, "%d", device_index);
 
         char program_name[MAX_BUF_SIZE / 4];
         sprintf(program_name, "./%s%s", DEVICES_POSITIONS, device);
@@ -207,7 +187,7 @@ int __add(char *device, int *device_i, int *children_pids, char *__out_buf) {
         get_device_name_str(device, device_name);
 
         sprintf(__out_buf, "Aggiunto un dispositivo di tipo %s con PID %i e indice %i\n",
-                device_name, pid, *device_i);
+                device_name, pid, device_index);
     }
     return 1;
 }
@@ -284,16 +264,23 @@ void __link(int index, int controller, int *children_pids) {
     }
 
     if (is_controller(controller_pid)) {
-        char **vars = get_device_info(device_pid);
+        char *buf = get_raw_device_info(controller_pid);
 
-        if (vars == NULL){
+        if (buf == NULL) {
             cprintf("Errore gravissimo che non doveva succedere.\n");
         }
-        cprintf("Posso attaccare %s/%s/%s\n", vars[0], vars[1], vars[2]);
 
         char __out_buf[MAX_BUF_SIZE];  // verrà scartato
+
         __del(index, children_pids, __out_buf);
 
-        free(vars);
+        char controller_pipe_name[MAX_BUF_SIZE];
+        get_pipe_name(controller_pid, controller_pipe_name);
+
+        int fd = open(controller_pipe_name, O_RDWR);
+        write(fd, buf, MAX_BUF_SIZE);
+
+        kill(controller_pid, SIGUSR2);
+        free(buf);
     }
 }

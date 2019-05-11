@@ -132,7 +132,26 @@ int main(int argc, char *argv[]) {
 
 int add_shell(char buf[][MAX_BUF_SIZE], int *device_i, int *children_pids, char *__out_buf) {
     if (strcmp(buf[1], "bulb") == 0 || strcmp(buf[1], "fridge") == 0 || strcmp(buf[1], "window") == 0 || strcmp(buf[1], "hub") == 0) {
-        return __add(buf[1], device_i, children_pids, __out_buf);
+        (*device_i)++;
+        int actual_index = -1;
+
+        if (*device_i >= MAX_CHILDREN) {
+            int i;  // del ciclo
+            for (i = 0; i < MAX_CHILDREN; i++) {
+                if (children_pids[i] == -1) {
+                    actual_index = i;
+                    break;
+                }
+            }
+            if (i == MAX_CHILDREN) {
+                sprintf(__out_buf, "Non c'è più spazio! Rimuovi qualche dispositivo.\n");
+                return 0;
+            }
+        } else {
+            actual_index = (*device_i) - 1;  // compenso per gli array indicizzati a 0
+        }
+        
+        return __add(buf[1], *device_i, actual_index, children_pids, __out_buf);
     } else {
         sprintf(__out_buf, "Dispositivo non ancora supportato\n");
         return 0;

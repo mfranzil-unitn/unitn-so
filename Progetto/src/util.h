@@ -77,8 +77,12 @@ void get_pipe_name(int pid, char* pipe_str);
 int get_device_pid(int device_identifier, int *children_pids);
 void get_device_name(int device_type, char *buf);
 void get_device_name_str(char *device_type, char *buf);
+
+char *get_raw_device_info(int pid);
 char **get_device_info(int pid);
 
 int is_controller(int pid);
+
+void __add_ex(char** vars, int actual_index, int *children_pids);
 
 #endif
