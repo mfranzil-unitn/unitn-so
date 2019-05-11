@@ -71,10 +71,9 @@ char **split_fixed(char *__buf, int __count);
 char *get_shell_text();
 void get_pipe_name(int pid, char* pipe_str);
 
-int get_device_pid(int in, int *children_pids);
+int get_device_pid(int device_identifier, int *children_pids);
 void get_device_name(int device_type, char *buf);
 void get_device_name_str(char *device_type, char *buf);
-
-void get_device_info(int pid, char **vars);
+char **get_device_info(int pid);
 
 #endif

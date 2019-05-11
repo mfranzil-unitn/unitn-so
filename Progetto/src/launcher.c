@@ -99,6 +99,8 @@ int main(int argc, char *argv[]) {
                 user_launcher(buf, msgid, device_pids);
             }
         } else if (strcmp(buf[0], "restart") == 0) {
+            cprintf("Riavvio sta dando problemi, non usarmi\n");
+            continue;
             //  int pid = fork();
             //if (pid == 0) {
             if (shell_pid != -1) {

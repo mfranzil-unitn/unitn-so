@@ -138,10 +138,9 @@ int get_device_pid(int device_identifier, int *children_pids) {
     for (i = 0; i < MAX_CHILDREN; i++) {  // l'indice i è logicamente indipendente dal nome/indice del dispositivo
         int children_pid = children_pids[i];
         if (children_pid != -1) {
-            char **vars = NULL;
-            get_device_info(children_pid, vars);
+            char **vars = get_device_info(children_pid);
             fflush(stdout);
-           // printf("%s, %s, %s", vars[0], vars[1], vars[2]);
+            // printf("%s, %s, %s", vars[0], vars[1], vars[2]);
             // I primi 3 parametri sono sempre tipo, pid, indice
             if (vars != NULL && atoi(vars[2]) == device_identifier) {
                 free(vars);
@@ -152,10 +151,12 @@ int get_device_pid(int device_identifier, int *children_pids) {
     return -1;
 }
 
-void get_device_info(int pid, char **vars) {
+char **get_device_info(int pid) {
     char tmp[MAX_BUF_SIZE];
 
-    kill(pid, SIGUSR1);
+    if (kill(pid, SIGUSR1) != 0) {
+        return NULL;
+    }
 
     char pipe_str[MAX_BUF_SIZE];
     get_pipe_name(pid, pipe_str);
@@ -164,10 +165,10 @@ void get_device_info(int pid, char **vars) {
 
     if (fd > 0) {
         read(fd, tmp, MAX_BUF_SIZE);
-        vars = split(tmp);
-        printf("%s, %s, %s; ", vars[0], vars[1], vars[2]);
-
+        char** vars = split(tmp);
         // Pulizia
         close(fd);
+        return vars;
     }
+    return NULL;
 }

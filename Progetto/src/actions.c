@@ -9,25 +9,18 @@ void __switch(int device, char *action, char *position, int *children_pids) {
         return;
     }
 
+    char **vars = get_device_info(pid);
+
+
     char pipe_str[MAX_BUF_SIZE];
     get_pipe_name(pid, pipe_str);  // Nome della pipe
 
-    char tmp[MAX_BUF_SIZE];           // dove ci piazzo l'output della pipe
-    char **vars = NULL;               // output della pipe, opportunamente diviso
     char pipe_message[MAX_BUF_SIZE];  // buffer per la pipe
 
-    if (kill(pid, SIGUSR1) != 0) {
-        // apertura della pipe fallita
-        cprintf("Errore! Impossibile notificare il dispositivo. Errno: %i\n", errno);
-        return;
-    }
-
     int fd = open(pipe_str, O_RDWR);
-    read(fd, tmp, MAX_BUF_SIZE);
 
-    if (strncmp(tmp, BULB_S, 1) == 0) {  // Lampadina
+    if (strcmp(vars[0], BULB_S) == 0) {  // Lampadina
         if (strcmp(action, "accensione") == 0) {
-            vars = split(tmp);  // parametri: tipo, pid, indice, stato, tempo di accensione,
             int status = atoi(vars[3]);
             sprintf(pipe_message, "0|0");
 
@@ -49,9 +42,8 @@ void __switch(int device, char *action, char *position, int *children_pids) {
         } else {
             cprintf("Operazione non permessa su una lampadina!\nOperazioni permesse: accensione\n");
         }
-    } else if (strncmp(tmp, FRIDGE_S, 1) == 0) {  // Fridge
+    } else if (strcmp(vars[0], FRIDGE_S) == 0) {  // Fridge
         if (strcmp(action, "apertura") == 0) {
-            vars = split(tmp);  // parametri: tipo, pid, indice, stato, tempo di accensione
             int status = atoi(vars[3]);
             sprintf(pipe_message, "0|0");
 
@@ -79,7 +71,7 @@ void __switch(int device, char *action, char *position, int *children_pids) {
         } else {
             cprintf("Operazione non permessa su un frigorifero! Operazioni permesse: <temperatura/apertura>\n");
         }
-    } else if (strncmp(tmp, WINDOW_S, 1) == 0) {  // Window
+    } else if (strcmp(vars[0], WINDOW_S) == 0) {  // Window
         if (((strcmp(action, "apertura") != 0) || (strcmp(action, "apertura") == 0 && strcmp(position, "off") == 0)) &&
             ((strcmp(action, "chiusura") != 0) || (strcmp(action, "chiusura") == 0 && strcmp(position, "off") == 0))) {
             cprintf("Operazione non permessa: i pulsanti sono solo attivi!\n");
@@ -87,7 +79,6 @@ void __switch(int device, char *action, char *position, int *children_pids) {
             return;
         }
 
-        vars = split(tmp);  // parametri: tipo, pid, indice, stato, tempo di accensione
         int status = atoi(vars[3]);
         sprintf(pipe_message, "0|0");
 
@@ -117,49 +108,28 @@ void __info(int index, int *children_pids) {
         return;
     }
 
-    char pipe_str[MAX_BUF_SIZE];
-    get_pipe_name(pid, pipe_str);
-    char **vars = NULL;
-    char tmp[MAX_BUF_SIZE];  // dove ci piazzo l'output della pipe
+    char **vars = get_device_info(pid);
 
-    // apertura della pipe fallita
-    if (kill(pid, SIGUSR1) != 0) {
-        cprintf("Errore! Sistema: codice errore %i\n", errno);
-        return;
-    }
-
-    int fd = open(pipe_str, O_RDONLY);
-    read(fd, tmp, MAX_BUF_SIZE);
-    close(fd);
-
-    if (strncmp(tmp, "1", 1) == 0) {
+    if (strcmp(vars[0], "1") == 0) {
         // Lampadina - parametri: tipo, pid, indice, stato, tempo di accensione
-        vars = split(tmp);
 
         cprintf("Oggetto: Lampadina\nPID: %s\nIndice: %s\nStato: %s\nTempo di accensione: %s\n",
                 vars[1], vars[2], atoi(vars[3]) ? "ON" : "OFF", vars[4]);
-    } else if (strncmp(tmp, "2", 1) == 0) {
+    } else if (strcmp(vars[0], "2") == 0) {
         // Frigo -  parametri: tipo, pid, indice, stato, tempo di apertura, delay
         // percentuale riempimento, temperatura interna
-        vars = split(tmp);
 
-        cprintf("Oggetto: Frigorifero\n");
-        if (vars[8] != NULL) {  //&& vars[8] != "" && vars[8][0] != 0) {
-            cprintf("[!!] Messaggio di log: <%s>\n", vars[8]);
-        }
-
+        cprintf("Oggetto: Frigorifero\nMessaggio di log: <%s>\n", vars[8]);
         cprintf("PID: %s\nIndice: %s\nStato: %s\nTempo di apertura: %s sec\n",
                 vars[1], vars[2], atoi(vars[3]) ? "Aperto" : "Chiuso", vars[4]);
         cprintf("Delay richiusura: %s sec\nPercentuale riempimento: %s\nTemperatura: %s°C\n",
                 vars[5], vars[6], vars[7]);
-    } else if (strncmp(tmp, "3", 1) == 0) {
+    } else if (strcmp(vars[0], "3") == 0) {
         // Finestra - parametri: tipo, pid, indice, stato, tempo di accensione
-        vars = split(tmp);
         cprintf("Oggetto: Finestra\nPID: %s\nIndice: %s\nStato: %s\nTempo di apertura: %s sec\n",
                 vars[1], vars[2], atoi(vars[3]) ? "Aperto" : "Chiuso", vars[4]);
-    } else if (strncmp(tmp, "4", 1) == 0) {
+    } else if (strcmp(vars[0], "4") == 0) {
         // Hub -  parametri: tipo, pid, stato indice
-        vars = split(tmp);
         cprintf("Oggetto: Hub\nPID: %s\nIndice: %s\nStato: %s\n",
                 vars[1], vars[2], atoi(vars[3]) ? "ON" : "OFF");
     } else {
@@ -234,24 +204,15 @@ void __list(int *children_pids) {
             continue;  // dispositivo non più nei figli
         }
 
-        kill(children_pid, SIGUSR1);
-        char pipe_str[MAX_BUF_SIZE];
-        get_pipe_name(children_pid, pipe_str);
-        int fd = open(pipe_str, O_RDONLY);
+        char **vars = get_device_info(children_pid);
 
-        if (fd > 0) {
-            read(fd, tmp, MAX_BUF_SIZE);
-            char **vars = split(tmp);
+        char device_name[MAX_BUF_SIZE];
+        get_device_name(atoi(vars[0]), device_name);
+        device_name[0] += 'A' - 'a';
 
-            char device_name[MAX_BUF_SIZE];
-            get_device_name(atoi(vars[0]), device_name);
-            device_name[0] += 'A' - 'a';
-
-            cprintf("Dispositivo: %s, PID %s, nome %s\n", device_name, vars[1], vars[2]);
-            // Pulizia
-            free(vars);
-            close(fd);
-        }
+        cprintf("Dispositivo: %s, PID %s, nome %s\n", device_name, vars[1], vars[2]);
+        // Pulizia
+        free(vars);
     }
 }
 
@@ -263,21 +224,10 @@ void __del(int index, int *children_pids, char *__out_buf) {
         return;
     }
 
+    char **vars = get_device_info(pid);
+
     char pipe_str[MAX_BUF_SIZE];
     get_pipe_name(pid, pipe_str);
-
-    char tmp[MAX_BUF_SIZE];  // dove ci piazzo l'output della pipe
-    char **vars = NULL;
-
-    if (kill(pid, SIGUSR1) != 0) {
-        sprintf(__out_buf, "Errore! Sistema: codice errore %i\n", errno);
-        return;
-    }
-
-    int fd = open(pipe_str, O_RDONLY);
-    read(fd, tmp, MAX_BUF_SIZE);
-
-    vars = split(tmp);
 
     char device_name[MAX_BUF_SIZE];
     get_device_name(atoi(vars[0]), device_name);
@@ -286,7 +236,6 @@ void __del(int index, int *children_pids, char *__out_buf) {
     sprintf(__out_buf, "Dispositivo di tipo %s con PID %s e indice %s rimosso.\n",
             device_name, vars[1], vars[2]);
 
-    close(fd);
     free(vars);
 
     kill(pid, 9);      // da modificare con un comando opportuno...
