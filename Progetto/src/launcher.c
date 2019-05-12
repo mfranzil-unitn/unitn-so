@@ -60,21 +60,26 @@ int main(int argc, char *argv[]) {
             char c = '\0';
             cprintf("Sei sicuro di voler uscire dal launcher? Tutte le modifiche verranno perse!");
 
-            while (c != 's' && c != 'n') {
-                cprintf("\n[s/n]: ");
-                c = getchar();
-                getchar();  // ignoro lo \0
-            }
-
-            if (c == 's') {
-                //Eliminazione messagequeue verso shell.
-                msgctl(msgid, IPC_RMID, NULL);
-                if (shell_pid != -1) {
-                    kill(shell_pid, SIGTERM);
+            while (1) {
+                printf("[s/n]: ");
+                if (scanf(" %c", &c) != 1) {
+                    printf("Errore durante la lettura.\n");
+                    continue;
                 }
-                return 0;
-            } else {
-                continue;
+
+                if (c == 's' || c == 'S') {
+                    //Eliminazione messagequeue verso shell.
+                    msgctl(msgid, IPC_RMID, NULL);
+                    free(buf);
+                    if (shell_pid != -1) {
+                        kill(shell_pid, SIGTERM);
+                    }
+                    return 0;
+                } else if (c == 'n' || c == 'N') {
+                    break;
+                } else {
+                    printf("Inserisci [s]ì o [n]o.\n");
+                }
             }
         } else if (strcmp(buf[0], "\0") == 0) {  //a capo a vuoto
             continue;
@@ -106,6 +111,9 @@ int main(int argc, char *argv[]) {
             if (shell_pid != -1) {
                 kill(shell_pid, SIGTERM);
             }
+
+            msgctl(msgid, IPC_RMID, NULL);
+            free(buf);
             cprintf("Riavvio in corso...\n");
             system("make build");
             system("./run --no-clear");

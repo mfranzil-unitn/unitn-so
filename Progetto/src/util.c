@@ -66,9 +66,8 @@ char **split(char *__buf) {
 
 char **split_fixed(char *__buf, int __count) {
     char *tokenizer = strtok(__buf, "|");
-    char **vars = malloc((__count + 1) * sizeof(*vars));
+    char **vars = malloc((__count + 3) * sizeof(*vars));
     int j = 0;
-
     while (tokenizer != NULL && j <= __count) {
         vars[j++] = tokenizer;
         tokenizer = strtok(NULL, "|");
@@ -188,8 +187,6 @@ char *get_raw_device_info(int pid) {
     get_pipe_name(pid, pipe_str);
 
     int fd = open(pipe_str, O_RDONLY);
-
-    fflush(stdout);
 
     if (fd > 0) {
         read(fd, tmp, MAX_BUF_SIZE);

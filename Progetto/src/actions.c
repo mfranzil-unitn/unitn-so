@@ -33,7 +33,7 @@ void __switch(int index, char *action, char *position, int *children_pids) {
                 cprintf("Lampadina spenta.\n");
             } else if (strcmp(position, "off") == 0 && status == 0) {  // Spengo una lampadina spenta
                 cprintf("Stai provando a spegnere una lampadina spenta!\n");
-            } else if (strcmp(position, "on") == 0 && status == 1) {  // Spengo una lampadina accesa
+            } else if (strcmp(position, "on") == 0 && status == 1) {  // Accendo una lampadina accesa
                 cprintf("Stai provando a accendere una lampadina accesa!\n");
             } else {
                 cprintf("Sintassi non corretta. Sintassi: switch <bulb> accensione <on/off>\n");
@@ -92,6 +92,29 @@ void __switch(int index, char *action, char *position, int *children_pids) {
         } else {
             cprintf("Operazione non permessa: pulsante già premuto.\n");
         }
+    } else if (strcmp(vars[0], HUB_S) == 0) {  // Lampadina
+        if (strcmp(action, "accensione") == 0) {
+            int status = atoi(vars[3]);
+            sprintf(pipe_message, "0|0");
+
+            if (strcmp(position, "on") == 0 && status == 0) {
+                write(fd, pipe_message, MAX_BUF_SIZE);
+                kill(pid, SIGUSR2);
+                cprintf("Hub acceso.\n");
+            } else if (strcmp(position, "off") == 0 && status == 1) {
+                write(fd, pipe_message, MAX_BUF_SIZE);
+                kill(pid, SIGUSR2);
+                cprintf("Hub spento.\n");
+            } else if (strcmp(position, "off") == 0 && status == 0) {  // Spengo un hub spento
+                cprintf("Stai provando a spegnere un hub spenta!\n");
+            } else if (strcmp(position, "on") == 0 && status == 1) {  // Accendo un hub acceso
+                cprintf("Stai provando a accendere un hub acceso!\n");
+            } else {
+                cprintf("Sintassi non corretta. Sintassi: switch <hub> accensione <on/off>\n");
+            }
+        } else {
+            cprintf("Operazione non permessa su un hub!\nOperazioni permesse: accensione\n");
+        }
     } else {  // tutti gli altri dispositivi
         cprintf("Dispositivo non supportato.\n");
     }
@@ -111,13 +134,11 @@ void __info(int index, int *children_pids) {
 
     if (strcmp(vars[0], "1") == 0) {
         // Lampadina - parametri: tipo, pid, indice, stato, tempo di accensione
-
         cprintf("Oggetto: Lampadina\nPID: %s\nIndice: %s\nStato: %s\nTempo di accensione: %s\n",
                 vars[1], vars[2], atoi(vars[3]) ? "ON" : "OFF", vars[4]);
     } else if (strcmp(vars[0], "2") == 0) {
         // Frigo -  parametri: tipo, pid, indice, stato, tempo di apertura, delay
         // percentuale riempimento, temperatura interna
-
         cprintf("Oggetto: Frigorifero\nMessaggio di log: <%s>\n", vars[8]);
         cprintf("PID: %s\nIndice: %s\nStato: %s\nTempo di apertura: %s sec\n",
                 vars[1], vars[2], atoi(vars[3]) ? "Aperto" : "Chiuso", vars[4]);
@@ -149,7 +170,7 @@ void __info(int index, int *children_pids) {
 
         if (fd > 0) {
             read(fd, tmp, MAX_BUF_SIZE);
-            printf(tmp);
+            printf("Raw data: %s\n", tmp);
             // Pulizia
             close(fd);
         }
@@ -199,7 +220,6 @@ void __list(int *children_pids) {
 
     for (i = 0; i < MAX_CHILDREN; i++) {  // l'indice i è logicamente indipendente dal nome/indice del dispositivo
         int children_pid = children_pids[i];
-
         if (children_pid != -1) {
             vars = get_device_info(children_pid);
 
@@ -264,14 +284,19 @@ void __link(int index, int controller, int *children_pids) {
     }
 
     if (is_controller(controller_pid)) {
-        char *buf = get_raw_device_info(controller_pid);
+        char *tmp = get_raw_device_info(device_pid);
 
-        if (buf == NULL) {
+        if (tmp == NULL) {
             cprintf("Errore gravissimo che non doveva succedere.\n");
+            return;
         }
 
-        char __out_buf[MAX_BUF_SIZE];  // verrà scartato
+        char buf[MAX_BUF_SIZE];
+        sprintf(buf, "1|");
+        strcat(buf, tmp);
+        free(tmp);
 
+        char __out_buf[MAX_BUF_SIZE];
         __del(index, children_pids, __out_buf);
 
         char controller_pipe_name[MAX_BUF_SIZE];
@@ -279,22 +304,27 @@ void __link(int index, int controller, int *children_pids) {
 
         int fd = open(controller_pipe_name, O_RDWR);
         write(fd, buf, MAX_BUF_SIZE);
-
         kill(controller_pid, SIGUSR2);
-        free(buf);
+
+        printf("Spostato l'oggetto %d sotto l'oggetto %d\n", index, controller);
+        close(fd);
     }
 }
 
 void __add_ex(char **vars, int actual_index, int *children_pids) {
+    // NOTA SULL'INPUT:
+    // DAVANTI c'E' sempre un 1|, per come ho scritto (male) il codice in hub.c
+    // Tutti gli indici vanno shiftati
     char __out_buf[MAX_BUF_SIZE];
-
     if (strcmp(vars[0], BULB_S) == 0) {  // Lampadina
-        cprintf("Ci sono!!!\n");
-        // Dati in entrata:  1, pid, __index, status, time_on
-        __add("bulb", atoi(vars[2]), actual_index, children_pids, __out_buf);
-        __switch(atoi(vars[2]), "accensione", "on", children_pids); //AAAAAA
-        // Chiaramente minchia posso replicare il time_on...
+        __add("bulb", atoi(vars[3]), actual_index, children_pids, __out_buf);
+        // Chiaramente minchia posso replicare il time_on o lo stato...
         // se scollego una lampadina quella si spegne
+    } else if (strcmp(vars[0], FRIDGE_S) == 0) {  // Frigo
+        __add("fridge", atoi(vars[3]), actual_index, children_pids, __out_buf);
+        //    .... aggiungere la temperatura eventualmente riempimento etc
+    } else if (strcmp(vars[0], WINDOW_S) == 0) {  // Frigo
+        __add("window", atoi(vars[3]), actual_index, children_pids, __out_buf);
     } else {
         cprintf("Da implementare...");
     }

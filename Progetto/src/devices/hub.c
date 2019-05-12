@@ -51,15 +51,14 @@ void sighandle_usr2(int sig) {
     char tmp[MAX_BUF_SIZE];
 
     read(fd, tmp, MAX_BUF_SIZE);
-    char** vars = split_fixed(tmp, 2);
 
-    if (atoi(vars[0]) == 0) {
+    if (tmp[0] - '0' == 0) {
         status = !status;
-    } else if (atoi(vars[0]) == 1) {
-        char* working_tree = vars[1];
-        char** vars = split(working_tree);
+        // DA ESPANDERE
+    } else if (tmp[0] - '0' == 1) {
+        char** vars = split(tmp);
 
-        // PARTE COPIAta dalla shell
+        // Codice copiato dalla shell
         device_i++;
         int actual_index = -1;
 
@@ -73,7 +72,7 @@ void sighandle_usr2(int sig) {
             }
             if (i == MAX_HUB_CONNECTED_DEVICES) {
                 // PORCODIO SIAMO NELLA MERDA
-                //sprintf(__out_buf, "Non c'è più spazio! Rimuovi qualche dispositivo.\n");
+                //s printf(__out_buf, "Non c'è più spazio! Rimuovi qualche dispositivo.\n");
                     return;
             }
         } else {
@@ -82,6 +81,7 @@ void sighandle_usr2(int sig) {
 
         /// fine partE COPIATA
         __add_ex(vars, actual_index, children_pids);
+        free(vars);
     }
 }
 
