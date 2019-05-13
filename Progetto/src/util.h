@@ -3,7 +3,6 @@
 
 #include <errno.h>
 #include <fcntl.h>
-#include <pwd.h>
 #include <signal.h>
 #include <stdarg.h>
 #include <stdio.h>

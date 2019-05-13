@@ -79,15 +79,12 @@ char **split_fixed(char *__buf, int __count) {
 }
 
 char *get_shell_text() {
-    int uid = geteuid();
-    struct passwd *pw = getpwuid(uid);
-    if (pw) {
-        char hostname[MAX_BUF_SIZE];
-        hostname[MAX_BUF_SIZE - 1] = '\0';
-        gethostname(hostname, MAX_BUF_SIZE - 1);
-        return strcat(strcat(pw->pw_name, "@"), hostname);
-    }
-    return "host";
+    char host[MAX_BUF_SIZE];
+    char *user;
+    user = (char *)malloc(MAX_BUF_SIZE * sizeof(char));
+    gethostname(host, MAX_BUF_SIZE);
+    cuserid(user);
+    return strcat(strcat(user, "@"), host);
 }
 
 void get_pipe_name(int pid, char *pipe_str) {
