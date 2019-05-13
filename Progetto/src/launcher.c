@@ -157,10 +157,9 @@ void handle_sigint(int signal) {
 }
 
 void switch_launcher(char buf[][MAX_BUF_SIZE], int msgid, int *device_pids) {
-    if (shell_pid > 0 && shell_on) {
-        read_msgqueue(msgid, device_pids);
-    }
     if (shell_pid > 0) {
+        //Switch possibile anche a centralina spenta? Altrimenti aggiungo && shell_on
+        read_msgqueue(msgid, device_pids);
         if (atoi(buf[1]) <= n_devices) {
             // Chiamata a util.c
             __switch(atoi(buf[1]), buf[2], buf[3], device_pids);
@@ -249,12 +248,21 @@ void user_launcher(char buf[][MAX_BUF_SIZE], int msgid, int *device_pids) {
             return;
         }
     } else if (strcmp(buf[3], "off") == 0 && shell_pid != -1) {
-        kill(shell_pid, SIGINT);
-        shell_on = 0;
+        if(shell_on) {
+            kill(shell_pid, SIGINT);
+            shell_on = 0;
+        }
+        else{
+            printf("Centralina già spenta.\n");
+        }
         return;
     } else if (strcmp(buf[3], "on") == 0 && shell_pid != -1) {
-        kill(shell_pid, SIGINT);
-        shell_on = 1;
+        if(shell_on == 0) {
+            kill(shell_pid, SIGINT);
+            shell_on = 1;
+        }else{
+            printf("Centralina già accesa\n");
+        }
     } else if (strcmp(buf[3], "off") == 0 && shell_pid == -1) {
         cprintf("Centralina già spenta\n");
     } else {
