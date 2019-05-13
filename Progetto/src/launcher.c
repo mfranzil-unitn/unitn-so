@@ -43,8 +43,8 @@ int main(int argc, char *argv[]) {
     emergencyid = msgid;
 
     while (1) {
-        //Leggo il numero di devices presenti.
-        if (shell_pid > 0 && shell_on) {
+        //Leggo il numero di devices presenti e i rispettivi id, solo se centralina creata (Ma anche se momentaneamente spenta).
+        if (shell_pid > 0) {
             read_msgqueue(msgid, device_pids);
         } else {
             n_devices = 0;
