@@ -123,6 +123,11 @@ int main(int argc, char *argv[]) {
                 cprintf("Comando non riconosciuto. Usa help per visualizzare i comandi disponibili\n");
             }
         } else {
+            //Ripulisco forzatamente.
+            msgrcv(msgid, &message, MAX_BUF_SIZE, 1, IPC_NOWAIT);
+            //A centralina spenta continuo a scrivere il vecchio stato sulla messagequeue.
+            sprintf(message.mesg_text, "%s", current_msg);
+            msgsnd(msgid, &message, MAX_BUF_SIZE, 0);
             getchar();  //Per ignorare i comandi quando non accessa.
         }
     }
@@ -169,7 +174,6 @@ void handle_sig(int sig) {
 }
 
 void stop_sig(int sig) {
-    cprintf("STOP_SIG\n");
     if (stato) {
         stato = 0;
         cprintf("La centralina è stata spenta. Nessun comando sarà accettato\n");
