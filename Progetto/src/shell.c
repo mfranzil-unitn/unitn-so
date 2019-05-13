@@ -7,10 +7,10 @@ int stato = 1;    //Stato della centralina.
 int changed = 0;  // Modifiche alla message queue?
 
 int main(int argc, char *argv[]) {
-    signal(SIGINT, stop_sig);
+    signal(SIGUSR2, stop_sig);
     signal(SIGTERM, cleanup_sig);
     signal(SIGUSR1, SIG_IGN);
-
+    signal(SIGINT, SIG_IGN);
     char(*buf)[MAX_BUF_SIZE] = malloc(MAX_BUF_SIZE * sizeof(char *));  // array che conterrà i comandi da eseguire
     char __out_buf[MAX_BUF_SIZE];                                      // Per la stampa dell'output delle funzioni
     char *name = get_shell_text();                                     // Mostrato a ogni riga della shell
