@@ -6,7 +6,7 @@
 #include "../util.h"
 #include "../actions.h"
 
-// BULB = 1
+// HUB = 4
 
 int fd;                // file descriptor della pipe verso il padre
 char* pipe_fd = NULL;  // nome della pipe
@@ -17,6 +17,7 @@ int status = 0;  // interruttore accensione
 
 int children_pids[MAX_HUB_CONNECTED_DEVICES];
 int device_i = 0;
+int override = 0;
 
 void sighandle_usr1(int sig) {
     // bisogna controllare se i dispositivi sono allineati o meno (override)
@@ -44,17 +45,48 @@ void sighandle_usr1(int sig) {
     write(fd, buffer, MAX_BUF_SIZE);
 }
 
+
+//Itera sui figli, in realtà fino a MAX_HUB_CONNECTED_DEVICES, e controlla che gli stati siano congruenti.
+//E modifica il vettore over_index Maschera di bit.
+int check_override(int* over_index){
+    int i=0;
+    int ret = 0;
+    for(i=0; i < MAX_HUB_CONNECTED_DEVICES; i++){
+        if(children_pids[i] != -1){
+            char** vars = get_device_info(children_pids[i]);
+            if(atoi(vars[3])!= status){
+                over_pids[i] = 1;
+                ret = 1;
+            }
+        }
+    }
+    return ret;
+}
+
 void sighandle_usr2(int sig) {
     // Al ricevimento del segnale, la finestra apre la pipe in lettura e ottiene cosa deve fare.
     // 0|.. -> spegni/accendi tutto
     // 1|.. -> attacca contenuto
     char tmp[MAX_BUF_SIZE];
-
+    int over_index[MAX_HUB_CONNECTED_DEVICES];
     read(fd, tmp, MAX_BUF_SIZE);
+
+    //Valore che indica lo stato di override o meno.
+    override = check_override(over_index);
 
     if (tmp[0] - '0' == 0) {
         status = !status;
-        // DA ESPANDERE
+        int i = 0;
+        char* pipe_str;
+        for(i=0; i < MAX_HUB_CONNECTED_DEVICES; i++){
+            if(children_pids[i] != -1 && !over_index[i]){
+                char* pos = "ON";
+                if(status){
+                    pos = "OFF";
+                }
+                __switch(children_pids[i], "accensione",pos,children_pids);
+            }
+        }
     } else if (tmp[0] - '0' == 1) {
         char** vars = split(tmp);
 
