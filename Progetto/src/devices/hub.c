@@ -55,7 +55,7 @@ int check_override(int* over_index){
         if(children_pids[i] != -1){
             char** vars = get_device_info(children_pids[i]);
             if(atoi(vars[3])!= status){
-                over_pids[i] = 1;
+                over_index[i] = 1;
                 ret = 1;
             }
         }
