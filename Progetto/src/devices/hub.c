@@ -80,9 +80,9 @@ void sighandle_usr2(int sig) {
         char* pipe_str;
         for(i=0; i < MAX_HUB_CONNECTED_DEVICES; i++){
             if(children_pids[i] != -1 && !over_index[i]){
-                char* pos = "ON";
+                char* pos = "on";
                 if(status){
-                    pos = "OFF";
+                    pos = "off";
                 }
                 __switch(children_pids[i], "accensione",pos,children_pids);
             }
