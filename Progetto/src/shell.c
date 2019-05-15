@@ -7,10 +7,10 @@ int stato = 1;    //Stato della centralina.
 int changed = 0;  // Modifiche alla message queue?
 
 int main(int argc, char *argv[]) {
-    signal(SIGINT, stop_sig);
+    signal(SIGUSR2, stop_sig);
     signal(SIGTERM, cleanup_sig);
     signal(SIGUSR1, SIG_IGN);
-
+    signal(SIGINT, SIG_IGN);
     char(*buf)[MAX_BUF_SIZE] = malloc(MAX_BUF_SIZE * sizeof(char *));  // array che conterrà i comandi da eseguire
     char __out_buf[MAX_BUF_SIZE];                                      // Per la stampa dell'output delle funzioni
     char *name = get_shell_text();                                     // Mostrato a ogni riga della shell
@@ -91,6 +91,8 @@ int main(int argc, char *argv[]) {
             } else if (strcmp(buf[0], "switch") == 0) {
                 if (cmd_n != 3) {
                     cprintf(SWITCH_STRING);
+                } else if (strcmp(buf[2], "riempimento") == 0) {
+                    cprintf("Operazione permessa solo manualmente.\n");
                 } else {
                     __switch(atoi(buf[1]), buf[2], buf[3], children_pids);
                 }
@@ -123,6 +125,11 @@ int main(int argc, char *argv[]) {
                 cprintf("Comando non riconosciuto. Usa help per visualizzare i comandi disponibili\n");
             }
         } else {
+            //Ripulisco forzatamente.
+            msgrcv(msgid, &message, MAX_BUF_SIZE, 1, IPC_NOWAIT);
+            //A centralina spenta continuo a scrivere il vecchio stato sulla messagequeue.
+            sprintf(message.mesg_text, "%s", current_msg);
+            msgsnd(msgid, &message, MAX_BUF_SIZE, 0);
             getchar();  //Per ignorare i comandi quando non accessa.
         }
     }
@@ -169,7 +176,6 @@ void handle_sig(int sig) {
 }
 
 void stop_sig(int sig) {
-    cprintf("STOP_SIG\n");
     if (stato) {
         stato = 0;
         cprintf("La centralina è stata spenta. Nessun comando sarà accettato\n");
