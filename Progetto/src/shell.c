@@ -91,6 +91,8 @@ int main(int argc, char *argv[]) {
             } else if (strcmp(buf[0], "switch") == 0) {
                 if (cmd_n != 3) {
                     cprintf(SWITCH_STRING);
+                } else if (strcmp(buf[2], "riempimento") == 0) {
+                    cprintf("Operazione permessa solo manualmente.\n");
                 } else {
                     __switch(atoi(buf[1]), buf[2], buf[3], children_pids);
                 }
