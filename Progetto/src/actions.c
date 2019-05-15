@@ -62,14 +62,37 @@ void __switch(int index, char *action, char *position, int *children_pids) {
                 cprintf("Sintassi non corretta. Sintassi: switch <fridge> apertura <on/off>\n");
             }
         } else if (strcmp(action, "temperatura") == 0) {
-            sprintf(pipe_message, "1|%s", position);
-
-            write(fd, pipe_message, MAX_BUF_SIZE);
-            kill(pid, SIGUSR2);
-            cprintf("Temperatura modificata con successo a %s°C.\n", position);
+            if (atoi(position) >= -10 && atoi(position) < 0 || atoi(position) > 0 && atoi(position) <= 15 || strcmp(position, "0") == 0) {
+                sprintf(pipe_message, "1|%s", position);
+                write(fd, pipe_message, MAX_BUF_SIZE);
+                kill(pid, SIGUSR2);
+                cprintf("Temperatura modificata con successo a %s°C.\n", position);
+            } else {
+                cprintf("Sintassi non corretta. Sintassi: switch <fridge> temperatura <-10 - 15>\n");
+            }
+        } else if (strcmp(action, "delay") == 0) {
+            if (atoi(position) > 0 && atoi(position) <= (60*5) || strcmp(position, "0") == 0) { // Massimo 5 minuti
+                sprintf(pipe_message, "2|%s", position);
+                write(fd, pipe_message, MAX_BUF_SIZE);
+                kill(pid, SIGUSR2);
+                cprintf("Tempo di richiusura automatico modificato con successo a %s secondi.\n", position);
+            } else {
+                cprintf("Sintassi non corretta. Sintassi: switch <fridge> delay <0-300>.\n");
+            }
+        } else if (strcmp(action, "riempimento") == 0) {  // Possibile solo manualmente (launcher)
+            if (atoi(position) > 0 && atoi(position) <= 100 || strcmp(position, "0") == 0) {
+                sprintf(pipe_message, "3|%s", position);
+                write(fd, pipe_message, MAX_BUF_SIZE);
+                kill(pid, SIGUSR2);
+                cprintf("Percentuale di riempimento modificato con successo a %s. \n", position);
+            } else {
+                cprintf("Sintassi non corretta. Sintassi: switch <fridge> riempimento <0-100>.\n");            
+            }
         } else {
-            cprintf("Operazione non permessa su un frigorifero! Operazioni permesse: <temperatura/apertura>\n");
+            cprintf("Operazione non permessa su un frigorifero! Operazioni permesse: <temperatura/apertura/delay/riempimento>\n");
         }
+
+
     } else if (strcmp(vars[0], WINDOW_S) == 0) {  // Window
         if (((strcmp(action, "apertura") != 0) || (strcmp(action, "apertura") == 0 && strcmp(position, "off") == 0)) &&
             ((strcmp(action, "chiusura") != 0) || (strcmp(action, "chiusura") == 0 && strcmp(position, "off") == 0))) {
