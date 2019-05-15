@@ -73,7 +73,7 @@ int main(int argc, char* argv[]) {
     perc = 50;
     temp = 5;
 
-    sprintf(log_buf, " - ");
+    sprintf(log_buf, "-");
 
     fd = open(pipe_fd, O_RDWR);
 

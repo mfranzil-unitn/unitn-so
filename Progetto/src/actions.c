@@ -71,7 +71,7 @@ void __switch(int index, char *action, char *position, int *children_pids) {
                 cprintf("Sintassi non corretta. Sintassi: switch <fridge> temperatura <-10 - 15>\n");
             }
         } else if (strcmp(action, "delay") == 0) {
-            if (atoi(position) > 0 && atoi(position) <= (60*5) || strcmp(position, "0") == 0) { // Massimo 5 minuti
+            if (atoi(position) > 0 && atoi(position) <= (60 * 5) || strcmp(position, "0") == 0) {  // Massimo 5 minuti
                 sprintf(pipe_message, "2|%s", position);
                 write(fd, pipe_message, MAX_BUF_SIZE);
                 kill(pid, SIGUSR2);
@@ -86,12 +86,11 @@ void __switch(int index, char *action, char *position, int *children_pids) {
                 kill(pid, SIGUSR2);
                 cprintf("Percentuale di riempimento modificato con successo a %s. \n", position);
             } else {
-                cprintf("Sintassi non corretta. Sintassi: switch <fridge> riempimento <0-100>.\n");            
+                cprintf("Sintassi non corretta. Sintassi: switch <fridge> riempimento <0-100>.\n");
             }
         } else {
             cprintf("Operazione non permessa su un frigorifero! Operazioni permesse: <temperatura/apertura/delay/riempimento>\n");
         }
-
 
     } else if (strcmp(vars[0], WINDOW_S) == 0) {  // Window
         if (((strcmp(action, "apertura") != 0) || (strcmp(action, "apertura") == 0 && strcmp(position, "off") == 0)) &&
@@ -155,23 +154,7 @@ void __info(int index, int *children_pids) {
 
     char **vars = get_device_info(pid);
 
-    if (strcmp(vars[0], "1") == 0) {
-        // Lampadina - parametri: tipo, pid, indice, stato, tempo di accensione
-        cprintf("Oggetto: Lampadina\nPID: %s\nIndice: %s\nStato: %s\nTempo di accensione: %s\n",
-                vars[1], vars[2], atoi(vars[3]) ? "ON" : "OFF", vars[4]);
-    } else if (strcmp(vars[0], "2") == 0) {
-        // Frigo -  parametri: tipo, pid, indice, stato, tempo di apertura, delay
-        // percentuale riempimento, temperatura interna
-        cprintf("Oggetto: Frigorifero\nMessaggio di log: <%s>\n", vars[8]);
-        cprintf("PID: %s\nIndice: %s\nStato: %s\nTempo di apertura: %s sec\n",
-                vars[1], vars[2], atoi(vars[3]) ? "Aperto" : "Chiuso", vars[4]);
-        cprintf("Delay richiusura: %s sec\nPercentuale riempimento: %s\nTemperatura: %s°C\n",
-                vars[5], vars[6], vars[7]);
-    } else if (strcmp(vars[0], "3") == 0) {
-        // Finestra - parametri: tipo, pid, indice, stato, tempo di accensione
-        cprintf("Oggetto: Finestra\nPID: %s\nIndice: %s\nStato: %s\nTempo di apertura: %s sec\n",
-                vars[1], vars[2], atoi(vars[3]) ? "Aperto" : "Chiuso", vars[4]);
-    } else if (strcmp(vars[0], "4") == 0) {
+    if (strcmp(vars[0], "4") == 0) {
         // Hub -  bisogna un po' arrangiarsi con i dati grezzi
         char tmp[MAX_BUF_SIZE];
         kill(pid, SIGUSR1);
@@ -186,7 +169,31 @@ void __info(int index, int *children_pids) {
             // Pulizia
             close(fd);
         }
+    } else {
+        __print(vars);
+    }
+}
 
+void __print(char **vars) {
+    if (strcmp(vars[0], BULB_S) == 0) {
+        // Lampadina - parametri: tipo, pid, indice, stato, tempo di accensione
+        cprintf("Oggetto: Lampadina\nPID: %s\nIndice: %s\nStato: %s\nTempo di accensione: %s\n",
+                vars[1], vars[2], atoi(vars[3]) ? "ON" : "OFF", vars[4]);
+    } else if (strcmp(vars[0], FRIDGE_S) == 0) {
+        // Frigo -  parametri: tipo, pid, indice, stato, tempo di apertura, delay
+        // percentuale riempimento, temperatura interna
+        cprintf("Oggetto: Frigorifero\nMessaggio di log: <%s>\n", vars[8]);
+        cprintf("PID: %s\nIndice: %s\nStato: %s\nTempo di apertura: %s sec\n",
+                vars[1], vars[2], atoi(vars[3]) ? "Aperto" : "Chiuso", vars[4]);
+        cprintf("Delay richiusura: %s sec\nPercentuale riempimento: %s\nTemperatura: %s°C\n",
+                vars[5], vars[6], vars[7]);
+    } else if (strcmp(vars[0], WINDOW_S) == 0) {
+        // Finestra - parametri: tipo, pid, indice, stato, tempo di accensione
+        cprintf("Oggetto: Finestra\nPID: %s\nIndice: %s\nStato: %s\nTempo di apertura: %s sec\n",
+                vars[1], vars[2], atoi(vars[3]) ? "Aperto" : "Chiuso", vars[4]);
+    } else if (strcmp(vars[0], HUB_S) == 0) {
+        cprintf("Oggetto: Hub\nPID: %s\nIndice: %s\nStato: %s\nDispositivi collegati: %s\n",
+                vars[1], vars[2], atoi(vars[3]) ? "Acceso" : "Spento", vars[4]);
     } else {
         cprintf("Dispositivo non supportato.\n");
     }
@@ -339,6 +346,8 @@ void __add_ex(char **vars, int actual_index, int *children_pids) {
         //    .... aggiungere la temperatura eventualmente riempimento etc
     } else if (strcmp(vars[1], WINDOW_S) == 0) {  // Frigo
         __add("window", atoi(vars[3]), actual_index, children_pids, __out_buf);
+    } else if (strcmp(vars[1], HUB_S) == 0) {
+        __add("hub", atoi(vars[3]), actual_index, children_pids, __out_buf);
     } else {
         cprintf("Da implementare...");
     }

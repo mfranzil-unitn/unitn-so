@@ -197,3 +197,13 @@ int is_controller(int pid) {
     int id = atoi(vars[0]);
     return id == HUB;
 }
+/*
+char ***parse_hub_string(char *string) {
+    char ***res = malloc(1 * sizeof(**res));
+
+    int i = 0;
+    while (i != '0') {
+        int device_type = atoi(string[i]);
+
+    }
+}*/

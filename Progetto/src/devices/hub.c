@@ -33,7 +33,7 @@ void sighandle_usr1(int sig) {
         }
     }
 
-    sprintf(buffer, "4|%i|%i|%i|%i|!|",
+    sprintf(buffer, "4|%i|%i|%i|%i|<!|",
             pid, __index, status, connected);
 
     // Stampo nel buffer tante volte quanti device ho
@@ -46,19 +46,20 @@ void sighandle_usr1(int sig) {
         }
     }
 
+    strcat(buffer,"!>");
+
     write(fd, buffer, MAX_BUF_SIZE);
 }
 
-
 //Itera sui figli, in realtà fino a MAX_HUB_CONNECTED_DEVICES, e controlla che gli stati siano congruenti.
 //E modifica il vettore over_index Maschera di bit.
-int check_override(int* over_index){
-    int i=0;
+int check_override(int* over_index) {
+    int i = 0;
     int ret = 0;
-    for(i=0; i < MAX_HUB_CONNECTED_DEVICES; i++){
-        if(children_pids[i] != -1){
+    for (i = 0; i < MAX_HUB_CONNECTED_DEVICES; i++) {
+        if (children_pids[i] != -1) {
             char** vars = get_device_info(children_pids[i]);
-            if(atoi(vars[3])!= status){
+            if (atoi(vars[3]) != status) {
                 over_index[i] = 1;
                 ret = 1;
             }
@@ -82,13 +83,13 @@ void sighandle_usr2(int sig) {
         status = !status;
         int i = 0;
         char* pipe_str;
-        for(i=0; i < MAX_HUB_CONNECTED_DEVICES; i++){
-            if(children_pids[i] != -1 && !over_index[i]){
+        for (i = 0; i < MAX_HUB_CONNECTED_DEVICES; i++) {
+            if (children_pids[i] != -1 && !over_index[i]) {
                 char* pos = "on";
-                if(status){
+                if (status) {
                     pos = "off";
                 }
-                __switch(children_pids[i], "accensione",pos,children_pids);
+                __switch(children_pids[i], "accensione", pos, children_pids);
             }
         }
     } else if (tmp[0] - '0' == 1) {
