@@ -172,18 +172,7 @@ void __info(int index, int *children_pids) {
         cprintf("Oggetto: Finestra\nPID: %s\nIndice: %s\nStato: %s\nTempo di apertura: %s sec\n",
                 vars[1], vars[2], atoi(vars[3]) ? "Aperto" : "Chiuso", vars[4]);
     } else if (strcmp(vars[0], "4") == 0) {
-        // Hub -  parametri: tipo, pid, stato indice
-        /*cprintf("Oggetto: Hub\nPID: %s\nIndice: %s\nStato: %s\n",
-                vars[1], vars[2], atoi(vars[3]) ? "ON" : "OFF");*/
-
-        /*
-        
-        
-        int i;
-        while (vars[i] != "\0") {
-            cprintf(vars[i++]);
-        }*/
-
+        // Hub -  bisogna un po' arrangiarsi con i dati grezzi
         char tmp[MAX_BUF_SIZE];
         kill(pid, SIGUSR1);
         char pipe_str[MAX_BUF_SIZE];
@@ -331,6 +320,8 @@ void __link(int index, int controller, int *children_pids) {
 
         printf("Spostato l'oggetto %d sotto l'oggetto %d\n", index, controller);
         close(fd);
+    } else {
+        cprintf("Configurazione dei dispositvi non valida. Sintassi: link <device> to <hub/timer>\n");
     }
 }
 
@@ -339,14 +330,14 @@ void __add_ex(char **vars, int actual_index, int *children_pids) {
     // DAVANTI c'E' sempre un 1|, per come ho scritto (male) il codice in hub.c
     // Tutti gli indici vanno shiftati
     char __out_buf[MAX_BUF_SIZE];
-    if (strcmp(vars[0], BULB_S) == 0) {  // Lampadina
+    if (strcmp(vars[1], BULB_S) == 0) {  // Lampadina
         __add("bulb", atoi(vars[3]), actual_index, children_pids, __out_buf);
         // Chiaramente minchia posso replicare il time_on o lo stato...
         // se scollego una lampadina quella si spegne
-    } else if (strcmp(vars[0], FRIDGE_S) == 0) {  // Frigo
+    } else if (strcmp(vars[1], FRIDGE_S) == 0) {  // Frigo
         __add("fridge", atoi(vars[3]), actual_index, children_pids, __out_buf);
         //    .... aggiungere la temperatura eventualmente riempimento etc
-    } else if (strcmp(vars[0], WINDOW_S) == 0) {  // Frigo
+    } else if (strcmp(vars[1], WINDOW_S) == 0) {  // Frigo
         __add("window", atoi(vars[3]), actual_index, children_pids, __out_buf);
     } else {
         cprintf("Da implementare...");

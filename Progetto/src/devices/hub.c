@@ -3,8 +3,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
-#include "../util.h"
 #include "../actions.h"
+#include "../util.h"
 
 // HUB = 4
 
@@ -23,22 +23,26 @@ void sighandle_usr1(int sig) {
     // bisogna controllare se i dispositivi sono allineati o meno (override)
     char buffer[MAX_BUF_SIZE];
 
-    sprintf(buffer, "4|%i|%i|%i|%i|",
-            pid, __index, status, device_i);
+    // conto i dispositivi connessi
+    int connected = 0;
 
     int i;
     for (i = 0; i < MAX_HUB_CONNECTED_DEVICES; i++) {
         if (children_pids[i] != -1) {
-            char** vars = get_device_info(children_pids[i]);
+            connected++;
+        }
+    }
 
-            strcat(buffer, "<");
-            int j = 0;
-            while (vars[j] != "0") {
-                strcat(buffer, vars[j++]);
-            }
+    sprintf(buffer, "4|%i|%i|%i|%i|!|",
+            pid, __index, status, connected);
 
-            strcat(buffer, ">");
-            free(vars);
+    // Stampo nel buffer tante volte quanti device ho
+    for (i = 0; i < MAX_HUB_CONNECTED_DEVICES; i++) {
+        if (children_pids[i] != -1) {
+            char* raw_info = get_raw_device_info(children_pids[i]);
+            strcat(buffer, raw_info);
+            strcat(buffer, "|!|");
+            free(raw_info);
         }
     }
 
@@ -105,10 +109,10 @@ void sighandle_usr2(int sig) {
             if (i == MAX_HUB_CONNECTED_DEVICES) {
                 // PORCODIO SIAMO NELLA MERDA
                 //s printf(__out_buf, "Non c'è più spazio! Rimuovi qualche dispositivo.\n");
-                    return;
+                return;
             }
         } else {
-            actual_index = (device_i) - 1;  // compenso per gli array indicizzati a 0
+            actual_index = device_i - 1;  // compenso per gli array indicizzati a 0
         }
 
         /// fine partE COPIATA
