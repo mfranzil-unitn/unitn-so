@@ -32,7 +32,7 @@ void sighandle_usr1(int sig) {
     write(fd, tmp, MAX_BUF_SIZE);
 
     // Resetto il contenuto del buffer
-    sprintf(log_buf, " - ");
+    sprintf(log_buf, "-");
 }
 
 void sighandle_usr2(int sig) {

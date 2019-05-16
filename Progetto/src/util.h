@@ -71,7 +71,7 @@ char **split(char *__buf);
 char **split_fixed(char *__buf, int __count);
 
 char *get_shell_text();
-void get_pipe_name(int pid, char* pipe_str);
+void get_pipe_name(int pid, char *pipe_str);
 
 int get_device_pid(int device_identifier, int *children_pids);
 void get_device_name(int device_type, char *buf);
@@ -82,4 +82,8 @@ char **get_device_info(int pid);
 
 int is_controller(int pid);
 
+void hub_tree_print(char **vars);
+void hub_tree_spaces(int level);
+void hub_tree_parser(char *__buf);
+int hub_tree_pid_finder(char *__buf, int id);
 #endif

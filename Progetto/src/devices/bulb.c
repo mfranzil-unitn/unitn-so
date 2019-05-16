@@ -34,6 +34,7 @@ void sighandle_usr1(int sig) {
 void sighandle_usr2(int sig) {
     // Al ricevimento del segnale, la finestra apre la pipe in lettura e ottiene cosa deve fare.
     // 0|... -> accendi/spegni lampadina
+    // 1|... -> restituisci PID
     char tmp[MAX_BUF_SIZE];
 
     read(fd, tmp, MAX_BUF_SIZE);
@@ -48,6 +49,10 @@ void sighandle_usr2(int sig) {
             start = 0;
         }
     }
+}
+
+void sighandle_chld(int sig) {
+    // Al ricevimento del segnale, la finestra apre la pipe in lettura e legge il 
 }
 
 int main(int argc, char* argv[]) {

@@ -152,26 +152,17 @@ void __info(int index, int *children_pids) {
         return;
     }
 
-    char **vars = get_device_info(pid);
+    char *tmp = get_raw_device_info(pid);
 
-    if (strcmp(vars[0], "4") == 0) {
-        // Hub -  bisogna un po' arrangiarsi con i dati grezzi
-        char tmp[MAX_BUF_SIZE];
-        kill(pid, SIGUSR1);
-        char pipe_str[MAX_BUF_SIZE];
-        get_pipe_name(pid, pipe_str);
-
-        int fd = open(pipe_str, O_RDONLY);
-
-        if (fd > 0) {
-            read(fd, tmp, MAX_BUF_SIZE);
-            printf("Raw data: %s\n", tmp);
-            // Pulizia
-            close(fd);
-        }
+    if (strncmp(tmp, HUB_S, 1) == 0) {
+        hub_tree_parser(tmp);
     } else {
+        char **vars = split(tmp);
         __print(vars);
+        free(vars);
     }
+
+    free(tmp);
 }
 
 void __print(char **vars) {
@@ -197,7 +188,6 @@ void __print(char **vars) {
     } else {
         cprintf("Dispositivo non supportato.\n");
     }
-    free(vars);
 }
 
 int __add(char *device, int device_index, int actual_index, int *children_pids, char *__out_buf) {
@@ -236,19 +226,25 @@ void __list(int *children_pids) {
     // prende come input l'indice/nome del dispositivo, ritorna il PID
     int i;
     char **vars = NULL;
+    char* tmp;
 
     for (i = 0; i < MAX_CHILDREN; i++) {  // l'indice i è logicamente indipendente dal nome/indice del dispositivo
         int children_pid = children_pids[i];
         if (children_pid != -1) {
-            vars = get_device_info(children_pid);
+            tmp = get_raw_device_info(children_pid);
 
-            char device_name[MAX_BUF_SIZE];
-            get_device_name(atoi(vars[0]), device_name);
-            device_name[0] += 'A' - 'a';
+            if (strncmp(tmp, HUB_S, 1) == 0) {
+                hub_tree_parser(tmp);
+            } else {
+                vars = split(tmp);
+                char device_name[MAX_BUF_SIZE];
+                get_device_name(atoi(vars[0]), device_name);
+                device_name[0] += 'A' - 'a';
 
-            cprintf("Dispositivo: %s, PID %s, nome %s\n", device_name, vars[1], vars[2]);
-            // Pulizia
-            free(vars);
+                cprintf("%s, (PID %s, Indice %s)\n", device_name, vars[1], vars[2]);
+                // Pulizia
+                free(vars);
+            }
         }
     }
 }

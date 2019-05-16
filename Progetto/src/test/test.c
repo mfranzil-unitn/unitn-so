@@ -1,64 +1,89 @@
 #include <string.h>
 #include "../util.h"
 
-void __print(char **vars) {
-    if (strcmp(vars[0], BULB_S) == 0) {
-        // Lampadina - parametri: tipo, pid, indice, stato, tempo di accensione
-        printf("Oggetto: Lampadina, PID: %s, Indice: %s, Stato: %s, Tempo di accensione: %s",
-               vars[1], vars[2], atoi(vars[3]) ? "ON" : "OFF", vars[4]);
-    } else if (strcmp(vars[0], FRIDGE_S) == 0) {
-        // Frigo -  parametri: tipo, pid, indice, stato, tempo di apertura, delay
-        // percentuale riempimento, temperatura interna
-        printf("Oggetto: Frigorifero, Messaggio di log: <%s>, ", vars[8]);
-        printf("PID: %s, Indice: %s, Stato: %s, Tempo di apertura: %s sec, ",
-               vars[1], vars[2], atoi(vars[3]) ? "Aperto" : "Chiuso", vars[4]);
-        printf("Delay richiusura: %s sec, Percentuale riempimento: %s, Temperatura: %s°C",
-               vars[5], vars[6], vars[7]);
-    } else if (strcmp(vars[0], WINDOW_S) == 0) {
-        // Finestra - parametri: tipo, pid, indice, stato, tempo di accensione
-        printf("Oggetto: Finestra, PID: %s, Indice: %s, Stato: %s, Tempo di apertura: %s sec",
-               vars[1], vars[2], atoi(vars[3]) ? "Aperto" : "Chiuso", vars[4]);
-    } else if (strcmp(vars[0], HUB_S) == 0) {
-        printf("Oggetto: Hub, PID: %s, Indice: %s, Stato: %s, Dispositivi collegati: %s",
-               vars[1], vars[2], atoi(vars[3]) ? "Acceso" : "Spento", vars[4]);
-    } else {
-        printf("Dispositivo non supportato.\n");
+void get_device_name(int device_type, char *buf) {
+    switch (device_type) {
+        case BULB:
+            sprintf(buf, "lampadina");
+            break;
+        case FRIDGE:
+            sprintf(buf, "frigo");
+            break;
+        case WINDOW:
+            sprintf(buf, "finestra");
+            break;
+        case CONTROLLER:
+            sprintf(buf, "centralina");
+            break;
+        case HUB:
+            sprintf(buf, "hub");
+            break;
+        default:
+            sprintf(buf, "-");
+            break;
     }
 }
 
-char **Nsplit_fixed(char *__buf, int __count) {
+void hub_tree_print(char **vars) {
+    if (strcmp(vars[0], HUB_S) == 0) {
+        printf("Hub (PID: %s, Indice: %s), Stato: %s, Collegati: %s",
+               vars[1], vars[2], atoi(vars[3]) ? "Acceso" : "Spento", vars[4]);
+    } else {
+        char device_name[MAX_BUF_SIZE];
+        get_device_name(atoi(vars[0]), device_name);
+        device_name[0] += 'A' - 'a';
+
+        printf("%s, (PID %s, Indice %s)", device_name, vars[1], vars[2]);
+    }
+}
+
+void hub_tree_parser(char *__buf, int __count) {
     char *tokenizer = strtok(__buf, "|");
     char *old = NULL;
-    int device = 0;
+    int level = 0;
 
-    //printf("Level %d\n", device);
+    //printf("Level %d\n", level);
 
     char **vars = malloc((10) * sizeof(*vars));
     int i = 0;
+    int to_be_printed = 1;
 
     while (tokenizer != NULL) {
         int j;
         if (strcmp(tokenizer, "<!") == 0) {
-            ++device;  //   printf("\nLevel %d\n", ++device);
-            __print(vars);
-            i = 0;
-            printf("\n");
-            for (int j = 0; j < device; j++) {
-                printf("    ");
+            to_be_printed += atoi(old) - 1;
+            if (level > 0) {
+                printf("\n");
+                for (int j = 0; j < level; j++) {
+                    printf("  ");
+                }
+                printf("∟ ");
             }
+            i = 0;
+            ++level;  //   printf("\nLevel %d\n", ++level);
+            hub_tree_print(vars);
         } else if (strcmp(tokenizer, "!>") == 0) {
-            --device;  //   printf("\nLevel %d\n", --device);
-            if (strcmp(old, "<!") != 0) {
-                __print(vars);
+            --level;  //   printf("\nLevel %d\n", --level);
+            if (strcmp(old, "<!") == 0 && to_be_printed > 0) {
+                i = 0;
+                printf("\n");
+                for (int j = 0; j < level; j++) {
+                    printf("  ");
+                }
+                printf("∟ ");
+                hub_tree_print(vars);
+                to_be_printed--;
             }
         } else if (strcmp(tokenizer, "!") == 0) {
-            if (strcmp(old, "!>") != 0) {
-                __print(vars);
-            }
-            i = 0;
-            printf("\n");
-            for (int j = 0; j < device; j++) {
-                printf("    ");
+            if (to_be_printed > 0) {
+                i = 0;
+                printf("\n");
+                for (int j = 0; j < level; j++) {
+                    printf("  ");
+                }
+                printf("∟ ");
+                hub_tree_print(vars);
+                to_be_printed--;
             }
         } else {
             vars[i++] = tokenizer;
@@ -67,11 +92,8 @@ char **Nsplit_fixed(char *__buf, int __count) {
         old = tokenizer;
         tokenizer = strtok(NULL, "|");
     }
-
-    //printf("\nRemainder: %s", __buf);
-
-    return NULL;
 }
+
 char **Nsplit(char *__buf) {
     // Divide una stringa presa dalla pipe
     // a seconda del dispositivo.
@@ -99,7 +121,7 @@ char **Nsplit(char *__buf) {
             break;
     }
 
-    return Nsplit_fixed(__buf, __count);
+    return hub_tree_parser(__buf, __count);
 }
 
 int main() {
