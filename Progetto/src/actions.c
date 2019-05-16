@@ -190,7 +190,22 @@ void __print(char **vars) {
     }
 }
 
-int __add(char *device, int device_index, int actual_index, int *children_pids, char *__out_buf) {
+int __add(char *device, int device_index, int *children_pids, char *__out_buf) {
+    int actual_index = -1;
+
+    int i;  // del ciclo
+    for (i = 0; i < MAX_CHILDREN; i++) {
+        if (children_pids[i] == -1) {
+            actual_index = i;
+            break;
+        }
+    }
+
+    if (i == MAX_CHILDREN) {
+        sprintf(__out_buf, "Non c'è più spazio! Rimuovi qualche dispositivo.\n");
+        return 0;
+    }
+
     pid_t pid = fork();
     if (pid == 0) {  // Figlio
         // Apro una pipe per padre-figlio
@@ -220,13 +235,14 @@ int __add(char *device, int device_index, int actual_index, int *children_pids, 
                 device_name, pid, device_index);
     }
     return 1;
+    //  return 1;
 }
 
 void __list(int *children_pids) {
     // prende come input l'indice/nome del dispositivo, ritorna il PID
     int i;
     char **vars = NULL;
-    char* tmp;
+    char *tmp;
 
     for (i = 0; i < MAX_CHILDREN; i++) {  // l'indice i è logicamente indipendente dal nome/indice del dispositivo
         int children_pid = children_pids[i];
@@ -290,10 +306,13 @@ void __link(int index, int controller, int *children_pids) {
         cprintf("Errore! Non esiste il dispositivo %d.\n", index);
         return;
     }
+    /*
+    if (controller == 0) {  // Centralina
+    }*/
 
     int controller_pid = get_device_pid(controller, children_pids);
 
-    if (device_pid == -1) {
+    if (controller_pid == -1) {
         cprintf("Errore! Non esiste il dispositivo %d.\n", controller);
         return;
     }
@@ -328,23 +347,65 @@ void __link(int index, int controller, int *children_pids) {
     }
 }
 
-void __add_ex(char **vars, int actual_index, int *children_pids) {
-    // NOTA SULL'INPUT:
-    // DAVANTI c'E' sempre un 1|, per come ho scritto (male) il codice in hub.c
-    // Tutti gli indici vanno shiftati
+void __add_ex(char **vars, int *children_pids) {
     char __out_buf[MAX_BUF_SIZE];
-    if (strcmp(vars[1], BULB_S) == 0) {  // Lampadina
-        __add("bulb", atoi(vars[3]), actual_index, children_pids, __out_buf);
+    if (strcmp(vars[0], BULB_S) == 0) {  // Lampadina
+        __add("bulb", atoi(vars[2]), children_pids, __out_buf);
         // Chiaramente minchia posso replicare il time_on o lo stato...
         // se scollego una lampadina quella si spegne
-    } else if (strcmp(vars[1], FRIDGE_S) == 0) {  // Frigo
-        __add("fridge", atoi(vars[3]), actual_index, children_pids, __out_buf);
+    } else if (strcmp(vars[0], FRIDGE_S) == 0) {  // Frigo
+        __add("fridge", atoi(vars[2]), children_pids, __out_buf);
         //    .... aggiungere la temperatura eventualmente riempimento etc
-    } else if (strcmp(vars[1], WINDOW_S) == 0) {  // Frigo
-        __add("window", atoi(vars[3]), actual_index, children_pids, __out_buf);
-    } else if (strcmp(vars[1], HUB_S) == 0) {
-        __add("hub", atoi(vars[3]), actual_index, children_pids, __out_buf);
+    } else if (strcmp(vars[0], WINDOW_S) == 0) {  // Frigo
+        __add("window", atoi(vars[2]), children_pids, __out_buf);
+    } else if (strcmp(vars[0], HUB_S) == 0) {
+        __add("hub", atoi(vars[2]), children_pids, __out_buf);
     } else {
         cprintf("Da implementare...");
     }
+} 
+
+int hub_tree_constructor(char *__buf, int *children_pids) {
+    char *tokenizer = strtok(__buf, "|");
+    char *old = NULL;
+    int level = 0;
+
+    //cprintf("Level %d\n", level);
+
+    // DISPOSITIVO; PID; ID
+
+    char **vars = malloc((FRIDGE_PARAMETERS + 4) * sizeof(*vars));
+    int i = 0;
+    int to_be_added = 1;
+
+    while (tokenizer != NULL) {
+        int j;
+        if (strcmp(tokenizer, "<!") == 0) {
+            to_be_added += atoi(old) - 1;
+            i = 0;
+            __add_ex(vars, children_pids);
+            // segnarsi chi è il padre e poi fare link
+        } else if (strcmp(tokenizer, "!>") == 0) {
+            if (strcmp(old, "<!") == 0 && to_be_added > 0) {
+                i = 0;
+
+            __add_ex(vars, children_pids);
+                to_be_added--;
+            }
+        } else if (strcmp(tokenizer, "!") == 0) {
+            if (to_be_added > 0) {
+                i = 0;
+
+            __add_ex(vars, children_pids);
+                to_be_added--;
+            }
+        } else {
+            vars[i++] = tokenizer;
+            //cprintf("%s, ", tokenizer);
+        }
+        old = tokenizer;
+        tokenizer = strtok(NULL, "|");
+    }
+    free(vars);
+    return -1;
 }

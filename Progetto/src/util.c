@@ -185,7 +185,7 @@ char *get_raw_device_info(int pid) {
     }
 
     char pipe_str[MAX_BUF_SIZE];
-    char *tmp = malloc(MAX_BUF_SIZE * sizeof(*tmp));
+    char *tmp = malloc(MAX_BUF_SIZE * sizeof(tmp));
 
     get_pipe_name(pid, pipe_str);
 

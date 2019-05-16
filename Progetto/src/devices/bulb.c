@@ -51,10 +51,6 @@ void sighandle_usr2(int sig) {
     }
 }
 
-void sighandle_chld(int sig) {
-    // Al ricevimento del segnale, la finestra apre la pipe in lettura e legge il 
-}
-
 int main(int argc, char* argv[]) {
     // argv = [./bulb, indice, /tmp/indice];
     pipe_fd = argv[2];
