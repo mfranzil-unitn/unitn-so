@@ -20,11 +20,25 @@ Con il comando switch permetto solo: switch <id> <Interr_Aperto/Chiuso> ON
 int fd;                // file descriptor della pipe verso il padre
 char* pipe_fd = NULL;  // nome della pipe
 //char log_buf[512];     // buffer della pipe
-
+int shellpid;
 int pid, __index, delay;  // variabili di stato
 
 int status = 0;  // interruttore apertura
 time_t start;
+
+void sighandle_sigterm(int signal){
+    if((int)getppid() != shellpid){
+        int ppid = (int)getppid();
+        kill(ppid, SIGUSR2);
+        char pipe_str[MAX_BUF_SIZE];
+        get_pipe_name(ppid, pipe_str);  // Nome della pipe
+        int fd = open(pipe_str, O_RDWR);
+        char tmp[MAX_BUF_SIZE];
+        sprintf(tmp, "2|%d", (int)getpid());
+        write(fd,tmp, sizeof(tmp) );
+    }
+    exit(0);
+}
 
 void sighandle_usr1(int sig) {
     time_t time_on;
@@ -61,6 +75,7 @@ void sighandle_usr2(int sig) {
     }
 }
 
+
 int main(int argc, char* argv[]) {
     // argv = [./window, indice, /tmp/indice];
     pipe_fd = argv[2];
@@ -68,7 +83,9 @@ int main(int argc, char* argv[]) {
     __index = atoi(argv[1]);
 
     fd = open(pipe_fd, O_RDWR);
+    shellpid = get_shell_pid();
 
+    signal(SIGTERM, sighandle_sigterm);
     signal(SIGUSR1, sighandle_usr1);
     signal(SIGUSR2, sighandle_usr2);
     while (1)

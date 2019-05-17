@@ -7,6 +7,7 @@
 
 // BULB = 1
 
+int shellpid;
 int fd;                // file descriptor della pipe verso il padre
 char* pipe_fd = NULL;  // nome della pipe
 
@@ -14,6 +15,20 @@ int pid, __index;  // variabili di stato
 
 int status = 0;  // interruttore accensione
 time_t start;
+
+void sighandle_sigterm(int signal){
+   if((int)getppid() != shellpid){
+        int ppid = (int)getppid();
+        kill(ppid, SIGUSR2);
+        char pipe_str[MAX_BUF_SIZE];
+        get_pipe_name(ppid, pipe_str);  // Nome della pipe
+        int fd = open(pipe_str, O_RDWR);
+        char tmp[MAX_BUF_SIZE];
+        sprintf(tmp, "2|%d", (int)getpid());
+        write(fd,tmp, sizeof(tmp) );
+    }
+    exit(0);
+}
 
 void sighandle_usr1(int sig) {
     time_t time_on;
@@ -34,6 +49,7 @@ void sighandle_usr1(int sig) {
 void sighandle_usr2(int sig) {
     // Al ricevimento del segnale, la finestra apre la pipe in lettura e ottiene cosa deve fare.
     // 0|... -> accendi/spegni lampadina
+    // 1|... -> restituisci PID
     char tmp[MAX_BUF_SIZE];
 
     read(fd, tmp, MAX_BUF_SIZE);
@@ -55,9 +71,10 @@ int main(int argc, char* argv[]) {
     pipe_fd = argv[2];
     pid = getpid();
     __index = atoi(argv[1]);
-
     fd = open(pipe_fd, O_RDWR);
 
+shellpid = get_shell_pid();
+    signal(SIGTERM, sighandle_sigterm);
     signal(SIGUSR1, sighandle_usr1);
     signal(SIGUSR2, sighandle_usr2);
     while (1)

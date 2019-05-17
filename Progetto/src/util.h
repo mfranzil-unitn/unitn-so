@@ -30,10 +30,9 @@
 #define BULB_PARAMETERS 5
 #define FRIDGE_PARAMETERS 9
 #define WINDOW_PARAMETERS 5
-#define HUB_PARAMETERS 5
+#define HUB_PARAMETERS 5000
 
-#define MAX_CHILDREN 10
-#define MAX_HUB_CONNECTED_DEVICES 4
+#define MAX_CHILDREN 20
 
 #define SHELL_POSITION "bin/shell"
 #define DEVICES_POSITIONS "bin/devices/"
@@ -42,7 +41,7 @@
 
 #define SWITCH_STRING \
     "Sintassi: switch <id> <label> <pos>\n\
-    Interruttori disponibili: bulb: accensione, fridge: temperatura/apertura, window: apertura\n"
+    Interruttori disponibili:\n        bulb: accensione\n        fridge: temperatura/apertura/delay/riempimento\n        window: apertura\n"
 
 #define ADD_STRING \
     "Sintassi: add <device>\nDispositivi disponibili: bulb, window, fridge, hub, timer\n"
@@ -71,15 +70,22 @@ char **split(char *__buf);
 char **split_fixed(char *__buf, int __count);
 
 char *get_shell_text();
-void get_pipe_name(int pid, char* pipe_str);
+void get_pipe_name(int pid, char *pipe_str);
 
 int get_device_pid(int device_identifier, int *children_pids);
 void get_device_name(int device_type, char *buf);
 void get_device_name_str(char *device_type, char *buf);
+int get_shell_pid();
 
 char *get_raw_device_info(int pid);
 char **get_device_info(int pid);
 
 int is_controller(int pid);
 
+void hub_tree_print(char **vars);
+void hub_tree_spaces(int level);
+void hub_tree_parser(char *__buf);
+int hub_tree_pid_finder(char *__buf, int id);
+
+void change_ext_pid(int newpid);
 #endif

@@ -12,9 +12,23 @@ char* pipe_fd = NULL;            // nome della pipe
 char log_buf[MAX_BUF_SIZE / 4];  // buffer della pipe // SE CI SONO PROBLEMI; GUARDA QUI
 
 int pid, __index, delay, perc, temp;  // variabili di stato
-
+int shellpid;
 int status = 0;  // interruttore accensione
 time_t start;
+
+void sighandle_sigterm(int signal){
+    if((int)getppid() != shellpid){
+        int ppid = (int)getppid();
+        kill(ppid, SIGUSR2);
+        char pipe_str[MAX_BUF_SIZE];
+        get_pipe_name(ppid, pipe_str);  // Nome della pipe
+        int fd = open(pipe_str, O_RDWR);
+        char tmp[MAX_BUF_SIZE];
+        sprintf(tmp, "2|%d", (int)getpid());
+        write(fd,tmp, sizeof(tmp) );
+    }
+    exit(0);
+}
 
 void sighandle_usr1(int sig) {
     time_t time_on;
@@ -32,7 +46,7 @@ void sighandle_usr1(int sig) {
     write(fd, tmp, MAX_BUF_SIZE);
 
     // Resetto il contenuto del buffer
-    sprintf(log_buf, " - ");
+    sprintf(log_buf, "-");
 }
 
 void sighandle_usr2(int sig) {
@@ -73,10 +87,12 @@ int main(int argc, char* argv[]) {
     perc = 50;
     temp = 5;
 
-    sprintf(log_buf, " - ");
+   shellpid = get_shell_pid();
+    sprintf(log_buf, "-");
 
     fd = open(pipe_fd, O_RDWR);
 
+    signal(SIGTERM, sighandle_sigterm);
     signal(SIGUSR1, sighandle_usr1);
     signal(SIGUSR2, sighandle_usr2);
 

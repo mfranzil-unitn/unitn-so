@@ -1,10 +1,10 @@
 #include "launcher.h"
 
 extern int print_mode;
-
 pid_t shell_pid = -1;
 int n_devices = 0;
 int emergencyid;
+int emergencyid2;
 int shell_on = 0;
 
 int main(int argc, char *argv[]) {
@@ -35,12 +35,21 @@ int main(int argc, char *argv[]) {
 
     // Creo message queue tra shell e launcher.
     key_t key;
-    key = ftok("progfile", 65);
+    key = ftok("/tmp", 10);
     int msgid;
     msgid = msgget(key, 0666 | IPC_CREAT);
     // Ripulisco inizialmente per evitare errori.
     msgrcv(msgid, &message, sizeof(message), 1, IPC_NOWAIT);
     emergencyid = msgid;
+
+    //Creo message queue per comunicare shellpid
+    key_t key_sh;
+    key_sh = ftok("/tmp", 20);
+    int msgid_sh;
+    msgid_sh = msgget(key_sh, 0666 | IPC_CREAT);
+    message.mesg_type = 1;
+    emergencyid2= msgid_sh;
+    
 
     while (1) {
         //Leggo il numero di devices presenti e i rispettivi id, solo se centralina creata (Ma anche se momentaneamente spenta).
@@ -70,6 +79,8 @@ int main(int argc, char *argv[]) {
                 if (c == 's' || c == 'S') {
                     //Eliminazione messagequeue verso shell.
                     msgctl(msgid, IPC_RMID, NULL);
+                    msgctl(msgid_sh, IPC_RMID, NULL);
+
                     free(buf);
                     if (shell_pid != -1) {
                         kill(shell_pid, SIGTERM);
@@ -101,7 +112,7 @@ int main(int argc, char *argv[]) {
             if (cmd_n != 3) {                      //Controllo correttezza nel conteggio degli argomenti.
                 cprintf(USER_STRING);
             } else {
-                user_launcher(buf, msgid, device_pids);
+                user_launcher(buf, msgid, device_pids, msgid_sh);
             }
         } else if (strcmp(buf[0], "restart") == 0) {
             cprintf("Riavvio sta dando problemi, non usarmi\n");
@@ -128,6 +139,7 @@ int main(int argc, char *argv[]) {
 
     // to destroy the message queue
     msgctl(msgid, IPC_RMID, NULL);
+    msgctl(msgid_sh, IPC_RMID, NULL);
     free(buf);
     return 0;
 }
@@ -150,6 +162,7 @@ void handle_sig(int signal) {
 
 void handle_sigint(int signal) {
     msgctl(emergencyid, IPC_RMID, NULL);
+    msgctl(emergencyid2, IPC_RMID, NULL);
     if (shell_pid != -1) {
         kill(shell_pid, SIGTERM);
     }
@@ -209,7 +222,7 @@ void info_launcher(char buf[][MAX_BUF_SIZE], int msgid, int *device_pids) {
     }
 }
 
-void user_launcher(char buf[][MAX_BUF_SIZE], int msgid, int *device_pids) {
+void user_launcher(char buf[][MAX_BUF_SIZE], int msgid, int *device_pids, int msgid_sh) {
     if (strcmp(buf[1], "turn") != 0 || strcmp(buf[2], "shell") != 0) {
         cprintf("Sintassi: user turn shell <pos>\n");
     }
@@ -220,6 +233,11 @@ void user_launcher(char buf[][MAX_BUF_SIZE], int msgid, int *device_pids) {
             cprintf("Errore durante il fork\n");
             exit(1);
         }
+
+
+        //Pulizia coda
+        msgrcv(msgid_sh, &message, sizeof(message), 1, IPC_NOWAIT);
+
         if (pid == 0) {  //Processo figlio che aprirà terminale e lancerà la shell.
 
             //Sarà passato per argomento alla shell.
@@ -241,8 +259,9 @@ void user_launcher(char buf[][MAX_BUF_SIZE], int msgid, int *device_pids) {
                 cprintf("Errore nell'apertura della shell\n");
             } else {
                 shell_pid = atoi(message.mesg_text);
+                shell_on = 1;
+                msgsnd(msgid_sh, &message, MAX_BUF_SIZE, 0);
             }
-            shell_on = 1;
             system("clear");
             cprintf("La centralina è aperta\n");
             return;

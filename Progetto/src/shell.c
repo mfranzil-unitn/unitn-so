@@ -32,9 +32,16 @@ int main(int argc, char *argv[]) {
 
     // Credo message queue tra shell e launcher
     key_t key;
-    key = ftok("progfile", 65);
+    key = ftok("/tmp", 10);
     int msgid;
     msgid = msgget(key, 0666 | IPC_CREAT);
+    message.mesg_type = 1;
+
+    //Creo message queue per comunicare shellpid
+    key_t key_sh;
+    key_sh = ftok("/tmp", 20);
+    int msgid_sh;
+    msgid_sh = msgget(key_sh, 0666 | IPC_CREAT);
     message.mesg_type = 1;
 
     char current_msg[MAX_BUF_SIZE] = "0|";
@@ -91,6 +98,8 @@ int main(int argc, char *argv[]) {
             } else if (strcmp(buf[0], "switch") == 0) {
                 if (cmd_n != 3) {
                     cprintf(SWITCH_STRING);
+                } else if (strcmp(buf[2], "riempimento") == 0) {
+                    cprintf("Operazione permessa solo manualmente.\n");
                 } else {
                     __switch(atoi(buf[1]), buf[2], buf[3], children_pids);
                 }
@@ -137,26 +146,13 @@ int main(int argc, char *argv[]) {
 
 int add_shell(char buf[][MAX_BUF_SIZE], int *device_i, int *children_pids, char *__out_buf) {
     if (strcmp(buf[1], "bulb") == 0 || strcmp(buf[1], "fridge") == 0 || strcmp(buf[1], "window") == 0 || strcmp(buf[1], "hub") == 0) {
-        (*device_i)++;
-        int actual_index = -1;
-
-        if (*device_i >= MAX_CHILDREN) {
-            int i;  // del ciclo
-            for (i = 0; i < MAX_CHILDREN; i++) {
-                if (children_pids[i] == -1) {
-                    actual_index = i;
-                    break;
-                }
-            }
-            if (i == MAX_CHILDREN) {
-                sprintf(__out_buf, "Non c'è più spazio! Rimuovi qualche dispositivo.\n");
-                return 0;
-            }
-        } else {
-            actual_index = (*device_i) - 1;  // compenso per gli array indicizzati a 0
-        }
-        
-        return __add(buf[1], *device_i, actual_index, children_pids, __out_buf);
+       (*device_i)++;
+       if (__add(buf[1], *device_i, children_pids, __out_buf) == 0) {
+           (*device_i)--;
+           return 0;
+       } else {
+           return 1;
+       };
     } else {
         sprintf(__out_buf, "Dispositivo non ancora supportato\n");
         return 0;
