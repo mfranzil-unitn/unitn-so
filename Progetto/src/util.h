@@ -81,6 +81,7 @@ char *get_raw_device_info(int pid);
 char **get_device_info(int pid);
 
 int is_controller(int pid);
+int hub_is_full(int pid);
 
 void hub_tree_print(char **vars);
 void hub_tree_spaces(int level);

@@ -90,7 +90,7 @@ void sighandle_usr2(int sig) {
     char* tmp = malloc(MAX_BUF_SIZE * sizeof(tmp));
     int over_index[MAX_CHILDREN];
     read(fd, tmp, MAX_BUF_SIZE);
-    printf("End Read: %s\n\n", tmp);
+    // printf("End Read: %s\n\n", tmp);
     int code = tmp[0] - '0';
     //printf("code: %d\n", code);
 
@@ -122,7 +122,15 @@ void sighandle_usr2(int sig) {
         //printf("CODE 1\n");
         tmp = tmp + 2;
         char** vars = split(tmp);
+        /*
+        int full = 0;
+        for (i = 0; i < MAX_CHILDREN && full == 0; i++) {
+            if (children_pids[i] == -1) {
+			    full = 1;
+			}
+		if (full == 0)*/
         __add_ex(vars, children_pids);
+        
         free(vars);
         free(tmp - 2);
     }

@@ -206,6 +206,13 @@ int is_controller(int pid) {
     return id == HUB;
 }
 
+int hub_is_full(int pid) {
+    char **vars = get_device_info(pid);
+    int count = atoi(vars[4]);
+    return count >= MAX_CHILDREN;
+}
+
+
 void hub_tree_print(char **vars) {
     if (strcmp(vars[0], HUB_S) == 0) {
         cprintf("Hub (PID: %s, Indice: %s), Stato: %s, Collegati: %s",

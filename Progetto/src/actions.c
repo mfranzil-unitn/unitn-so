@@ -288,7 +288,6 @@ void __del(int index, int *children_pids, char *__out_buf) {
     free(vars);
 
     kill(pid, SIGTERM);
-    //kill(pid, 9);      // da modificare con un comando opportuno...
     remove(pipe_str);  // RIP pipe
 
     int i;
@@ -307,9 +306,6 @@ void __link(int index, int controller, int *children_pids) {
         cprintf("Errore! Non esiste il dispositivo %d.\n", index);
         return;
     }
-    /*
-    if (controller == 0) {  // Centralina
-    }*/
 
     int controller_pid = get_device_pid(controller, children_pids);
 
@@ -326,23 +322,27 @@ void __link(int index, int controller, int *children_pids) {
             return;
         }
 
-        char buf[MAX_BUF_SIZE];
-        sprintf(buf, "1|");
-        strcat(buf, tmp);
-        free(tmp);
+        if (!hub_is_full(controller_pid)) {
+            char buf[MAX_BUF_SIZE];
+            sprintf(buf, "1|");
+            strcat(buf, tmp);
+            free(tmp);
 
-        char __out_buf[MAX_BUF_SIZE];
-        __del(index, children_pids, __out_buf);
+            char __out_buf[MAX_BUF_SIZE];
+            __del(index, children_pids, __out_buf);
 
-        char controller_pipe_name[MAX_BUF_SIZE];
-        get_pipe_name(controller_pid, controller_pipe_name);
+            char controller_pipe_name[MAX_BUF_SIZE];
+            get_pipe_name(controller_pid, controller_pipe_name);
 
-        int fd = open(controller_pipe_name, O_RDWR);
-        write(fd, buf, MAX_BUF_SIZE);
-        kill(controller_pid, SIGUSR2);
+            int fd = open(controller_pipe_name, O_RDWR);
+            write(fd, buf, MAX_BUF_SIZE);
+            kill(controller_pid, SIGUSR2);
 
-        printf("Spostato l'oggetto %d sotto l'oggetto %d\n", index, controller);
-        close(fd);
+            printf("Spostato l'oggetto %d sotto l'oggetto %d\n", index, controller);
+            close(fd);
+		} else {
+            cprintf("Operazione non permessa. L'hub %d è già pieno. Eliminare qualche dispositivo.\n", controller);
+        }
     } else {
         cprintf("Configurazione dei dispositvi non valida. Sintassi: link <device> to <hub/timer>\n");
     }
