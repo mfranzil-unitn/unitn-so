@@ -153,9 +153,11 @@ void __info(int index, int *children_pids) {
     }
 
     char *tmp = get_raw_device_info(pid);
+    printf("info %s\n", tmp);
 
     if (strncmp(tmp, HUB_S, 1) == 0) {
         hub_tree_parser(tmp);
+        printf("info tree %s\n", tmp);
     } else {
         char **vars = split(tmp);
         __print(vars);
@@ -307,10 +309,6 @@ void __link(int index, int controller, int *children_pids) {
         cprintf("Errore! Non esiste il dispositivo %d.\n", index);
         return;
     }
-    /*
-    if (controller == 0) {  // Centralina
-    }*/
-
     int controller_pid = get_device_pid(controller, children_pids);
 
     if (controller_pid == -1) {
@@ -326,23 +324,27 @@ void __link(int index, int controller, int *children_pids) {
             return;
         }
 
-        char buf[MAX_BUF_SIZE];
-        sprintf(buf, "1|");
-        strcat(buf, tmp);
-        free(tmp);
+        if (!hub_is_full(controller_pid)) {
+            char buf[MAX_BUF_SIZE];
+            sprintf(buf, "1|");
+            strcat(buf, tmp);
+            free(tmp);
 
-        char __out_buf[MAX_BUF_SIZE];
-        __del(index, children_pids, __out_buf);
+            char __out_buf[MAX_BUF_SIZE];
+            __del(index, children_pids, __out_buf);
 
-        char controller_pipe_name[MAX_BUF_SIZE];
-        get_pipe_name(controller_pid, controller_pipe_name);
+            char controller_pipe_name[MAX_BUF_SIZE];
+            get_pipe_name(controller_pid, controller_pipe_name);
 
-        int fd = open(controller_pipe_name, O_RDWR);
-        write(fd, buf, MAX_BUF_SIZE);
-        kill(controller_pid, SIGUSR2);
+            int fd = open(controller_pipe_name, O_RDWR);
+            write(fd, buf, MAX_BUF_SIZE);
+            kill(controller_pid, SIGUSR2);
 
-        printf("Spostato l'oggetto %d sotto l'oggetto %d\n", index, controller);
-        close(fd);
+            printf("Spostato l'oggetto %d sotto l'oggetto %d\n", index, controller);
+            close(fd);
+		} else {
+            cprintf("Operazione non permessa. L'hub %d è già pieno. Eliminare qualche dispositivo.\n", controller);
+        }
     } else {
         cprintf("Configurazione dei dispositvi non valida. Sintassi: link <device> to <hub/timer>\n");
     }
@@ -411,43 +413,40 @@ int hub_tree_constructor(char *__buf, int *children_pids) {
     return -1;
 }
 
-int __link_ex(int son_pid, int parent_pid,int shellpid){
+int __link_ex(int son_pid, int parent_pid, int shellpid) {
     int controller;
-    if(parent_pid != shellpid){
-            char* tmp_controller = get_raw_device_info(parent_pid);
-            char** parent_info = split(tmp_controller);
-            controller = atoi(parent_info[2]);
-    }
-    else{
+    if (parent_pid != shellpid) {
+        char* tmp_controller = get_raw_device_info(parent_pid);
+        char** parent_info = split(tmp_controller);
+        controller = atoi(parent_info[2]);
+    } else {
         controller = 0;
     }
     
+    printf("Getting son info\n");
+    char buf[MAX_BUF_SIZE];
+    sprintf(buf, "1|%s", get_raw_device_info(son_pid));
+    printf("Buf: %s\n", buf);
+    char tmp[1024];
+    sprintf(tmp, "%s", get_raw_device_info(son_pid));
+    char** son_info  = split(tmp);
+    int index = atoi(son_info[2]);
 
-        printf("Getting son info\n");
-        char buf[MAX_BUF_SIZE];
-        sprintf(buf, "1|%s", get_raw_device_info(son_pid));
-        printf("Buf: %s\n", buf);
-        char tmp[1024];
-        sprintf(tmp, "%s", get_raw_device_info(son_pid));
-        char** son_info  = split(tmp);
-        int index = atoi(son_info[2]);
+    //Deleting son
+    printf("Deleting\n");
+    kill(son_pid,SIGTERM);
 
-        //Deleting son
-        printf("Deleting\n");
-        kill(son_pid,SIGTERM);
+    char controller_pipe_name[MAX_BUF_SIZE];
+    get_pipe_name(parent_pid, controller_pipe_name);
+    
+    printf("Killing %d\n", parent_pid);
+    kill(parent_pid, SIGUSR2);
+    int fd = open(controller_pipe_name, O_RDWR);
+    write(fd, buf, MAX_BUF_SIZE);
+   
+    printf("Spostato l'oggetto %d sotto l'oggetto %d\n", index, controller);
+    //close(fd);
 
-        char controller_pipe_name[MAX_BUF_SIZE];
-        get_pipe_name(parent_pid, controller_pipe_name);
-        
-        printf("Killing %d\n", parent_pid);
-        kill(parent_pid, SIGUSR2);
-        int fd = open(controller_pipe_name, O_RDWR);
-        write(fd, buf, MAX_BUF_SIZE);
-       
-
-        printf("Spostato l'oggetto %d sotto l'oggetto %d\n", index, controller);
-        //close(fd);
-
-        return 1;
+    return 1;
 }
 
