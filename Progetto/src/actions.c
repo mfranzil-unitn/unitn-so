@@ -157,7 +157,7 @@ void __info(int index, int *children_pids) {
 
     if (strncmp(tmp, HUB_S, 1) == 0) {
         hub_tree_parser(tmp);
-        printf("info tree %s\n", tmp);
+        //printf("info tree %s\n", tmp);
     } else {
         char **vars = split(tmp);
         __print(vars);
@@ -315,6 +315,12 @@ void __link(int index, int controller, int *children_pids) {
         cprintf("Errore! Non esiste il dispositivo %d.\n", controller);
         return;
     }
+    
+    if (device_pid == controller_pid) {
+        cprintf("Errore! Non puoi collegarti a te stesso.\n");
+        return;
+    }
+
 
     if (is_controller(controller_pid)) {
         char *tmp = get_raw_device_info(device_pid);

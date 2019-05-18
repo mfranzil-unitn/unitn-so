@@ -32,7 +32,7 @@
 #define WINDOW_PARAMETERS 5
 #define HUB_PARAMETERS 5000
 
-#define MAX_CHILDREN 2
+#define MAX_CHILDREN 20
 
 #define SHELL_POSITION "bin/shell"
 #define DEVICES_POSITIONS "bin/devices/"

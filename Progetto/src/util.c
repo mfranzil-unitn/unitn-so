@@ -241,30 +241,32 @@ void hub_tree_parser(char *__buf) {
     char *old = NULL;
     int level = 0;
 
-    //cprintf("Level %d\n", level);
+    // cprintf("Level_a %d\n", level);
 
     char **vars = malloc((FRIDGE_PARAMETERS + 4) * sizeof(*vars));
     int i = 0;
     int to_be_printed = 1;
 
     while (tokenizer != NULL) {
+        // cprintf("\nLevel %d tokenizer %s to_be_printed %d\n", level, tokenizer, to_be_printed);
+        
         int j;
         if (strcmp(tokenizer, "<!") == 0) {
             to_be_printed += atoi(old) - 1;
             hub_tree_spaces(level);
             i = 0;
-            ++level;  //   cprintf("\nLevel %d\n", ++level);
+            ++level;   //  cprintf("\nLevel_b %d\n", level);
             hub_tree_print(vars);
         } else if (strcmp(tokenizer, "!>") == 0) {
-            --level;  //   cprintf("\nLevel %d\n", --level);
-            if (strcmp(old, "<!") == 0 && to_be_printed > 0) {
+            --level;   //  cprintf("\nLevel_c %d\n", level);
+            if (!strcmp(old, "<!") == 0 && to_be_printed > 0) {
                 i = 0;
                 hub_tree_spaces(level);
                 hub_tree_print(vars);
                 to_be_printed--;
             }
         } else if (strcmp(tokenizer, "!") == 0) {
-            if (to_be_printed > 0) {
+            if (!strcmp(old, "!>") == 0 && to_be_printed > 0) {
                 i = 0;
                 hub_tree_spaces(level);
                 hub_tree_print(vars);
