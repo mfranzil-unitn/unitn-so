@@ -268,7 +268,7 @@ void user_launcher(char buf[][MAX_BUF_SIZE], int msgid, int *device_pids, int ms
         }
     } else if (strcmp(buf[3], "off") == 0 && shell_pid != -1) {
         if(shell_on) {
-            kill(shell_pid, SIGUSR2);
+            kill(shell_pid, SIGUSR1);
             shell_on = 0;
         }
         else{
@@ -277,7 +277,7 @@ void user_launcher(char buf[][MAX_BUF_SIZE], int msgid, int *device_pids, int ms
         return;
     } else if (strcmp(buf[3], "on") == 0 && shell_pid != -1) {
         if(shell_on == 0) {
-            kill(shell_pid, SIGUSR2);
+            kill(shell_pid, SIGUSR1);
             shell_on = 1;
         }else{
             printf("Centralina già accesa\n");

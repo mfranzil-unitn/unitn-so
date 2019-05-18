@@ -5,11 +5,13 @@ extern int print_mode;
 int ppid;
 int stato = 1;    //Stato della centralina.
 int changed = 0;  // Modifiche alla message queue?
+int children_pids[MAX_CHILDREN];  // array contenenti i PID dei figli
+int fd;
 
 int main(int argc, char *argv[]) {
-    signal(SIGUSR2, stop_sig);
+    signal(SIGUSR1, stop_sig);
     signal(SIGTERM, cleanup_sig);
-    signal(SIGUSR1, SIG_IGN);
+    signal(SIGUSR2, link_child);
     signal(SIGINT, SIG_IGN);
     char(*buf)[MAX_BUF_SIZE] = malloc(MAX_BUF_SIZE * sizeof(char *));  // array che conterrà i comandi da eseguire
     char __out_buf[MAX_BUF_SIZE];                                      // Per la stampa dell'output delle funzioni
@@ -17,7 +19,11 @@ int main(int argc, char *argv[]) {
 
     int cmd_n;                        // numero di comandi disponibili
     int device_i = 0;                 // indice progressivo dei dispositivi
-    int children_pids[MAX_CHILDREN];  // array contenenti i PID dei figli
+
+    char pipe[MAX_BUF_SIZE];
+    get_pipe_name((int)getpid(), pipe);
+    mkfifo(pipe, 0666);
+    fd = open(pipe, O_RDWR);
 
     // Inizializzo l'array dei figli
     int j;
@@ -178,4 +184,21 @@ void stop_sig(int sig) {
         system("clear");
         cprintf("\nLa centralina è accessa. Premi Invio per proseguire.\n");
     }
+}
+
+void link_child(int signal){
+    printf("Link_Child\n");
+    //Analogamente ad Hub
+    char* tmp = malloc(MAX_BUF_SIZE * sizeof(tmp));
+    read(fd, tmp, MAX_BUF_SIZE);
+    printf("End Read: %s\n\n", tmp);
+    int code = tmp[0] - '0';
+    if(code == 1){
+             tmp = tmp + 2;
+            char** vars = split(tmp);
+            __add_ex(vars, children_pids);
+            free(vars);
+            free(tmp - 2);
+    }
+    //close(fd);
 }

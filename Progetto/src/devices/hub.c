@@ -20,8 +20,9 @@ int override = 0;
 int shellpid;
 
 void sighandle_sigterm(int signal){
-    if((int)getppid() != shellpid){
+        int done = 1;
         int ppid = (int)getppid();
+        if(ppid != shellpid){
         kill(ppid, SIGUSR2);
         char pipe_str[MAX_BUF_SIZE];
         get_pipe_name(ppid, pipe_str);  // Nome della pipe
@@ -29,8 +30,24 @@ void sighandle_sigterm(int signal){
         char tmp[MAX_BUF_SIZE];
         sprintf(tmp, "2|%d", (int)getpid());
         write(fd,tmp, sizeof(tmp) );
-    }
+        }
+
+        int i=0;
+        for(i=0; i < MAX_CHILDREN; i++){
+            if(children_pids[i] != -1){
+                printf("Chiamata link_ex per figlio %d\n", children_pids[i]);
+                int ret = __link_ex(children_pids[i], ppid, shellpid);
+                if(ret !=1){
+                    done = 0;
+                }
+            }
+        }
+    if(done){
     exit(0);
+    }
+    else{
+        printf("Errore nell'eliminazione\n");
+    }
 }
 
 void sighandle_usr1(int sig) {
@@ -90,7 +107,7 @@ void sighandle_usr2(int sig) {
     char* tmp = malloc(MAX_BUF_SIZE * sizeof(tmp));
     int over_index[MAX_CHILDREN];
     read(fd, tmp, MAX_BUF_SIZE);
-    // printf("End Read: %s\n\n", tmp);
+    printf("End Read: %s\n\n", tmp);
     int code = tmp[0] - '0';
     //printf("code: %d\n", code);
 
@@ -122,15 +139,7 @@ void sighandle_usr2(int sig) {
         //printf("CODE 1\n");
         tmp = tmp + 2;
         char** vars = split(tmp);
-        /*
-        int full = 0;
-        for (i = 0; i < MAX_CHILDREN && full == 0; i++) {
-            if (children_pids[i] == -1) {
-			    full = 1;
-			}
-		if (full == 0)*/
         __add_ex(vars, children_pids);
-        
         free(vars);
         free(tmp - 2);
     }

@@ -11,5 +11,6 @@ int __add(char *device, int device_index, int *children_pids, char *__out_buf);
 void __del(int index, int *children_pids, char *__out_buf);
 void __link(int index1, int index2, int *children_pids);
 void __add_ex(char **vars, int *children_pids);
+int __link_ex(int son_pid, int parent_pid, int shellpid);
 
 #endif
