@@ -418,7 +418,7 @@ int hub_tree_constructor(char *__buf, int *children_pids) {
     return -1;
 }
 
-int __link_ex(int son_pid, int parent_pid, int shellpid) {
+int __link_ex(int* son_pids, int parent_pid, int shellpid) {
     int controller;
     if (parent_pid != shellpid) {
         char *tmp_controller = get_raw_device_info(parent_pid);
@@ -428,28 +428,37 @@ int __link_ex(int son_pid, int parent_pid, int shellpid) {
         controller = 0;
     }
 
-    printf("Getting son info\n");
-    char buf[MAX_BUF_SIZE];
-    sprintf(buf, "1|%s", get_raw_device_info(son_pid));
-    printf("Buf: %s\n", buf);
-    char tmp[1024];
-    sprintf(tmp, "%s", get_raw_device_info(son_pid));
-    char **son_info = split(tmp);
-    int index = atoi(son_info[2]);
+    char buf[MAX_BUF_SIZE*4];
+    sprintf(buf, "-");
+    int count = 0;
+    int i=0;
+    for(i=0; i < MAX_CHILDREN;i++){
+        if(son_pids[i]!= -1){
+            count++;
+            int son_pid = son_pids[i];
+            printf("Getting son: %d info\n", son_pid);
+            char tmp[MAX_BUF_SIZE];
+            sprintf(tmp, "%s-", get_raw_device_info(son_pid));
+            printf("TMP_Link: %s\n", tmp);
+            strcat(buf, tmp);
+            printf("BUF of %d: %s", son_pid, buf);
+            char **son_info = split(tmp);
+            int index = atoi(son_info[2]);
 
-    //Deleting son
-    printf("Deleting\n");
-    kill(son_pid, SIGTERM);
-
+            //Deleting son
+            printf("Deleting\n");
+            kill(son_pid, SIGTERM);
+            printf("Spostando l'oggetto %d sotto l'oggetto %d\n", index, controller);
+        }
+    }
+    char buffer[MAX_BUF_SIZE*5];
+    sprintf(buffer, "%d%s", count, buffer);
     char controller_pipe_name[MAX_BUF_SIZE];
     get_pipe_name(parent_pid, controller_pipe_name);
-
     printf("Killing %d\n", parent_pid);
     kill(parent_pid, SIGUSR2);
     int fd = open(controller_pipe_name, O_RDWR);
-    write(fd, buf, MAX_BUF_SIZE);
-
-    printf("Spostato l'oggetto %d sotto l'oggetto %d\n", index, controller);
+    write(fd, buffer, MAX_BUF_SIZE*5);
     //close(fd);
 
     return 1;

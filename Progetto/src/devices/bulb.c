@@ -31,6 +31,7 @@ void sighandle_sigterm(int signal) {
 }
 
 void sighandle_usr1(int sig) {
+    printf("SIGUSR1 catchedddd\n");
     time_t time_on;
     char buffer[MAX_BUF_SIZE];
 
@@ -42,8 +43,9 @@ void sighandle_usr1(int sig) {
 
     sprintf(buffer, "1|%i|%i|%i|%i",
             pid, __index, status, (int)time_on);
-
+    printf("Writing on pipe: %s\n", pipe_fd);
     write(fd, buffer, MAX_BUF_SIZE);
+    printf("Exiting Handler with tmp: %s\n", buffer );
 }
 
 void sighandle_usr2(int sig) {

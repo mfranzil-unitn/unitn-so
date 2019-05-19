@@ -194,6 +194,9 @@ void link_child(int signal){
     char* tmp = malloc(MAX_BUF_SIZE * sizeof(tmp));
     read(fd, tmp, MAX_BUF_SIZE);
     cprintf("End Read: %s\n\n", tmp);
+
+    
+
     int code = tmp[0] - '0';
     if(code == 1){
              tmp = tmp + 2;
