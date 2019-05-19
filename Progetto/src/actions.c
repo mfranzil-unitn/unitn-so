@@ -153,7 +153,7 @@ void __info(int index, int *children_pids) {
     }
 
     char *tmp = get_raw_device_info(pid);
-    printf("info %s\n", tmp);
+    cprintf("info %s\n", tmp);
 
     if (strncmp(tmp, HUB_S, 1) == 0) {
         hub_tree_parser(tmp);
@@ -345,7 +345,7 @@ void __link(int index, int controller, int *children_pids) {
             write(fd, buf, MAX_BUF_SIZE);
             kill(controller_pid, SIGUSR2);
 
-            printf("Spostato l'oggetto %d sotto l'oggetto %d\n", index, controller);
+            cprintf("Spostato l'oggetto %d sotto l'oggetto %d\n", index, controller);
             close(fd);
         } else {
             cprintf("Operazione non permessa. L'hub %d è già pieno. Eliminare qualche dispositivo.\n", controller);

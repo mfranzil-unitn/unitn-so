@@ -69,9 +69,9 @@ int main(int argc, char *argv[]) {
             cprintf("Sei sicuro di voler uscire dal launcher? Tutte le modifiche verranno perse!");
 
             while (1) {
-                printf("[s/n]: ");
+                cprintf("[s/n]: ");
                 if (scanf(" %c", &c) != 1) {
-                    printf("Errore durante la lettura.\n");
+                    cprintf("Errore durante la lettura.\n");
                     continue;
                 }
 
@@ -88,7 +88,7 @@ int main(int argc, char *argv[]) {
                 } else if (c == 'n' || c == 'N') {
                     break;
                 } else {
-                    printf("Inserisci [s]ì o [n]o.\n");
+                    cprintf("Inserisci [s]ì o [n]o.\n");
                 }
             }
         } else if (strcmp(buf[0], "\0") == 0) {  //a capo a vuoto
@@ -269,7 +269,7 @@ void user_launcher(char buf[][MAX_BUF_SIZE], int msgid, int *device_pids, int ms
             kill(shell_pid, SIGUSR1);
             shell_on = 0;
         } else {
-            printf("Centralina già spenta.\n");
+            cprintf("Centralina già spenta.\n");
         }
         return;
     } else if (strcmp(buf[3], "on") == 0 && shell_pid != -1) {
@@ -277,7 +277,7 @@ void user_launcher(char buf[][MAX_BUF_SIZE], int msgid, int *device_pids, int ms
             kill(shell_pid, SIGUSR1);
             shell_on = 1;
         } else {
-            printf("Centralina già accesa\n");
+            cprintf("Centralina già accesa\n");
         }
     } else if (strcmp(buf[3], "off") == 0 && shell_pid == -1) {
         cprintf("Centralina già spenta\n");
