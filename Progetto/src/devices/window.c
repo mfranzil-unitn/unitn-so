@@ -26,8 +26,8 @@ int pid, __index, delay;  // variabili di stato
 int status = 0;  // interruttore apertura
 time_t start;
 
-void sighandle_sigterm(int signal){
-    if((int)getppid() != shellpid){
+void sighandle_sigterm(int signal) {
+    if ((int)getppid() != shellpid) {
         int ppid = (int)getppid();
         kill(ppid, SIGUSR2);
         char pipe_str[MAX_BUF_SIZE];
@@ -35,7 +35,7 @@ void sighandle_sigterm(int signal){
         int fd = open(pipe_str, O_RDWR);
         char tmp[MAX_BUF_SIZE];
         sprintf(tmp, "2|%d", (int)getpid());
-        write(fd,tmp, sizeof(tmp) );
+        write(fd, tmp, sizeof(tmp));
     }
     exit(0);
 }
@@ -75,7 +75,6 @@ void sighandle_usr2(int sig) {
     }
 }
 
-
 int main(int argc, char* argv[]) {
     // argv = [./window, indice, /tmp/indice];
     pipe_fd = argv[2];
@@ -88,8 +87,9 @@ int main(int argc, char* argv[]) {
     signal(SIGTERM, sighandle_sigterm);
     signal(SIGUSR1, sighandle_usr1);
     signal(SIGUSR2, sighandle_usr2);
-    while (1)
-        ;
+    while (1) {
+        sleep(10);
+    }
 
     return 0;
 }

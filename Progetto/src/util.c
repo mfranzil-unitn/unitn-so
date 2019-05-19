@@ -249,16 +249,16 @@ void hub_tree_parser(char *__buf) {
 
     while (tokenizer != NULL) {
         // cprintf("\nLevel %d tokenizer %s to_be_printed %d\n", level, tokenizer, to_be_printed);
-        
+
         int j;
         if (strcmp(tokenizer, "<!") == 0) {
             to_be_printed += atoi(old) - 1;
             hub_tree_spaces(level);
             i = 0;
-            ++level;   //  cprintf("\nLevel_b %d\n", level);
+            ++level;  //  cprintf("\nLevel_b %d\n", level);
             hub_tree_print(vars);
         } else if (strcmp(tokenizer, "!>") == 0) {
-            --level;   //  cprintf("\nLevel_c %d\n", level);
+            --level;  //  cprintf("\nLevel_c %d\n", level);
             if (!strcmp(old, "<!") == 0 && to_be_printed > 0) {
                 i = 0;
                 hub_tree_spaces(level);
@@ -333,14 +333,14 @@ int hub_tree_pid_finder(char *__buf, int id) {
     return -1;
 }
 
-int get_shell_pid(){
+int get_shell_pid() {
     //Creo message queue per comunicare shellpid
     key_t key_sh;
     key_sh = ftok("/tmp", 20);
     int msgid_sh;
     msgid_sh = msgget(key_sh, 0666 | IPC_CREAT);
     message.mesg_type = 1;
-    msgrcv(msgid_sh, &message, sizeof(message),1, IPC_NOWAIT);
+    msgrcv(msgid_sh, &message, sizeof(message), 1, IPC_NOWAIT);
     int shellpid = atoi(message.mesg_text);
     sprintf(message.mesg_text, "%d", shellpid);
     msgsnd(msgid_sh, &message, MAX_BUF_SIZE, 1);

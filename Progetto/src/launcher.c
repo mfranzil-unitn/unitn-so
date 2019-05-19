@@ -48,8 +48,7 @@ int main(int argc, char *argv[]) {
     int msgid_sh;
     msgid_sh = msgget(key_sh, 0666 | IPC_CREAT);
     message.mesg_type = 1;
-    emergencyid2= msgid_sh;
-    
+    emergencyid2 = msgid_sh;
 
     while (1) {
         //Leggo il numero di devices presenti e i rispettivi id, solo se centralina creata (Ma anche se momentaneamente spenta).
@@ -234,7 +233,6 @@ void user_launcher(char buf[][MAX_BUF_SIZE], int msgid, int *device_pids, int ms
             exit(1);
         }
 
-
         //Pulizia coda
         msgrcv(msgid_sh, &message, sizeof(message), 1, IPC_NOWAIT);
 
@@ -267,19 +265,18 @@ void user_launcher(char buf[][MAX_BUF_SIZE], int msgid, int *device_pids, int ms
             return;
         }
     } else if (strcmp(buf[3], "off") == 0 && shell_pid != -1) {
-        if(shell_on) {
+        if (shell_on) {
             kill(shell_pid, SIGUSR1);
             shell_on = 0;
-        }
-        else{
+        } else {
             printf("Centralina già spenta.\n");
         }
         return;
     } else if (strcmp(buf[3], "on") == 0 && shell_pid != -1) {
-        if(shell_on == 0) {
+        if (shell_on == 0) {
             kill(shell_pid, SIGUSR1);
             shell_on = 1;
-        }else{
+        } else {
             printf("Centralina già accesa\n");
         }
     } else if (strcmp(buf[3], "off") == 0 && shell_pid == -1) {

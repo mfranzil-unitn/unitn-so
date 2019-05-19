@@ -315,12 +315,11 @@ void __link(int index, int controller, int *children_pids) {
         cprintf("Errore! Non esiste il dispositivo %d.\n", controller);
         return;
     }
-    
+
     if (device_pid == controller_pid) {
         cprintf("Errore! Non puoi collegarti a te stesso.\n");
         return;
     }
-
 
     if (is_controller(controller_pid)) {
         char *tmp = get_raw_device_info(device_pid);
@@ -348,7 +347,7 @@ void __link(int index, int controller, int *children_pids) {
 
             printf("Spostato l'oggetto %d sotto l'oggetto %d\n", index, controller);
             close(fd);
-		} else {
+        } else {
             cprintf("Operazione non permessa. L'hub %d è già pieno. Eliminare qualche dispositivo.\n", controller);
         }
     } else {
@@ -372,7 +371,7 @@ void __add_ex(char **vars, int *children_pids) {
     } else {
         cprintf("Da implementare...");
     }
-} 
+}
 
 int hub_tree_constructor(char *__buf, int *children_pids) {
     char *tokenizer = strtok(__buf, "|");
@@ -398,14 +397,14 @@ int hub_tree_constructor(char *__buf, int *children_pids) {
             if (strcmp(old, "<!") == 0 && to_be_added > 0) {
                 i = 0;
 
-            __add_ex(vars, children_pids);
+                __add_ex(vars, children_pids);
                 to_be_added--;
             }
         } else if (strcmp(tokenizer, "!") == 0) {
             if (to_be_added > 0) {
                 i = 0;
 
-            __add_ex(vars, children_pids);
+                __add_ex(vars, children_pids);
                 to_be_added--;
             }
         } else {
@@ -422,37 +421,36 @@ int hub_tree_constructor(char *__buf, int *children_pids) {
 int __link_ex(int son_pid, int parent_pid, int shellpid) {
     int controller;
     if (parent_pid != shellpid) {
-        char* tmp_controller = get_raw_device_info(parent_pid);
-        char** parent_info = split(tmp_controller);
+        char *tmp_controller = get_raw_device_info(parent_pid);
+        char **parent_info = split(tmp_controller);
         controller = atoi(parent_info[2]);
     } else {
         controller = 0;
     }
-    
+
     printf("Getting son info\n");
     char buf[MAX_BUF_SIZE];
     sprintf(buf, "1|%s", get_raw_device_info(son_pid));
     printf("Buf: %s\n", buf);
     char tmp[1024];
     sprintf(tmp, "%s", get_raw_device_info(son_pid));
-    char** son_info  = split(tmp);
+    char **son_info = split(tmp);
     int index = atoi(son_info[2]);
 
     //Deleting son
     printf("Deleting\n");
-    kill(son_pid,SIGTERM);
+    kill(son_pid, SIGTERM);
 
     char controller_pipe_name[MAX_BUF_SIZE];
     get_pipe_name(parent_pid, controller_pipe_name);
-    
+
     printf("Killing %d\n", parent_pid);
     kill(parent_pid, SIGUSR2);
     int fd = open(controller_pipe_name, O_RDWR);
     write(fd, buf, MAX_BUF_SIZE);
-   
+
     printf("Spostato l'oggetto %d sotto l'oggetto %d\n", index, controller);
     //close(fd);
 
     return 1;
 }
-

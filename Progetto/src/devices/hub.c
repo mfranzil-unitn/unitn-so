@@ -20,28 +20,28 @@ int override = 0;
 int shellpid;
 
 void sighandle_sigterm(int signal) {
-        int done = 1;
-        int ppid = (int) getppid();
-        if (ppid != shellpid) {
+    int done = 1;
+    int ppid = (int)getppid();
+    if (ppid != shellpid) {
         kill(ppid, SIGUSR2);
         char pipe_str[MAX_BUF_SIZE];
         get_pipe_name(ppid, pipe_str);  // Nome della pipe
         int fd = open(pipe_str, O_RDWR);
         char tmp[MAX_BUF_SIZE];
-        sprintf(tmp, "2|%d", (int) getpid());
-        write(fd, tmp, sizeof(tmp) );
-        }
+        sprintf(tmp, "2|%d", (int)getpid());
+        write(fd, tmp, sizeof(tmp));
+    }
 
-        int i = 0;
-        for (i = 0; i < MAX_CHILDREN; i++) {
-            if (children_pids[i] != -1) {
-                printf("Chiamata link_ex per figlio %d\n", children_pids[i]);
-                int ret = __link_ex(children_pids[i], ppid, shellpid);
-                if (ret != 1) {
-                    done = 0;
-                }
+    int i = 0;
+    for (i = 0; i < MAX_CHILDREN; i++) {
+        if (children_pids[i] != -1) {
+            printf("Chiamata link_ex per figlio %d\n", children_pids[i]);
+            int ret = __link_ex(children_pids[i], ppid, shellpid);
+            if (ret != 1) {
+                done = 0;
             }
         }
+    }
     if (done) {
         exit(0);
     } else {
@@ -111,10 +111,10 @@ void sighandle_usr2(int sig) {
     //printf("code: %d\n", code);
 
     int k = 0;
-    for(k = 0;k < MAX_CHILDREN; k++) {
+    for (k = 0; k < MAX_CHILDREN; k++) {
         over_index[k] = 0;
     }
-    
+
     //Valore che indica lo stato di override o meno. Al MOMENTO INCARTAT TUTTO BOIA.
     //override = check_override(over_index);
 
@@ -133,7 +133,7 @@ void sighandle_usr2(int sig) {
             }
         }
         free(tmp);
-    } 
+    }
     if (code == 1) {
         //printf("CODE 1\n");
         tmp = tmp + 2;
@@ -170,12 +170,14 @@ int main(int argc, char* argv[]) {
 
     shellpid = get_shell_pid();
 
-
     signal(SIGTERM, sighandle_sigterm);
     signal(SIGUSR1, sighandle_usr1);
     signal(SIGUSR2, sighandle_usr2);
-    while (1)
-        ;
+    signal(SIGCHLD, SIG_IGN);
+
+    while (1) {
+        sleep(10);
+    }
 
     return 0;
 }

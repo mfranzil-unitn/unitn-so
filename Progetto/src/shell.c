@@ -13,6 +13,8 @@ int main(int argc, char *argv[]) {
     signal(SIGTERM, cleanup_sig);
     signal(SIGUSR2, link_child);
     signal(SIGINT, SIG_IGN);
+    signal(SIGCHLD, SIG_IGN);
+    
     char(*buf)[MAX_BUF_SIZE] = malloc(MAX_BUF_SIZE * sizeof(char *));  // array che conterrà i comandi da eseguire
     char __out_buf[MAX_BUF_SIZE];                                      // Per la stampa dell'output delle funzioni
     char *name = get_shell_text();                                     // Mostrato a ogni riga della shell
