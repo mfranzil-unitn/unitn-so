@@ -131,8 +131,6 @@ void get_device_name_str(char *device_type, char *buf) {
 }
 
 int get_device_pid(int device_identifier, int *children_pids, char **raw_info) {
-    if (raw_info != NULL) {
-    }
     int i;
     for (i = 0; i < MAX_CHILDREN; i++) {  // l'indice i è logicamente indipendente dal nome/indice del dispositivo
         int children_pid = children_pids[i];
@@ -192,6 +190,7 @@ char **get_device_info(int pid) {
 
 char *get_raw_device_info(int pid) {
     if (kill(pid, SIGUSR1) != 0) {
+        fprintf(stderr, "DEBUG: Failed to get raw device info for pid %d", pid);
         return NULL;
     }
 
@@ -200,11 +199,9 @@ char *get_raw_device_info(int pid) {
 
     get_pipe_name(pid, pipe_str);
     fflush(stdout);
-    int fd = open(pipe_str, O_RDONLY);
+    int fd = open(pipe_str, O_RDWR);
     if (fd > 0) {
-        fprintf(stderr, "DEBUG: In read for PID: %d and pipe; %s\n", pid, pipe_str);
-        fflush(stdout);
-
+        fprintf(stderr, "DEBUG: In read for PID: %d and pipe %s\n", pid, pipe_str);
         read(fd, tmp, MAX_BUF_SIZE);
         // Pulizia
         close(fd);

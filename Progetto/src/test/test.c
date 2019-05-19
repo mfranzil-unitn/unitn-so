@@ -125,12 +125,18 @@ char **Nsplit(char *__buf) {
 }
 */
 int main() {
-    char buf[MAX_BUF_SIZE] = "345";
-    printf("%s, %d", buf, &buf);
+    mkfifo("/tmp/ipc/12388", 0666);
+    char buffer[MAX_BUF_SIZE];
+    sprintf(buffer, "1|12388|1|0|0");
+    int fd = open("/tmp/ipc/12388", O_RDWR);
+    write(fd, buffer, MAX_BUF_SIZE);
+    printf(buffer);
+    close(fd);
+    
 /*
     while (1) {
         printf("\n> ");
         scanf("%s", buf);
         Nsplit(buf);
-    }*/s
+    }*/
 }
