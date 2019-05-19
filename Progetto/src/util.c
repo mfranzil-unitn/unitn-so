@@ -188,16 +188,19 @@ char *get_raw_device_info(int pid) {
     char *tmp = malloc(MAX_BUF_SIZE * sizeof(tmp));
 
     get_pipe_name(pid, pipe_str);
-
+    printf("Opening pipe #%s\n", pipe_str);
+    fflush(stdout);
     int fd = open(pipe_str, O_RDONLY);
-
     if (fd > 0) {
         printf("In read for PID: %d and pipe; %s\n", pid, pipe_str);
+        fflush(stdout);
         read(fd, tmp, MAX_BUF_SIZE);
         // Pulizia
         close(fd);
         //printf("TMP in get_raw: %s\n", tmp);
         return tmp;
+    } else {
+        exit(EXIT_FAILURE);
     }
     return NULL;
 }

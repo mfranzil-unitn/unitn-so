@@ -7,7 +7,6 @@
 #include "../util.h"
 
 // HUB = 4
-
 int fd;                // file descriptor della pipe verso il padre
 char* pipe_fd = NULL;  // nome della pipe
 

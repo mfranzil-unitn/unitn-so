@@ -418,7 +418,7 @@ int hub_tree_constructor(char *__buf, int *children_pids) {
     return -1;
 }
 
-int __link_ex(int* son_pids, int parent_pid, int shellpid) {
+int __link_ex(int *son_pids, int parent_pid, int shellpid) {
     int controller;
     if (parent_pid != shellpid) {
         char *tmp_controller = get_raw_device_info(parent_pid);
@@ -428,12 +428,12 @@ int __link_ex(int* son_pids, int parent_pid, int shellpid) {
         controller = 0;
     }
 
-    char buf[MAX_BUF_SIZE*4];
+    char buf[MAX_BUF_SIZE];
     sprintf(buf, "-");
     int count = 0;
-    int i=0;
-    for(i=0; i < MAX_CHILDREN;i++){
-        if(son_pids[i]!= -1){
+    int i = 0;
+    for (i = 0; i < MAX_CHILDREN; i++) {
+        if (son_pids[i] != -1) {
             count++;
             int son_pid = son_pids[i];
             printf("Getting son: %d info\n", son_pid);
@@ -451,14 +451,14 @@ int __link_ex(int* son_pids, int parent_pid, int shellpid) {
             printf("Spostando l'oggetto %d sotto l'oggetto %d\n", index, controller);
         }
     }
-    char buffer[MAX_BUF_SIZE*5];
-    sprintf(buffer, "%d%s", count, buffer);
+    char buffer[MAX_BUF_SIZE + 24];
+    sprintf(buffer, "%d%s", count, buf);
     char controller_pipe_name[MAX_BUF_SIZE];
     get_pipe_name(parent_pid, controller_pipe_name);
     printf("Killing %d\n", parent_pid);
     kill(parent_pid, SIGUSR2);
     int fd = open(controller_pipe_name, O_RDWR);
-    write(fd, buffer, MAX_BUF_SIZE*5);
+    write(fd, buffer, MAX_BUF_SIZE);
     //close(fd);
 
     return 1;
