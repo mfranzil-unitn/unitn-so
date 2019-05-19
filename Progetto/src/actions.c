@@ -452,7 +452,7 @@ int __link_ex(int* son_pids, int parent_pid, int shellpid) {
         }
     }
     char buffer[MAX_BUF_SIZE*5];
-    sprintf(buffer, "%d%s", count, buffer);
+    sprintf(buffer, "%d%s", count, buf);
     char controller_pipe_name[MAX_BUF_SIZE];
     get_pipe_name(parent_pid, controller_pipe_name);
     printf("Killing %d\n", parent_pid);
