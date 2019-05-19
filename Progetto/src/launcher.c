@@ -157,6 +157,7 @@ void handle_sig(int signal) {
     system("clear");
     cprintf("La centralina è stata chiusa, Premere Invio per proseguire\n");
     shell_pid = -1;
+    shell_on = 0;
 }
 
 void handle_sigint(int signal) {
@@ -258,6 +259,7 @@ void user_launcher(char buf[][MAX_BUF_SIZE], int msgid, int *device_pids, int ms
             } else {
                 shell_pid = atoi(message.mesg_text);
                 shell_on = 1;
+                sprintf(message.mesg_text, "%d",shell_pid );
                 msgsnd(msgid_sh, &message, MAX_BUF_SIZE, 0);
             }
             system("clear");
