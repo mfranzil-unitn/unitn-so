@@ -1,6 +1,6 @@
 #include <string.h>
 #include "../util.h"
-
+/*
 void get_device_name(int device_type, char *buf) {
     switch (device_type) {
         case BULB:
@@ -123,13 +123,14 @@ char **Nsplit(char *__buf) {
 
     return hub_tree_parser(__buf, __count);
 }
-
+*/
 int main() {
-    char buf[MAX_BUF_SIZE];
-
+    char buf[MAX_BUF_SIZE] = "345";
+    printf("%s, %d", buf, &buf);
+/*
     while (1) {
         printf("\n> ");
         scanf("%s", buf);
         Nsplit(buf);
-    }
+    }*/s
 }

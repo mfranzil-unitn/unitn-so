@@ -1,6 +1,6 @@
 #include "shell.h"
 
-extern int print_mode;
+// extern int print_mode;
 
 int ppid;
 int stato = 1;                    //Stato della centralina.
@@ -86,48 +86,48 @@ int main(int argc, char *argv[]) {
                 msgsnd(msgid, &message, MAX_BUF_SIZE, 0);
             }
 
-            cprintf("\e[92m%s\e[39m:\e[31mCentralina\033[0m$ ", name);
+            printf("\e[92m%s\e[39m:\e[31mCentralina\033[0m$ ", name);
             cmd_n = parse(buf, cmd_n);
 
             if (strcmp(buf[0], "help") == 0) {  // guida
-                cprintf(HELP_STRING);
+                printf(HELP_STRING);
             } else if (strcmp(buf[0], "list") == 0) {
                 if (cmd_n != 0) {
-                    cprintf(LIST_STRING);
+                    printf(LIST_STRING);
                 } else {
                     __list(children_pids);
                 }
             } else if (strcmp(buf[0], "info") == 0) {
                 if (cmd_n != 1) {
-                    cprintf(INFO_STRING);
+                    printf(INFO_STRING);
                 } else {
                     __info(atoi(buf[1]), children_pids);
                 }
             } else if (strcmp(buf[0], "switch") == 0) {
                 if (cmd_n != 3) {
-                    cprintf(SWITCH_STRING);
+                    printf(SWITCH_STRING);
                 } else if (strcmp(buf[2], "riempimento") == 0) {
-                    cprintf("Operazione permessa solo manualmente.\n");
+                    printf("Operazione permessa solo manualmente.\n");
                 } else {
                     __switch(atoi(buf[1]), buf[2], buf[3], children_pids);
                 }
             } else if (strcmp(buf[0], "add") == 0) {
                 if (cmd_n != 1) {
-                    cprintf(ADD_STRING);
+                    printf(ADD_STRING);
                 } else {
                     changed = add_shell(buf, &device_i, children_pids, __out_buf);
-                    cprintf(__out_buf);
+                    printf("%s", __out_buf);
                 }
             } else if (strcmp(buf[0], "del") == 0) {
                 if (cmd_n != 1) {
-                    cprintf(DEL_STRING);
+                    printf(DEL_STRING);
                 } else {
                     __del(atoi(buf[1]), children_pids, __out_buf);
-                    cprintf(__out_buf);
+                    printf("%s", __out_buf);
                 }
             } else if (strcmp(buf[0], "link") == 0) {
                 if (cmd_n != 3) {
-                    cprintf(LINK_STRING);
+                    printf(LINK_STRING);
                 } else {
                     __link(atoi(buf[1]), atoi(buf[3]), children_pids);
                 }
@@ -137,7 +137,7 @@ int main(int argc, char *argv[]) {
             } else if (strcmp(buf[0], "\0") == 0) {  // a capo a vuoto
                 continue;
             } else {  //tutto il resto
-                cprintf("Comando non riconosciuto. Usa help per visualizzare i comandi disponibili\n");
+                printf("Comando non riconosciuto. Usa help per visualizzare i comandi disponibili\n");
             }
         } else {
             //Ripulisco forzatamente.
@@ -168,7 +168,7 @@ int add_shell(char buf[][MAX_BUF_SIZE], int *device_i, int *children_pids, char 
 }
 
 void cleanup_sig(int sig) {
-    cprintf("Chiusura della centralina in corso...\n");
+    printf("Chiusura della centralina in corso...\n");
     kill(ppid, SIGTERM);
     kill(0, 9);
 }
@@ -180,20 +180,20 @@ void handle_sig(int sig) {
 void stop_sig(int sig) {
     if (stato) {
         stato = 0;
-        cprintf("La centralina è stata spenta. Nessun comando sarà accettato\n");
+        printf("La centralina è stata spenta. Nessun comando sarà accettato\n");
     } else {
         stato = 1;
         system("clear");
-        cprintf("\nLa centralina è accessa. Premi Invio per proseguire.\n");
+        printf("\nLa centralina è accessa. Premi Invio per proseguire.\n");
     }
 }
 
 void link_child(int signal) {
-    cprintf("Link_Child\n");
+    printf("Link_Child\n");
     //Analogamente ad Hub
     char *tmp = malloc(MAX_BUF_SIZE * sizeof(tmp));
     read(fd, tmp, MAX_BUF_SIZE);
-    cprintf("End Read: %s\n\n", tmp);
+    printf("End Read: %s\n\n", tmp);
 
     int code = tmp[0] - '0';
     if (code == 1) {

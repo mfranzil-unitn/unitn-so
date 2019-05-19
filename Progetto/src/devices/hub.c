@@ -35,7 +35,7 @@ void sighandle_sigterm(int signal) {
     if (done) {
         exit(0);
     } else {
-        cprintf("Errore nell'eliminazione\n");
+        printf("Errore nell'eliminazione\n");
     }
 }
 
@@ -146,7 +146,7 @@ void sighandle_usr2(int sig) {
 }
 
 int main(int argc, char* argv[]) {
-    // argv = [./hub, indice, /tmp/indice];
+    // argv = [./hub, indice, /tmp/pid];
     pipe_fd = argv[2];
     pid = getpid();
     __index = atoi(argv[1]);

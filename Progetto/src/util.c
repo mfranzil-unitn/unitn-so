@@ -1,15 +1,15 @@
 #include "util.h"
-
+/*
 int print_mode = 1;
 
-void cprintf(const char *__restrict__ __format, ...) {
+void printf(const char *__restrict__ __format, ...) {
     if (print_mode) {
         va_list(args);
-        //  cprintf("%d - ", time(NULL));
+        //  printf("%d - ", time(NULL));
         va_start(args, __format);
         vprintf(__format, args);
     }
-}
+}*/
 
 int parse(char buf[][MAX_BUF_SIZE], int cmd_n) {
     char ch;   // carattere usato per la lettura dei comandi
@@ -130,22 +130,30 @@ void get_device_name_str(char *device_type, char *buf) {
     }
 }
 
-int get_device_pid(int device_identifier, int *children_pids) {
-    // prende come input l'indice/nome del dispositivo, ritorna il PID
+int get_device_pid(int device_identifier, int *children_pids, char **raw_info) {
+    if (raw_info != NULL) {
+    }
     int i;
     for (i = 0; i < MAX_CHILDREN; i++) {  // l'indice i è logicamente indipendente dal nome/indice del dispositivo
         int children_pid = children_pids[i];
         if (children_pid != -1) {
             char *tmp = get_raw_device_info(children_pid);
             if (tmp != NULL) {
-                if (strncmp(tmp, HUB_S, 1) == 0) {
-                    int possible_pid = hub_tree_pid_finder(tmp, device_identifier);
+                if (raw_info != NULL) {
+                    *raw_info = tmp;
+                }
 
+                // Evito fastidiose modifiche a TMP da strtok
+                char var_buffer[MAX_BUF_SIZE];
+                strcpy(var_buffer, tmp);
+
+                if (strncmp(tmp, HUB_S, 1) == 0) {
+                    int possible_pid = hub_tree_pid_finder(var_buffer, device_identifier);
                     if (possible_pid != -1) {
                         return possible_pid;
                     }
                 } else {
-                    char **vars = split(tmp);
+                    char **vars = split(var_buffer);
                     if (vars != NULL && atoi(vars[2]) == device_identifier) {
                         free(vars);
                         return children_pid;
@@ -153,6 +161,9 @@ int get_device_pid(int device_identifier, int *children_pids) {
                 }
             }
         }
+    }
+    if (raw_info != NULL) {
+        *raw_info = NULL;
     }
     return -1;
 }
@@ -188,12 +199,12 @@ char *get_raw_device_info(int pid) {
     char *tmp = malloc(MAX_BUF_SIZE * sizeof(tmp));
 
     get_pipe_name(pid, pipe_str);
-    printf("Opening pipe #%s\n", pipe_str);
     fflush(stdout);
     int fd = open(pipe_str, O_RDONLY);
     if (fd > 0) {
-        printf("In read for PID: %d and pipe; %s\n", pid, pipe_str);
+        fprintf(stderr, "DEBUG: In read for PID: %d and pipe; %s\n", pid, pipe_str);
         fflush(stdout);
+
         read(fd, tmp, MAX_BUF_SIZE);
         // Pulizia
         close(fd);
@@ -205,39 +216,41 @@ char *get_raw_device_info(int pid) {
     return NULL;
 }
 
-int is_controller(int pid) {
-    char **vars = get_device_info(pid);
+int is_controller(int pid, char *raw_info) {
+    char **vars = split(raw_info);
     int id = atoi(vars[0]);
+    free(vars);
     return id == HUB;
 }
 
-int hub_is_full(int pid) {
-    char **vars = get_device_info(pid);
+int hub_is_full(int pid, char *raw_info) {
+    char **vars = split(raw_info);
     int count = atoi(vars[4]);
+    free(vars);
     return count >= MAX_CHILDREN;
 }
 
 void hub_tree_print(char **vars) {
     if (strcmp(vars[0], HUB_S) == 0) {
-        cprintf("Hub (PID: %s, Indice: %s), Stato: %s, Collegati: %s",
+        printf("Hub (PID: %s, Indice: %s), Stato: %s, Collegati: %s",
                 vars[1], vars[2], atoi(vars[3]) ? "Acceso" : "Spento", vars[4]);
     } else {
         char device_name[MAX_BUF_SIZE];
         get_device_name(atoi(vars[0]), device_name);
         device_name[0] += 'A' - 'a';
 
-        cprintf("%s, (PID %s, Indice %s)", device_name, vars[1], vars[2]);
+        printf("%s, (PID %s, Indice %s)", device_name, vars[1], vars[2]);
     }
 }
 
 void hub_tree_spaces(int level) {
     if (level > 0) {
-        cprintf("\n");
+        printf("\n");
         int j;
         for (j = 0; j < level; j++) {
-            cprintf("  ");
+            printf("  ");
         }
-        cprintf("∟ ");
+        printf("∟ ");
     }
 }
 
@@ -246,24 +259,24 @@ void hub_tree_parser(char *__buf) {
     char *old = NULL;
     int level = 0;
 
-    // cprintf("Level_a %d\n", level);
+    // printf("Level_a %d\n", level);
 
     char **vars = malloc((FRIDGE_PARAMETERS + 4) * sizeof(*vars));
     int i = 0;
     int to_be_printed = 1;
 
     while (tokenizer != NULL) {
-        // cprintf("\nLevel %d tokenizer %s to_be_printed %d\n", level, tokenizer, to_be_printed);
+        // printf("\nLevel %d tokenizer %s to_be_printed %d\n", level, tokenizer, to_be_printed);
 
         int j;
         if (strcmp(tokenizer, "<!") == 0) {
             to_be_printed += atoi(old) - 1;
             hub_tree_spaces(level);
             i = 0;
-            ++level;  //  cprintf("\nLevel_b %d\n", level);
+            ++level;  //  printf("\nLevel_b %d\n", level);
             hub_tree_print(vars);
         } else if (strcmp(tokenizer, "!>") == 0) {
-            --level;  //  cprintf("\nLevel_c %d\n", level);
+            --level;  //  printf("\nLevel_c %d\n", level);
             if (!strcmp(old, "<!") == 0 && to_be_printed > 0) {
                 i = 0;
                 hub_tree_spaces(level);
@@ -279,12 +292,12 @@ void hub_tree_parser(char *__buf) {
             }
         } else {
             vars[i++] = tokenizer;
-            //cprintf("%s, ", tokenizer);
+            //printf("%s, ", tokenizer);
         }
         old = tokenizer;
         tokenizer = strtok(NULL, "|");
     }
-    cprintf("\n");
+    printf("\n");
     free(vars);
 }
 
@@ -293,7 +306,7 @@ int hub_tree_pid_finder(char *__buf, int id) {
     char *old = NULL;
     int level = 0;
 
-    //cprintf("Level %d\n", level);
+    //printf("Level %d\n", level);
 
     // DISPOSITIVO; PID; ID
 
@@ -329,7 +342,7 @@ int hub_tree_pid_finder(char *__buf, int id) {
             }
         } else {
             vars[i++] = tokenizer;
-            //cprintf("%s, ", tokenizer);
+            //printf("%s, ", tokenizer);
         }
         old = tokenizer;
         tokenizer = strtok(NULL, "|");

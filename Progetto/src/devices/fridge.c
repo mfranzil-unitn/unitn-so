@@ -78,7 +78,7 @@ void sighandle_usr2(int sig) {
 }
 
 int main(int argc, char* argv[]) {
-    // argv = [./fridge, indice, /tmp/indice];
+    // argv = [./fridge, indice, /tmp/pid];
     pipe_fd = argv[2];
     pid = getpid();
     __index = atoi(argv[1]);
