@@ -105,7 +105,10 @@ void sighandle_usr2(int sig) {
     }
 
     //Valore che indica lo stato di override o meno. Al MOMENTO INCARTAT TUTTO BOIA.
-    //override = check_override(over_index);
+    override = check_override(over_index);
+    for(k=0; k < MAX_CHILDREN; k++){
+        
+    }
 
     if (code == 0) {
         //printf("CODE 0\n");

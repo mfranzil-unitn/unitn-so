@@ -147,21 +147,18 @@ void __switch(int index, char *action, char *position, int *children_pids) {
 void __info(int index, int *children_pids) {
     char *tmp = NULL;
     int pid = get_device_pid(index, children_pids, &tmp);
-
     if (pid == -1) {
         printf("Errore! Non esiste questo dispositivo.\n");
         return;
     }
 
-    lprintf("DEBUG: Info %s\n", tmp);
-
-    if (strncmp(tmp, HUB_S, 1) == 0) {
-        hub_tree_parser(tmp);
-        //printf("info tree %s\n", tmp);
-    } else {
-        char **vars = split(tmp);
-        __print(vars);
-        free(vars);
+    char info[MAX_BUF_SIZE];
+    sprintf(info,"%s", get_raw_device_info(pid));
+    if(!strncmp(info,HUB_S,1)==0){
+        char** info_p = split(info);
+        __print(info_p);
+    }else{
+        hub_tree_parser(info_p);
     }
 
     free(tmp);
