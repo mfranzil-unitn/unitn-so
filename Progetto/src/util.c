@@ -399,8 +399,6 @@ char** split_sons(char* __buf, int __count ){
         vars[j++] = tokenizer;
         tokenizer = strtok(NULL, "-");
     }
-
     vars[j] = "\0";
     return vars;
-
 }

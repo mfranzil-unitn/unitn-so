@@ -165,8 +165,7 @@ int main(int argc, char* argv[]) {
     signal(SIGCHLD, SIG_IGN);
 
     while (1) {
-
-        sleep(10);
+        ;
     }
 
     return 0;

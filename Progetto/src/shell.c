@@ -190,6 +190,7 @@ void link_child(int signal) {
     int count = tmp[0] - '0';
         tmp = tmp + 2;
         char **vars = split_sons(tmp, count);
+        printf("VARSSSS\n   %s\n    %s\n", vars[0], vars[1]);
         int i =0;
         for(i=0; i < count; i++){
             printf("Var %d: %s\n", i, vars[i]);
