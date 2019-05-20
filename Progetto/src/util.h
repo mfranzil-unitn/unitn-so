@@ -11,6 +11,7 @@
 #include <sys/ipc.h>
 #include <sys/msg.h>
 #include <sys/stat.h>
+#include <sys/time.h>
 #include <sys/types.h>
 #include <unistd.h>
 
@@ -63,6 +64,8 @@ struct mesg_buffer {
     long mesg_type;
     char mesg_text[MAX_BUF_SIZE];
 } message;
+
+void lprintf(const char *__restrict__ __format, ...);
 
 int parse(char buf[][MAX_BUF_SIZE], int cmd_n);
 

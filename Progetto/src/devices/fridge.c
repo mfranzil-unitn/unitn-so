@@ -1,8 +1,3 @@
-#include <fcntl.h>
-#include <signal.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <time.h>
 #include "../util.h"
 
 // Frigo = 2
@@ -13,11 +8,11 @@ char log_buf[MAX_BUF_SIZE / 4];  // buffer della pipe // SE CI SONO PROBLEMI; GU
 
 int pid, __index, delay, perc, temp;  // variabili di stato
 int shellpid;
-int status = 0;  // interruttore accensione
+volatile int status = 0;  // interruttore accensione
 time_t start;
 
-void sighandle_sigterm(int signal){
-    if((int)getppid() != shellpid){
+void sighandle_sigterm(int signal) {
+    if ((int)getppid() != shellpid) {
         int ppid = (int)getppid();
         kill(ppid, SIGUSR2);
         char pipe_str[MAX_BUF_SIZE];
@@ -25,7 +20,7 @@ void sighandle_sigterm(int signal){
         int fd = open(pipe_str, O_RDWR);
         char tmp[MAX_BUF_SIZE];
         sprintf(tmp, "2|%d", (int)getpid());
-        write(fd,tmp, sizeof(tmp) );
+        write(fd, tmp, sizeof(tmp));
     }
     exit(0);
 }
@@ -87,7 +82,7 @@ int main(int argc, char* argv[]) {
     perc = 50;
     temp = 5;
 
-   shellpid = get_shell_pid();
+    shellpid = get_shell_pid();
     sprintf(log_buf, "-");
 
     fd = open(pipe_fd, O_RDWR);

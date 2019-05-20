@@ -1,15 +1,16 @@
 #include "util.h"
 /*
 int print_mode = 1;
-
-void printf(const char *__restrict__ __format, ...) {
-    if (print_mode) {
-        va_list(args);
-        //  printf("%d - ", time(NULL));
-        va_start(args, __format);
-        vprintf(__format, args);
-    }
-}*/
+*/
+void lprintf(const char *__restrict__ __format, ...) {
+    va_list(args);
+    //  printf("%d - ", time(NULL));
+    va_start(args, __format);
+    printf("\033[0;31m");
+    vfprintf(stdout, __format, args);
+    printf("\033[0m");
+    fflush(stdout);
+}
 
 int parse(char buf[][MAX_BUF_SIZE], int cmd_n) {
     char ch;   // carattere usato per la lettura dei comandi
@@ -189,27 +190,50 @@ char **get_device_info(int pid) {
 }
 
 char *get_raw_device_info(int pid) {
-    if (kill(pid, SIGUSR1) != 0) {
-        fprintf(stderr, "DEBUG: Failed to get raw device info for pid %d", pid);
-        return NULL;
+    // const int MAX_ATTEMPTS = 3;
+    //  lprintf("DEBUG: Attempt 0");
+
+    //  int i;
+    //   for (i = 0; i < MAX_ATTEMPTS; i++) {
+    //    lprintf("\b%d", i + 1);
+    int kill_o = kill(pid, SIGUSR1);
+    if (kill_o != 0) {
+        return NULL;  //continue;
     }
 
     char pipe_str[MAX_BUF_SIZE];
     char *tmp = malloc(MAX_BUF_SIZE * sizeof(tmp));
 
     get_pipe_name(pid, pipe_str);
-    fflush(stdout);
-    int fd = open(pipe_str, O_RDWR);
-    if (fd > 0) {
-        fprintf(stderr, "DEBUG: In read for PID: %d and pipe %s\n", pid, pipe_str);
-        read(fd, tmp, MAX_BUF_SIZE);
+    //
+    int fd = open(pipe_str, O_RDONLY);
+/*
+    fd_set set;
+    struct timeval timeout;
+
+    // Initialize the file descriptor set. 
+    FD_ZERO(&set);
+    FD_SET(fd, &set);
+
+    // Initialize the timeout data structure.
+    timeout.tv_sec = 5;
+    timeout.tv_usec = 0;*/
+
+    /* select returns 0 if timeout, 1 if input available, -1 if error. */
+    if (fd > 0) {  //&& select(FD_SETSIZE, &set, NULL, NULL, &timeout)) {
+        lprintf("DEBUG: In read for PID: %d and pipe %s\n", pid, pipe_str);
+        int _read = read(fd, tmp, MAX_BUF_SIZE);
         // Pulizia
         close(fd);
-        //printf("TMP in get_raw: %s\n", tmp);
-        return tmp;
+        if (_read != 0) {
+            //  lprintf("\n");
+            return tmp;
+        }
     } else {
-        exit(EXIT_FAILURE);
+        return;  //continue;
     }
+    //}
+    // lprintf("\n");
     return NULL;
 }
 
@@ -230,7 +254,7 @@ int hub_is_full(int pid, char *raw_info) {
 void hub_tree_print(char **vars) {
     if (strcmp(vars[0], HUB_S) == 0) {
         printf("Hub (PID: %s, Indice: %s), Stato: %s, Collegati: %s",
-                vars[1], vars[2], atoi(vars[3]) ? "Acceso" : "Spento", vars[4]);
+               vars[1], vars[2], atoi(vars[3]) ? "Acceso" : "Spento", vars[4]);
     } else {
         char device_name[MAX_BUF_SIZE];
         get_device_name(atoi(vars[0]), device_name);

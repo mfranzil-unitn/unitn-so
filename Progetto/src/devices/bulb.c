@@ -31,7 +31,7 @@ void sighandle_sigterm(int signal) {
 }
 
 void sighandle_usr1(int sig) {
-    fprintf(stderr, "DEBUG: SIGUSR1 catched\n");
+    lprintf("DEBUG: SIGUSR1 catched\n");
     time_t time_on;
     char buffer[MAX_BUF_SIZE];
 
@@ -43,9 +43,9 @@ void sighandle_usr1(int sig) {
 
     sprintf(buffer, "1|%i|%i|%i|%i",
             pid, __index, status, (int)time_on);
-    fprintf(stderr, "DEBUG: Writing on pipe: %s\n", pipe_fd);
+    lprintf("DEBUG: Writing on pipe: %s\n", pipe_fd);
     write(fd, buffer, MAX_BUF_SIZE);
-    fprintf(stderr, "DEBUG: Exiting Handler with tmp: %s\n", buffer );
+    lprintf("DEBUG: Exiting Handler with tmp: %s\n", buffer);
 }
 
 void sighandle_usr2(int sig) {
@@ -53,7 +53,6 @@ void sighandle_usr2(int sig) {
     // 0|... -> accendi/spegni lampadina
     // 1|... -> restituisci PID
     char tmp[MAX_BUF_SIZE];
-
     read(fd, tmp, MAX_BUF_SIZE);
     char** vars = split_fixed(tmp, 2);
 
@@ -79,8 +78,9 @@ int main(int argc, char* argv[]) {
     signal(SIGTERM, sighandle_sigterm);
     signal(SIGUSR1, sighandle_usr1);
     signal(SIGUSR2, sighandle_usr2);
+
     while (1) {
-        sleep(10);
+        ;//sleep(10);
     }
 
     return 0;

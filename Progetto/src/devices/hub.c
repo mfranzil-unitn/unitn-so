@@ -1,8 +1,3 @@
-#include <fcntl.h>
-#include <signal.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <time.h>
 #include "../actions.h"
 #include "../util.h"
 
@@ -60,14 +55,18 @@ void sighandle_usr1(int sig) {
     for (i = 0; i < MAX_CHILDREN; i++) {
         if (children_pids[i] != -1) {
             char* raw_info = get_raw_device_info(children_pids[i]);
-            strcat(buffer, raw_info);
-            strcat(buffer, "|!|");
-            free(raw_info);
+            if (raw_info == NULL) {
+                printf("Errore di collegamento (PID: %d)\n", children_pids[i]);
+                continue;
+            } else {
+                strcat(buffer, raw_info);
+                strcat(buffer, "|!|");
+                free(raw_info);
+            }
         }
     }
 
     strcat(buffer, "!>");
-
     write(fd, buffer, MAX_BUF_SIZE);
 }
 

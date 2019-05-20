@@ -153,7 +153,7 @@ void __info(int index, int *children_pids) {
         return;
     }
 
-    fprintf(stderr, "DEBUG: Info %s\n", tmp);
+    lprintf("DEBUG: Info %s\n", tmp);
 
     if (strncmp(tmp, HUB_S, 1) == 0) {
         hub_tree_parser(tmp);
@@ -223,7 +223,7 @@ int __add(char *device, int device_index, int *children_pids, char *__out_buf) {
         sprintf(program_name, "./%s%s", DEVICES_POSITIONS, device);
 
         // Metto gli argomenti in un array e faccio exec
-        fprintf(stderr, "DEBUG: Executing %s %s %s\n", program_name, index_str, pipe_str);
+        lprintf("DEBUG: Executing %s %s %s\n", program_name, index_str, pipe_str);
         execlp(program_name, program_name, index_str, pipe_str, NULL);
 
         exit(0);
@@ -250,6 +250,10 @@ void __list(int *children_pids) {
         int children_pid = children_pids[i];
         if (children_pid != -1) {
             tmp = get_raw_device_info(children_pid);
+            if (tmp == NULL) {
+                printf("Errore di collegamento (PID: %d)\n", children_pid);
+                continue;
+            }
 
             if (strncmp(tmp, HUB_S, 1) == 0) {
                 hub_tree_parser(tmp);
@@ -259,7 +263,7 @@ void __list(int *children_pids) {
                 get_device_name(atoi(vars[0]), device_name);
                 device_name[0] += 'A' - 'a';
 
-                printf("%s, (PID %s, Indice %s)\n", device_name, vars[1], vars[2]);
+                printf("%s (PID %s, Indice %s)\n", device_name, vars[1], vars[2]);
                 // Pulizia
                 free(vars);
             }
@@ -438,26 +442,26 @@ int __link_ex(int *son_pids, int parent_pid, int shellpid) {
         if (son_pids[i] != -1) {
             count++;
             int son_pid = son_pids[i];
-            fprintf(stderr, "DEBUG: Getting son: %d info\n", son_pid);
+            lprintf("DEBUG: Getting son: %d info\n", son_pid);
             char tmp[MAX_BUF_SIZE];
             sprintf(tmp, "%s-", get_raw_device_info(son_pid));
-            fprintf(stderr, "DEBUG: TMP_Link: %s\n", tmp);
+            lprintf("DEBUG: TMP_Link: %s\n", tmp);
             strcat(buf, tmp);
-            fprintf(stderr, "DEBUG: BUF of %d: %s", son_pid, buf);
+            lprintf("DEBUG: BUF of %d: %s", son_pid, buf);
             char **son_info = split(tmp);
             int index = atoi(son_info[2]);
 
             //Deleting son
-            fprintf(stderr, "DEBUG: Deleting\n");
+            lprintf("DEBUG: Deleting\n");
             kill(son_pid, SIGTERM);
-            fprintf(stderr, "DEBUG: Spostando l'oggetto %d sotto l'oggetto %d\n", index, controller);
+            lprintf("DEBUG: Spostando l'oggetto %d sotto l'oggetto %d\n", index, controller);
         }
     }
     char buffer[MAX_BUF_SIZE + 24];
     sprintf(buffer, "%d%s", count, buf);
     char controller_pipe_name[MAX_BUF_SIZE];
     get_pipe_name(parent_pid, controller_pipe_name);
-    fprintf(stderr, "DEBUG: Killing %d\n", parent_pid);
+    lprintf("DEBUG: Killing %d\n", parent_pid);
     kill(parent_pid, SIGUSR2);
     int fd = open(controller_pipe_name, O_RDWR);
     write(fd, buffer, MAX_BUF_SIZE);

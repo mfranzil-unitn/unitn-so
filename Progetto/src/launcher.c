@@ -238,7 +238,7 @@ void user_launcher(char buf[][MAX_BUF_SIZE], int msgid, int *device_pids, int ms
         msgrcv(msgid_sh, &message, sizeof(message), 1, IPC_NOWAIT);
 
         if (pid == 0) {  //Processo figlio che aprirà terminale e lancerà la shell.
-
+        
             //Sarà passato per argomento alla shell.
             int ppid = (int)getppid();
 
