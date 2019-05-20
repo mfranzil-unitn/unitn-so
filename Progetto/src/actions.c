@@ -425,6 +425,7 @@ int hub_tree_constructor(char *__buf, int *children_pids) {
 }
 
 int __link_ex(int *son_pids, int parent_pid, int shellpid) {
+    printf("LINK_EX\n");
     int controller;
     if (parent_pid != shellpid) {
         char *tmp_controller = get_raw_device_info(parent_pid);

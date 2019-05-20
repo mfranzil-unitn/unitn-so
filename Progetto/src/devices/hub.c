@@ -25,7 +25,7 @@ void sighandle_sigterm(int signal) {
         sprintf(tmp, "2|%d", (int)getpid());
         write(fd, tmp, sizeof(tmp));
     }
-
+    
     int ret = __link_ex(children_pids, ppid, shellpid);
     if (done) {
         exit(0);
@@ -165,6 +165,7 @@ int main(int argc, char* argv[]) {
     signal(SIGCHLD, SIG_IGN);
 
     while (1) {
+
         sleep(10);
     }
 

@@ -223,13 +223,18 @@ char *get_raw_device_info(int pid) {
     if (fd > 0) {  //&& select(FD_SETSIZE, &set, NULL, NULL, &timeout)) {
         lprintf("DEBUG: In read for PID: %d and pipe %s\n", pid, pipe_str);
         int _read = read(fd, tmp, MAX_BUF_SIZE);
+        printf("End read, TMP: %s\n", tmp);
         // Pulizia
         close(fd);
         if (_read != 0) {
             //  lprintf("\n");
             return tmp;
         }
+        else{
+            lprintf("ERRORE in READDDDDDD\n");
+        }
     } else {
+        
         return;  //continue;
     }
     //}
@@ -384,4 +389,18 @@ int get_shell_pid() {
     sprintf(message.mesg_text, "%d", shellpid);
     msgsnd(msgid_sh, &message, MAX_BUF_SIZE, 1);
     return shellpid;
+}
+
+char** split_sons(char* __buf, int __count ){
+    char *tokenizer = strtok(__buf, "-");
+    char **vars = malloc((__count + 3) * sizeof(*vars));
+    int j = 0;
+    while (tokenizer != NULL && j <= __count) {
+        vars[j++] = tokenizer;
+        tokenizer = strtok(NULL, "|");
+    }
+
+    vars[j] = "\0";
+    return vars;
+
 }

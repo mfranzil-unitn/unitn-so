@@ -158,6 +158,10 @@ void handle_sig(int signal) {
     printf("La centralina è stata chiusa, Premere Invio per proseguire\n");
     shell_pid = -1;
     shell_on = 0;
+    printf("Message\n");
+    msgrcv(emergencyid, &message,sizeof(message),1,0);
+    msgrcv(emergencyid2, &message,sizeof(message),1,0);
+    printf("Message Received: %s\n", message.mesg_text);
 }
 
 void handle_sigint(int signal) {
@@ -249,15 +253,16 @@ void user_launcher(char buf[][MAX_BUF_SIZE], int msgid, int *device_pids, int ms
             strcat(tmp, stringpid);
             if (execl("/usr/bin/gnome-terminal", "gnome-terminal", "-e", tmp, NULL) == -1) {
                 sprintf(message.mesg_text, "%s", "Errore");
-                msgsnd(msgid, &message, MAX_BUF_SIZE, 0);
+                msgsnd(msgid_sh, &message, MAX_BUF_SIZE, 0);
             }
         } else if (pid > 0) {
             //Legge il contenuto della pipe => Se = "Errore" la finestra è stata aperta.
-            msgrcv(msgid, &message, sizeof(message), 1, 0);
+            msgrcv(msgid_sh, &message, sizeof(message), 1, 0);
             if (strcmp(message.mesg_text, "Errore") == 0) {
                 printf("Errore nell'apertura della shell\n");
             } else {
                 shell_pid = atoi(message.mesg_text);
+                printf("Shell pid: %d\n", shell_pid);
                 shell_on = 1;
                 sprintf(message.mesg_text, "%d",shell_pid );
                 msgsnd(msgid_sh, &message, MAX_BUF_SIZE, 0);

@@ -4,14 +4,15 @@
 
 int ppid;
 int stato = 1;                    //Stato della centralina.
-int changed = 0;                  // Modifiche alla message queue?
 int children_pids[MAX_CHILDREN];  // array contenenti i PID dei figli
 int fd;
 
 int main(int argc, char *argv[]) {
+    printf("MYPID: %d\n", (int)getpid());
     signal(SIGUSR1, stop_sig);
     signal(SIGTERM, cleanup_sig);
     signal(SIGUSR2, link_child);
+    signal(SIGHUP, cleanup_sig);
     signal(SIGINT, SIG_IGN);
     signal(SIGCHLD, SIG_IGN);
 
@@ -54,15 +55,14 @@ int main(int argc, char *argv[]) {
 
     char current_msg[MAX_BUF_SIZE] = "0|";
     sprintf(message.mesg_text, "%d", (int)getpid());
-    msgsnd(msgid, &message, MAX_BUF_SIZE, 0);
-
+    msgsnd(msgid_sh, &message, MAX_BUF_SIZE, 0);
+   
     // Ready
     system("clear");
 
     while (1) {
         if (stato) {
             //Scrive numero devices e elenco dei pid a launcher.
-            if (changed) {
                 //Ripulisco Forzatamente.
                 msgrcv(msgid, &message, MAX_BUF_SIZE, 1, IPC_NOWAIT);
 
@@ -78,13 +78,6 @@ int main(int argc, char *argv[]) {
                 sprintf(message.mesg_text, "%s", tmp_c);
                 sprintf(current_msg, "%s", message.mesg_text);
                 msgsnd(msgid, &message, MAX_BUF_SIZE, 0);
-                changed = 0;
-            } else {
-                //Ripulisco forzatamente.
-                msgrcv(msgid, &message, MAX_BUF_SIZE, 1, IPC_NOWAIT);
-                sprintf(message.mesg_text, "%s", current_msg);
-                msgsnd(msgid, &message, MAX_BUF_SIZE, 0);
-            }
 
             printf("\e[92m%s\e[39m:\e[31mCentralina\033[0m$ ", name);
             cmd_n = parse(buf, cmd_n);
@@ -115,7 +108,7 @@ int main(int argc, char *argv[]) {
                 if (cmd_n != 1) {
                     printf(ADD_STRING);
                 } else {
-                    changed = add_shell(buf, &device_i, children_pids, __out_buf);
+                    add_shell(buf, &device_i, children_pids, __out_buf);
                     printf("%s", __out_buf);
                 }
             } else if (strcmp(buf[0], "del") == 0) {
@@ -194,14 +187,15 @@ void link_child(int signal) {
     char *tmp = malloc(MAX_BUF_SIZE * sizeof(tmp));
     read(fd, tmp, MAX_BUF_SIZE);
     printf("End Read: %s\n\n", tmp);
-
-    int code = tmp[0] - '0';
-    if (code == 1) {
+    int count = tmp[0] - '0';
         tmp = tmp + 2;
-        char **vars = split(tmp);
-        __add_ex(vars, children_pids);
+        char **vars = split_sons(tmp, count);
+        int i =0;
+        for(i=0; i < count; i++){
+            printf("Var %d: %s\n", i, vars[i]);
+            char** var_tmp = split(vars[i]);
+            __add_ex(var_tmp, children_pids);
+        }
         free(vars);
         free(tmp - 2);
-    }
-    //close(fd);
 }
