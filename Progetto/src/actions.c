@@ -158,7 +158,7 @@ void __info(int index, int *children_pids) {
         char** info_p = split(info);
         __print(info_p);
     }else{
-        hub_tree_parser(info_p);
+        hub_tree_parser(info);
     }
 
     free(tmp);
