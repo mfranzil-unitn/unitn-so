@@ -49,6 +49,7 @@ void sighandle_usr1(int sig) {
 }
 
 void sighandle_usr2(int sig) {
+    lprintf("Entering user2\n");
     // Al ricevimento del segnale, la finestra apre la pipe in lettura e ottiene cosa deve fare.
     // 0|... -> accendi/spegni lampadina
     // 1|... -> restituisci PID

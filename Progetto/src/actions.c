@@ -2,14 +2,21 @@
 
 void __switch(int index, char *action, char *position, int *children_pids) {
     // Prova a impostare un interruttore ACTION su POSITION di un certo DEVICE
-    int pid = get_device_pid(index, children_pids, NULL);
+    char *device_info;
+    int pid = get_device_pid(index, children_pids, &device_info);
 
     if (pid == -1) {
         printf("Errore! Non esiste questo dispositivo.\n");
         return;
     }
 
-    char **vars = get_device_info(pid);
+    if (device_info == NULL) {
+        printf("Errore di connessione con il dispositivo.\n");
+    }
+
+    printf("%s", device_info);
+
+    char **vars = split(device_info);
 
     char pipe_str[MAX_BUF_SIZE];
     get_pipe_name(pid, pipe_str);  // Nome della pipe
@@ -147,17 +154,22 @@ void __switch(int index, char *action, char *position, int *children_pids) {
 void __info(int index, int *children_pids) {
     char *tmp = NULL;
     int pid = get_device_pid(index, children_pids, &tmp);
+
     if (pid == -1) {
         printf("Errore! Non esiste questo dispositivo.\n");
         return;
     }
 
+    if (tmp == NULL) {
+        printf("Errore di connessione con il dispositivo.\n");
+    }
+
     char info[MAX_BUF_SIZE];
-    sprintf(info,"%s", get_raw_device_info(pid));
-    if(!strncmp(info,HUB_S,1)==0){
-        char** info_p = split(info);
+    sprintf(info, "%s", get_raw_device_info(pid));
+    if (!strncmp(info, HUB_S, 1) == 0) {
+        char **info_p = split(info);
         __print(info_p);
-    }else{
+    } else {
         hub_tree_parser(info);
     }
 
@@ -168,22 +180,22 @@ void __print(char **vars) {
     if (strcmp(vars[0], BULB_S) == 0) {
         // Lampadina - parametri: tipo, pid, indice, stato, tempo di accensione
         printf("Oggetto: Lampadina\nPID: %s\nIndice: %s\nStato: %s\nTempo di accensione: %s\n",
-                vars[1], vars[2], atoi(vars[3]) ? "ON" : "OFF", vars[4]);
+               vars[1], vars[2], atoi(vars[3]) ? "ON" : "OFF", vars[4]);
     } else if (strcmp(vars[0], FRIDGE_S) == 0) {
         // Frigo -  parametri: tipo, pid, indice, stato, tempo di apertura, delay
         // percentuale riempimento, temperatura interna
         printf("Oggetto: Frigorifero\nMessaggio di log: <%s>\n", vars[8]);
         printf("PID: %s\nIndice: %s\nStato: %s\nTempo di apertura: %s sec\n",
-                vars[1], vars[2], atoi(vars[3]) ? "Aperto" : "Chiuso", vars[4]);
+               vars[1], vars[2], atoi(vars[3]) ? "Aperto" : "Chiuso", vars[4]);
         printf("Delay richiusura: %s sec\nPercentuale riempimento: %s\nTemperatura: %s°C\n",
-                vars[5], vars[6], vars[7]);
+               vars[5], vars[6], vars[7]);
     } else if (strcmp(vars[0], WINDOW_S) == 0) {
         // Finestra - parametri: tipo, pid, indice, stato, tempo di accensione
         printf("Oggetto: Finestra\nPID: %s\nIndice: %s\nStato: %s\nTempo di apertura: %s sec\n",
-                vars[1], vars[2], atoi(vars[3]) ? "Aperto" : "Chiuso", vars[4]);
+               vars[1], vars[2], atoi(vars[3]) ? "Aperto" : "Chiuso", vars[4]);
     } else if (strcmp(vars[0], HUB_S) == 0) {
         printf("Oggetto: Hub\nPID: %s\nIndice: %s\nStato: %s\nDispositivi collegati: %s\n",
-                vars[1], vars[2], atoi(vars[3]) ? "Acceso" : "Spento", vars[4]);
+               vars[1], vars[2], atoi(vars[3]) ? "Acceso" : "Spento", vars[4]);
     } else {
         printf("Dispositivo non supportato.\n");
     }

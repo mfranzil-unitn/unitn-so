@@ -132,7 +132,7 @@ int main() {
     write(fd, buffer, MAX_BUF_SIZE);
     printf(buffer);
     close(fd);
-    
+     
 /*
     while (1) {
         printf("\n> ");
