@@ -16,7 +16,7 @@ int shellpid;
 void sighandle_sigterm(int signal) {
     int done = 1;
     int ppid = (int)getppid();
-    if (ppid != shellpid) {
+    /*if (ppid != shellpid) {
         kill(ppid, SIGUSR2);
         char pipe_str[MAX_BUF_SIZE];
         get_pipe_name(ppid, pipe_str);  // Nome della pipe
@@ -24,7 +24,7 @@ void sighandle_sigterm(int signal) {
         char tmp[MAX_BUF_SIZE];
         sprintf(tmp, "2|%d", (int)getpid());
         write(fd, tmp, sizeof(tmp));
-    }
+    }*/
     
     int ret = __link_ex(children_pids, ppid, shellpid);
     if (done) {

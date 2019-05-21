@@ -12,7 +12,7 @@ volatile int status = 0;  // interruttore accensione
 time_t start;
 
 void sighandle_sigterm(int signal) {
-    if ((int)getppid() != shellpid) {
+    /*if ((int)getppid() != shellpid) {
         int ppid = (int)getppid();
         kill(ppid, SIGUSR2);
         char pipe_str[MAX_BUF_SIZE];
@@ -21,7 +21,7 @@ void sighandle_sigterm(int signal) {
         char tmp[MAX_BUF_SIZE];
         sprintf(tmp, "2|%d", (int)getpid());
         write(fd, tmp, sizeof(tmp));
-    }
+    }*/
     exit(0);
 }
 
@@ -98,7 +98,7 @@ int main(int argc, char* argv[]) {
                     "Il frigorifero %d si è chiuso automaticamente dopo %d secondi",
                     __index, delay);
         }
-        sleep(1);
+        //sleep(1);
     }
 
     return 0;

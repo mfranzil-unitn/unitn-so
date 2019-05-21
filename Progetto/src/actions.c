@@ -437,6 +437,7 @@ int __link_ex(int *son_pids, int parent_pid, int shellpid) {
     int count = 0;
     int i = 0;
     for (i = 0; i < MAX_CHILDREN; i++) {
+        printf("SON: %d\n", son_pids[i]);
         if (son_pids[i] != -1) {
             count++;
             int son_pid = son_pids[i];
@@ -455,6 +456,7 @@ int __link_ex(int *son_pids, int parent_pid, int shellpid) {
             lprintf("DEBUG: Spostando l'oggetto %d sotto l'oggetto %d\n", index, controller);
         }
     }
+    printf("Exiting For\n");
     char buffer[MAX_BUF_SIZE + 24];
     sprintf(buffer, "%d%s", count, buf);
     char controller_pipe_name[MAX_BUF_SIZE];
@@ -463,7 +465,7 @@ int __link_ex(int *son_pids, int parent_pid, int shellpid) {
     kill(parent_pid, SIGUSR2);
     int fd = open(controller_pipe_name, O_RDWR);
     write(fd, buffer, MAX_BUF_SIZE);
-    //close(fd);
+    close(fd);
 
     return 1;
 }
