@@ -13,6 +13,7 @@
 #include <sys/stat.h>
 #include <sys/time.h>
 #include <sys/types.h>
+#include <time.h>
 #include <unistd.h>
 
 #define MAX_BUF_SIZE 1024
@@ -90,7 +91,7 @@ void hub_tree_print(char **vars);
 void hub_tree_spaces(int level);
 void hub_tree_parser(char *__buf);
 int hub_tree_pid_finder(char *__buf, int id);
-char** split_sons(char* __buf, int __count );
+char **split_sons(char *__buf, int __count);
 
 void change_ext_pid(int newpid);
 #endif

@@ -125,15 +125,36 @@ char **Nsplit(char *__buf) {
 }
 */
 int main() {
-    mkfifo("/tmp/ipc/12388", 0666);
-    char buffer[MAX_BUF_SIZE];
-    sprintf(buffer, "1|12388|1|0|0");
-    int fd = open("/tmp/ipc/12388", O_RDWR);
-    write(fd, buffer, MAX_BUF_SIZE);
-    printf(buffer);
-    close(fd);
-    
-/*
+    time_t tempo = time(NULL);
+    char* c = ctime(&tempo);
+    printf("%d, %s\n", (int)tempo, c);
+
+    struct tm tm_start = *localtime(&(time_t){time(NULL)});
+    struct tm tm_end = *localtime(&(time_t){time(NULL)});
+
+    scanf("%d:%d -> %d:%d",
+          &tm_start.tm_hour, &tm_start.tm_min,
+          &tm_end.tm_hour, &tm_end.tm_min);
+
+    char buf[MAX_BUF_SIZE];
+
+    strftime(buf, MAX_BUF_SIZE, "%H:%M", &tm_start);
+    printf("Timer set from %s", buf);
+    strftime(buf, MAX_BUF_SIZE, "%H:%M", &tm_end);
+    printf(" to %s\n", buf);
+
+    while(1) {
+        time_t tim = time(NULL);
+        if ((tim / 60) % 60 == tm_start.tm_min) {
+            printf("WOW!\n");
+            return;
+        }
+    }
+
+    //printf("%d:%d\n", tempo % 60, tempo / 60);
+
+    return 0;
+    /*
     while (1) {
         printf("\n> ");
         scanf("%s", buf);
