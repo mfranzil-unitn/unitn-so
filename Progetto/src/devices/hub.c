@@ -1,22 +1,27 @@
+#include <fcntl.h>
+#include <signal.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <time.h>
 #include "../actions.h"
 #include "../util.h"
 
-/* HUB = 4 */
-int fd;               /* file descriptor della pipe verso il padre */
-char* pipe_fd = NULL; /* nome della pipe */
+// HUB = 4
 
-int pid, __index; /* variabili di stato */
+int fd;                // file descriptor della pipe verso il padre
+char* pipe_fd = NULL;  // nome della pipe
 
-int status = 0; /* interruttore accensione */
+int pid, __index;  // variabili di stato
+
+int status = 0;  // interruttore accensione
 
 int children_pids[MAX_CHILDREN];
 int override = 0;
 int shellpid;
-
 key_t key;
 int msgid;
 
-void read_msgqueue(int msgid, int* device_pids) {
+void read_msgqueue_hub(int msgid, int* device_pids) {
     int n_devices;
     int ret = msgrcv(msgid, &message, sizeof(message), 1, IPC_NOWAIT);
     if (ret != -1) {
@@ -37,7 +42,9 @@ void read_msgqueue(int msgid, int* device_pids) {
             int j = 0;
             while (j <= __count) {
                 if (j >= 1) {
+                    printf("Reading: %s\n", vars[j]);
                     char** son_j = split(vars[j]);
+                    printf("Vars 0: %s  -Vars 2: %s-\n", son_j[0], son_j[2]);
                     __add_ex(son_j, children_pids);
                 }
                 j++;
@@ -46,49 +53,63 @@ void read_msgqueue(int msgid, int* device_pids) {
     }
 }
 
+
 void sighandle_sigterm(int signal) {
+    printf("IN SIGTERM i'm HUB: %d\n", __index);
     int done = 1;
     int ppid = (int)getppid();
     /*if (ppid != shellpid) {
         kill(ppid, SIGUSR2);
         char pipe_str[MAX_BUF_SIZE];
-        get_pipe_name(ppid, pipe_str);   Nome della pipe
+        get_pipe_name(ppid, pipe_str);  // Nome della pipe
         int fd = open(pipe_str, O_RDWR);
         char tmp[MAX_BUF_SIZE];
         sprintf(tmp, "2|%d", (int)getpid());
         write(fd, tmp, sizeof(tmp));
     }*/
+/*
     int i = 0;
-    int count = 0;
-    char tmp[MAX_BUF_SIZE];
-    sprintf(tmp, " ");
     for (i = 0; i < MAX_CHILDREN; i++) {
         if (children_pids[i] != -1) {
-            printf("Trying to send pids\n");
-            count++;
-            char* info = get_raw_device_info(children_pids[i]);
-            char* intern;
-            sprintf(intern, "-%d", children_pids[i]);
-            strcat(tmp, intern);
+            cprintf("Chiamata link_ex per figlio %d\n", children_pids[i]);
+            int ret = __link_ex(children_pids[i], ppid, shellpid);
+            if (ret != 1) {
+                done = 0;
+            }
         }
+    }*/
+
+    int count = 0;
+    int i = 0;
+    char tmp[MAX_BUF_SIZE];
+    sprintf(tmp,"-");
+    for(i=0; i < MAX_CHILDREN; i++){
+            if(children_pids[i]!= -1){
+                 printf("Children: %d\n", children_pids[i]);
+                count++;
+                char info[MAX_BUF_SIZE];
+                sprintf(info, "%s-", get_raw_device_info(children_pids[i]));
+                printf("info: %s\n", info);
+                strcat(tmp, info);
+            }
     }
 
-    sprintf(message.mesg_text, "%d-%s", count, tmp);
+    sprintf(message.mesg_text, "%d%s", count, tmp);
+    printf("Message: %s\n", message.mesg_text);
     msgsnd(msgid, &message, sizeof(message), 1);
 
-    int ret = __link_ex(children_pids, ppid, shellpid);
     if (done) {
         exit(0);
     } else {
-        printf("Errore nell'eliminazione\n");
+        cprintf("Errore nell'eliminazione\n");
     }
 }
 
 void sighandle_usr1(int sig) {
-    /* bisogna controllare se i dispositivi sono allineati o meno (override) */
+    // bisogna controllare se i dispositivi sono allineati o meno (override)
     char buffer[MAX_BUF_SIZE];
 
-    /* conto i dispositivi connessi */
+    // conto i dispositivi connessi
     int connected = 0;
 
     int i;
@@ -101,35 +122,29 @@ void sighandle_usr1(int sig) {
     sprintf(buffer, "4|%i|%i|%i|%i|<!|",
             pid, __index, status, connected);
 
-    /* Stampo nel buffer tante volte quanti device ho */
+    // Stampo nel buffer tante volte quanti device ho
     for (i = 0; i < MAX_CHILDREN; i++) {
         if (children_pids[i] != -1) {
             char* raw_info = get_raw_device_info(children_pids[i]);
-            if (raw_info == NULL) {
-                printf("Errore di collegamento (PID: %d)\n", children_pids[i]);
-                continue;
-            } else {
-                strcat(buffer, raw_info);
-                strcat(buffer, "|!|");
-                free(raw_info);
-            }
+            strcat(buffer, raw_info);
+            strcat(buffer, "|!|");
+            free(raw_info);
         }
     }
 
     strcat(buffer, "!>");
+
     write(fd, buffer, MAX_BUF_SIZE);
 }
 
-/*Itera sui figli, in realtà fino a MAX_CHILDREN, e controlla che gli stati siano congruenti. */
-/*E modifica il vettore over_index Maschera di bit. */
+//Itera sui figli, in realtà fino a MAX_CHILDREN, e controlla che gli stati siano congruenti.
+//E modifica il vettore over_index Maschera di bit.
 int check_override(int* over_index) {
     int i = 0;
     int ret = 0;
-    char** vars;
-
     for (i = 0; i < MAX_CHILDREN; i++) {
         if (children_pids[i] != -1) {
-            vars = split(get_raw_device_info(children_pids[i]));
+            char** vars = split(get_raw_device_info(children_pids[i]));
             if (atoi(vars[3]) != status) {
                 over_index[i] = 1;
                 ret = 1;
@@ -140,38 +155,33 @@ int check_override(int* over_index) {
 }
 
 void sighandle_usr2(int sig) {
-    /* Al ricevimento del segnale, la finestra apre la pipe in lettura e ottiene cosa deve fare. */
-    /* 0|.. -> spegni/accendi tutto */
-    /* 1|.. -> attacca contenuto */
-    /* 2|.. -> toglie contenuto */
+    // Al ricevimento del segnale, la finestra apre la pipe in lettura e ottiene cosa deve fare.
+    // 0|.. -> spegni/accendi tutto
+    // 1|.. -> attacca contenuto
+    // 2|.. -> toglie contenuto
     char* tmp = malloc(MAX_BUF_SIZE * sizeof(tmp));
     int over_index[MAX_CHILDREN];
-    int code = tmp[0] - '0';
-    int j = 0;
-    int k = 0;
-    int i = 0;
-    char* pos;
-    char** vars;
-
     read(fd, tmp, MAX_BUF_SIZE);
-    /*printf("End Read: %s\n\n", tmp); */
-    /*printf("code: %d\n", code); */
+    //printf("End Read: %s\n\n", tmp);
+    int code = tmp[0] - '0';
+    //printf("code: %d\n", code);
 
+    int k = 0;
     for (k = 0; k < MAX_CHILDREN; k++) {
         over_index[k] = 0;
     }
 
-    /*Valore che indica lo stato di override o meno. Al MOMENTO INCARTAT TUTTO BOIA. */
-    override = check_override(over_index);
-    for (k = 0; k < MAX_CHILDREN; k++) {
-    }
+    //Valore che indica lo stato di override o meno. Al MOMENTO INCARTAT TUTTO BOIA.
+    //override = check_override(over_index);
 
     if (code == 0) {
-        /*printf("CODE 0\n"); */
+        //printf("CODE 0\n");
         status = !status;
+        int i = 0;
+        char* pipe_str;
         for (i = 0; i < MAX_CHILDREN; i++) {
             if (children_pids[i] != -1 && !over_index[i]) {
-                pos = "on";
+                char* pos = "on";
                 if (status) {
                     pos = "off";
                 }
@@ -181,19 +191,20 @@ void sighandle_usr2(int sig) {
         free(tmp);
     }
     if (code == 1) {
-        /*printf("CODE 1\n"); */
+        //printf("CODE 1\n");
         tmp = tmp + 2;
-        vars = split(tmp);
+        char** vars = split(tmp);
         __add_ex(vars, children_pids);
         free(vars);
         free(tmp - 2);
     }
     if (code == 2) {
-        /*printf("CODE 2\n"); */
-        vars = split(tmp);
+        //printf("CODE 2\n");
+        char** vars = split(tmp);
+        int j = 0;
         for (j = 0; j < MAX_CHILDREN; j++) {
             if (children_pids[j] == atoi(vars[1])) {
-                /*printf("BECCATO: childern_Pids: %d, atoi: %d\n", children_pids[j], atoi(vars[1])); */
+                //printf("BECCATO: childern_Pids: %d, atoi: %d\n", children_pids[j], atoi(vars[1]));
                 children_pids[j] = -1;
             }
         }
@@ -201,25 +212,23 @@ void sighandle_usr2(int sig) {
 }
 
 int main(int argc, char* argv[]) {
-    /* argv = [./hub, indice, /tmp/pid]; */
-    int i;
-
+    // argv = [./hub, indice, /tmp/indice];
     pipe_fd = argv[2];
     pid = getpid();
     __index = atoi(argv[1]);
 
+    printf("Hub con indice: %d\n", __index);
     fd = open(pipe_fd, O_RDWR);
 
+    int i;
     for (i = 0; i < MAX_CHILDREN; i++) {
         children_pids[i] = -1;
     }
 
-    key = ftok("/tmp", __index);
     shellpid = get_shell_pid();
+    key = ftok("/tmp", __index);
     msgid = msgget(key, 0666 | IPC_CREAT);
-    message.mesg_type = 1;
-
-    read_msgqueue(msgid, children_pids);
+    read_msgqueue_hub(msgid, children_pids);
 
     signal(SIGTERM, sighandle_sigterm);
     signal(SIGUSR1, sighandle_usr1);
@@ -227,7 +236,7 @@ int main(int argc, char* argv[]) {
     signal(SIGCHLD, SIG_IGN);
 
     while (1) {
-        ;
+        ;  //sleep(10);
     }
 
     return 0;
