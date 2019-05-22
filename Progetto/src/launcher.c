@@ -178,6 +178,12 @@ void handle_sig(int signal) {
 void handle_sigint(int signal) {
     msgctl(emergencyid, IPC_RMID, NULL);
     msgctl(emergencyid2, IPC_RMID, NULL);
+    int i =0;
+    for(i = 0; i < MAX_CHILDREN; i++){
+        key_t key = ftok("/tmp", i);
+        int msgid = msgget(key, 0666);
+        msgctl(msgid, IPC_RMID, NULL);
+    }
     if (shell_pid != -1) {
         kill(shell_pid, SIGTERM);
     }
