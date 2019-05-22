@@ -166,7 +166,7 @@ int get_device_pid(int device_identifier, int *children_pids, char **raw_info) {
     }
     return -1;
 }
-
+/* DEPRECATED
 char **get_device_info(int pid) {
     if (kill(pid, SIGUSR1) != 0) {
         return NULL;
@@ -187,7 +187,7 @@ char **get_device_info(int pid) {
         return vars;
     }
     return NULL;
-}
+}*/
 
 char *get_raw_device_info(int pid) {
     // const int MAX_ATTEMPTS = 3;
@@ -205,22 +205,22 @@ char *get_raw_device_info(int pid) {
     char *tmp = malloc(MAX_BUF_SIZE * sizeof(tmp));
 
     get_pipe_name(pid, pipe_str);
-    //
+    
     int fd = open(pipe_str, O_RDONLY);
-/*
+    
     fd_set set;
     struct timeval timeout;
 
-    // Initialize the file descriptor set. 
+    /* Initialize the file descriptor set. */
     FD_ZERO(&set);
     FD_SET(fd, &set);
 
-    // Initialize the timeout data structure.
-    timeout.tv_sec = 5;
-    timeout.tv_usec = 0;*/
+    /* Initialize the timeout data structure. */
+    timeout.tv_sec = 2;
+    timeout.tv_usec = 0;
 
     /* select returns 0 if timeout, 1 if input available, -1 if error. */
-    if (fd > 0) {  //&& select(FD_SETSIZE, &set, NULL, NULL, &timeout)) {
+    if (fd > 0 && select(FD_SETSIZE, &set, NULL, NULL, &timeout)) {
         lprintf("DEBUG: In read for PID: %d and pipe %s\n", pid, pipe_str);
         int _read = read(fd, tmp, MAX_BUF_SIZE);
         printf("End read, TMP: %s\n", tmp);
@@ -229,13 +229,11 @@ char *get_raw_device_info(int pid) {
         if (_read != 0) {
             //  lprintf("\n");
             return tmp;
-        }
-        else{
+        } else {
             lprintf("ERRORE in READDDDDDD\n");
         }
     } else {
-        
-        return;  //continue;
+        return NULL;  //continue;
     }
     //}
     // lprintf("\n");
@@ -391,7 +389,7 @@ int get_shell_pid() {
     return shellpid;
 }
 
-char** split_sons(char* __buf, int __count ){
+char **split_sons(char *__buf, int __count) {
     char *tokenizer = strtok(__buf, "-");
     char **vars = malloc((__count + 3) * sizeof(*vars));
     int j = 0;

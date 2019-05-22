@@ -16,7 +16,7 @@ int shellpid;
 void sighandle_sigterm(int signal) {
     int done = 1;
     int ppid = (int)getppid();
-    if (ppid != shellpid) {
+    /*if (ppid != shellpid) {
         kill(ppid, SIGUSR2);
         char pipe_str[MAX_BUF_SIZE];
         get_pipe_name(ppid, pipe_str);  // Nome della pipe
@@ -24,8 +24,8 @@ void sighandle_sigterm(int signal) {
         char tmp[MAX_BUF_SIZE];
         sprintf(tmp, "2|%d", (int)getpid());
         write(fd, tmp, sizeof(tmp));
-    }
-    
+    }*/
+
     int ret = __link_ex(children_pids, ppid, shellpid);
     if (done) {
         exit(0);
@@ -77,7 +77,7 @@ int check_override(int* over_index) {
     int ret = 0;
     for (i = 0; i < MAX_CHILDREN; i++) {
         if (children_pids[i] != -1) {
-            char** vars = get_device_info(children_pids[i]);
+            char** vars = split(get_device_raw_info(children_pids[i]));
             if (atoi(vars[3]) != status) {
                 over_index[i] = 1;
                 ret = 1;
@@ -106,8 +106,7 @@ void sighandle_usr2(int sig) {
 
     //Valore che indica lo stato di override o meno. Al MOMENTO INCARTAT TUTTO BOIA.
     override = check_override(over_index);
-    for(k=0; k < MAX_CHILDREN; k++){
-        
+    for (k = 0; k < MAX_CHILDREN; k++) {
     }
 
     if (code == 0) {

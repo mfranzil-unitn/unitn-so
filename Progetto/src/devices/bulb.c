@@ -17,7 +17,7 @@ int status = 0;  // interruttore accensione
 time_t start;
 
 void sighandle_sigterm(int signal) {
-    if ((int)getppid() != shellpid) {
+    /*if ((int)getppid() != shellpid) {
         int ppid = (int)getppid();
         kill(ppid, SIGUSR2);
         char pipe_str[MAX_BUF_SIZE];
@@ -26,7 +26,7 @@ void sighandle_sigterm(int signal) {
         char tmp[MAX_BUF_SIZE];
         sprintf(tmp, "2|%d", (int)getpid());
         write(fd, tmp, sizeof(tmp));
-    }
+    }*/
     exit(0);
 }
 
@@ -49,6 +49,7 @@ void sighandle_usr1(int sig) {
 }
 
 void sighandle_usr2(int sig) {
+    lprintf("Entering user2\n");
     // Al ricevimento del segnale, la finestra apre la pipe in lettura e ottiene cosa deve fare.
     // 0|... -> accendi/spegni lampadina
     // 1|... -> restituisci PID

@@ -82,7 +82,7 @@ void get_device_name_str(char *device_type, char *buf);
 int get_shell_pid();
 
 char *get_raw_device_info(int pid);
-char **get_device_info(int pid);
+/*char **get_device_info(int pid);*/
 
 int is_controller(int pid, char *raw_info);
 int hub_is_full(int pid, char *raw_info);
