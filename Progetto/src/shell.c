@@ -187,6 +187,8 @@ void link_child(int signal) {
     char *tmp = malloc(MAX_BUF_SIZE * sizeof(tmp));
     read(fd, tmp, MAX_BUF_SIZE);
     printf("End Read: %s\n\n", tmp);
+    int pgid = tmp[0]-'0';
+    tmp = tmp+2;
     int count = tmp[0] - '0';
         tmp = tmp + 2;
         char **vars = split_sons(tmp, count);

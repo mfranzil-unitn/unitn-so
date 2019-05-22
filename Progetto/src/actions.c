@@ -217,6 +217,7 @@ int __add(char *device, int device_index, int *children_pids, char *__out_buf) {
         return 0;
     }
 
+    int index = 0;
     pid_t pid = fork();
     if (pid == 0) {  // Figlio
         // Apro una pipe per padre-figlio
@@ -231,6 +232,7 @@ int __add(char *device, int device_index, int *children_pids, char *__out_buf) {
         char program_name[MAX_BUF_SIZE / 4];
         sprintf(program_name, "./%s%s", DEVICES_POSITIONS, device);
 
+        
         // Metto gli argomenti in un array e faccio exec
         lprintf("DEBUG: Executing %s %s %s\n", program_name, index_str, pipe_str);
         execlp(program_name, program_name, index_str, pipe_str, NULL);
@@ -238,7 +240,16 @@ int __add(char *device, int device_index, int *children_pids, char *__out_buf) {
         exit(0);
     } else {  // Padre
         children_pids[actual_index] = pid;
+       int ppid = (int)getpid();
 
+        if(ppid != get_shell_pid()){
+            char* tmp = get_raw_device_info(ppid);
+            char** info = split(tmp);
+            index = atoi(info[2]);
+            printf("INDEX: %d\n", index);
+        }
+        setpgid(pid, index);
+        printf("PID: %d, PGID: %d\n", pid, index);
         char device_name[MAX_BUF_SIZE];
         get_device_name_str(device, device_name);
 
@@ -316,6 +327,7 @@ void __del(int index, int *children_pids, char *__out_buf) {
     }
 }
 
+
 void __link(int index, int controller, int *children_pids) {
     char *raw_device_info = NULL;
     int device_pid = get_device_pid(index, children_pids, &raw_device_info);
@@ -343,7 +355,7 @@ void __link(int index, int controller, int *children_pids) {
         return;
     }
 
-    if (is_controller(controller_pid, raw_controller_info)) {
+   if (is_controller(controller_pid, raw_controller_info)) {
         if (!hub_is_full(controller_pid, raw_controller_info)) {
             char buf[MAX_BUF_SIZE];
             sprintf(buf, "1|");
@@ -470,7 +482,7 @@ int __link_ex(int *son_pids, int parent_pid, int shellpid) {
     }
     printf("Exiting For\n");
     char buffer[MAX_BUF_SIZE + 24];
-    sprintf(buffer, "%d%s", count, buf);
+    sprintf(buffer, "%d-%d%s",controller, count+1, buf);
     char controller_pipe_name[MAX_BUF_SIZE];
     get_pipe_name(parent_pid, controller_pipe_name);
     lprintf("DEBUG: Killing %d\n", parent_pid);
