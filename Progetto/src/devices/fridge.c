@@ -16,12 +16,12 @@ void sighandle_sigterm(int signal) {
         int ppid = (int)getppid();
         kill(ppid, SIGUSR2);
         char pipe_str[MAX_BUF_SIZE];
-        get_pipe_name(ppid, pipe_str);  Nome della pipe
-    int fd = open(pipe_str, O_RDWR);
-    char tmp[MAX_BUF_SIZE];
-    sprintf(tmp, "2|%d", (int)getpid());
-    write(fd, tmp, sizeof(tmp));
-}
+        get_pipe_name(ppid, pipe_str);  // Nome della pipe
+        int fd = open(pipe_str, O_RDWR);
+        char tmp[MAX_BUF_SIZE];
+        sprintf(tmp, "2|%d", (int)getpid());
+        write(fd, tmp, sizeof(tmp));
+    }
 */
     exit(0);
 }

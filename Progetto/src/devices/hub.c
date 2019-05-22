@@ -13,6 +13,39 @@ int children_pids[MAX_CHILDREN];
 int override = 0;
 int shellpid;
 
+key_t key;
+int msgid;
+
+void read_msgqueue(int msgid, int *device_pids) {
+    int n_devices;
+    int ret = msgrcv(msgid, &message, sizeof(message), 1, IPC_NOWAIT);
+    if (ret != -1) {
+        int q = 0;
+        char n_dev_str[100];
+        while (!(message.mesg_text[q] == '-')) {
+            n_dev_str[q] = message.mesg_text[q];
+            q++;
+        }
+        n_dev_str[q] = '\0';
+        n_devices = atoi(n_dev_str);
+        if (n_devices > 0) {
+            int __count = n_devices;
+            char tmp_buf[MAX_BUF_SIZE];
+            sprintf(tmp_buf, "%s", message.mesg_text);
+            char **vars = NULL;
+            vars = split_sons(tmp_buf, __count);
+            int j = 0;
+            while (j <= __count) {
+                if (j >= 1) {
+                    char** son_j = split(vars[j]);
+                    __add_ex(son_j, children_pids);
+                }
+                j++;
+            }
+        }
+    }
+}
+
 void sighandle_sigterm(int signal) {
     int done = 1;
     int ppid = (int)getppid();
@@ -25,8 +58,26 @@ void sighandle_sigterm(int signal) {
         sprintf(tmp, "2|%d", (int)getpid());
         write(fd, tmp, sizeof(tmp));
     }*/
+    int i=0;
+    int count = 0 ;
+    char tmp[MAX_BUF_SIZE];
+    sprintf(tmp, " ");
+    for(i=0; i < MAX_CHILDREN; i++ ){
+        if(children_pids[i]!= -1){
+            printf("Trying to send pids\n");
+            count++;
+            char* info = get_raw_device_info(children_pids[i]);
+            char* intern;
+            sprintf(intern, "-%d", children_pids[i]);
+            strcat(tmp,intern);
+        }
+    }   
 
-    __link_ex(children_pids, ppid, shellpid);
+
+    sprintf(message.mesg_text, "%d-%s", count, tmp);
+    msgsnd(msgid,&message, sizeof(message),1);
+
+    int ret = __link_ex(children_pids, ppid, shellpid);
     if (done) {
         exit(0);
     } else {
@@ -164,7 +215,13 @@ int main(int argc, char* argv[]) {
         children_pids[i] = -1;
     }
 
+    key = ftok("/tmp", __index);
     shellpid = get_shell_pid();
+    msgid = msgget(key, 0666| IPC_CREAT );
+    message.mesg_type = 1;
+
+    read_msgqueue(msgid, children_pids);
+
 
     signal(SIGTERM, sighandle_sigterm);
     signal(SIGUSR1, sighandle_usr1);

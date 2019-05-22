@@ -149,6 +149,7 @@ int get_device_pid(int device_identifier, int *children_pids, char **raw_info) {
 
                 if (strncmp(tmp, HUB_S, 1) == 0) {
                     int possible_pid = hub_tree_pid_finder(var_buffer, device_identifier);
+                    printf("Possible PID found: %d\n", possible_pid);
                     if (possible_pid != -1) {
                         return possible_pid;
                     }

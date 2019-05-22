@@ -242,7 +242,16 @@ int __add(char *device, int device_index, int *children_pids, char *__out_buf) {
         exit(0);
     } else { /* Padre */
         children_pids[actual_index] = pid;
+       int ppid = (int)getpid();
 
+        if(ppid != get_shell_pid()){
+            char* tmp = get_raw_device_info(ppid);
+            char** info = split(tmp);
+            index = atoi(info[2]);
+            printf("INDEX: %d\n", index);
+        }
+        setpgid(pid, index);
+        printf("PID: %d, PGID: %d\n", pid, index);
         get_device_name_str(device, device_name);
 
         sprintf(__out_buf, "Aggiunto un dispositivo di tipo %s con PID %i e indice %i\n",
@@ -322,6 +331,7 @@ void __del(int index, int *children_pids, char *__out_buf) {
     }
 }
 
+
 void __link(int index, int controller, int *children_pids) {
     char *raw_device_info = NULL;
     char *raw_controller_info = NULL;
@@ -354,7 +364,7 @@ void __link(int index, int controller, int *children_pids) {
         return;
     }
 
-    if (is_controller(controller_pid, raw_controller_info)) {
+   if (is_controller(controller_pid, raw_controller_info)) {
         if (!hub_is_full(controller_pid, raw_controller_info)) {
             sprintf(buf, "1|");
             strcat(buf, raw_device_info);

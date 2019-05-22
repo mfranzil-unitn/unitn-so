@@ -191,23 +191,24 @@ void stop_sig(int sig) {
 
 void link_child(int signal) {
     char *tmp, **vars, **var_tmp;
-    int count, i;
+    int count, i, pgid;
 
     printf("Link_Child\n");
     /*Analogamente ad Hub */
     tmp = malloc(MAX_BUF_SIZE * sizeof(tmp));
     read(fd, tmp, MAX_BUF_SIZE);
     printf("End Read: %s\n\n", tmp);
+    pgid = tmp[0]-'0';
+    tmp = tmp+2;
     count = tmp[0] - '0';
-    tmp = tmp + 2;
-    vars = split_sons(tmp, count);
-    printf("VARSSSS\n   %s\n    %s\n", vars[0], vars[1]);
-    i = 0;
-    for (i = 0; i < count; i++) {
-        printf("Var %d: %s\n", i, vars[i]);
-        var_tmp = split(vars[i]);
-        __add_ex(var_tmp, children_pids);
-    }
-    free(vars);
-    free(tmp - 2);
+        tmp = tmp + 2;
+        vars = split_sons(tmp, count);
+        printf("VARSSSS\n   %s\n    %s\n", vars[0], vars[1]);
+        for(i=0; i < count; i++){
+            printf("Var %d: %s\n", i, vars[i]);
+            var_tmp = split(vars[i]);
+            __add_ex(var_tmp, children_pids);
+        }
+        free(vars);
+        free(tmp - 2);
 }
