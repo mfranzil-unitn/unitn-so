@@ -44,7 +44,6 @@ void read_msgqueue_hub(int msgid, int* device_pids) {
                 if (j >= 1) {
                     printf("Reading: %s\n", vars[j]);
                     char** son_j = split(vars[j]);
-                    
                     printf("Vars 0: %s  -Vars 2: %s-\n", son_j[0], son_j[2]);
                     __add_ex(son_j, children_pids);
                 }
@@ -145,7 +144,7 @@ int check_override(int* over_index) {
     int ret = 0;
     for (i = 0; i < MAX_CHILDREN; i++) {
         if (children_pids[i] != -1) {
-            char** vars = get_device_info(children_pids[i]);
+            char** vars = split(get_raw_device_info(children_pids[i]));
             if (atoi(vars[3]) != status) {
                 over_index[i] = 1;
                 ret = 1;
@@ -227,10 +226,8 @@ int main(int argc, char* argv[]) {
     }
 
     shellpid = get_shell_pid();
-
     key = ftok("/tmp", __index);
-            msgid = msgget(key, 0666|IPC_CREAT);
-
+    msgid = msgget(key, 0666 | IPC_CREAT);
     read_msgqueue_hub(msgid, children_pids);
 
     signal(SIGTERM, sighandle_sigterm);
@@ -239,7 +236,7 @@ int main(int argc, char* argv[]) {
     signal(SIGCHLD, SIG_IGN);
 
     while (1) {
-        ;//sleep(10);
+        ;  //sleep(10);
     }
 
     return 0;

@@ -14,6 +14,16 @@ int main(int argc, char *argv[]) {
 
     char(*buf)[MAX_BUF_SIZE] = malloc(MAX_BUF_SIZE * sizeof(char *));  // array che conterrà i comandi da eseguire
 
+    int i=0;
+    for(i=0; i < MAX_CHILDREN; i++){
+        key_t key;
+        key = ftok("/tmp", i);
+        int msgid;
+        msgid = msgget(key, 0666|IPC_CREAT);
+    }
+
+    key_t key;
+    int msgid;
     int cmd_n;  // numero di comandi disponibili
 
     int device_pids[MAX_CHILDREN];  // array contenenti i PID dei figli
