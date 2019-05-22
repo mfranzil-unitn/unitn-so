@@ -22,10 +22,11 @@ int main(int argc, char *argv[]) {
     int j;
     char *name;
 
+    int i = 0;
+
     buf = malloc(MAX_BUF_SIZE * sizeof(char *));
     name = get_shell_text();
 
-    int i = 0;
     for (i = 0; i < MAX_CHILDREN; i++) {
         key = ftok("/tmp", i);
         msgid = msgget(key, 0666 | IPC_CREAT);
@@ -43,9 +44,6 @@ int main(int argc, char *argv[]) {
         system("clear");
     }
 
-    char *name = get_shell_text();
-
-    int i = 0;
     for (i = 0; i < MAX_CHILDREN; i++) {
         key_t key;
         key = ftok("/tmp", i);
@@ -54,9 +52,7 @@ int main(int argc, char *argv[]) {
     }
 
     // Creo message queue tra shell e launcher.
-    key_t key;
     key = ftok("/tmp", 1000);
-    int msgid;
     msgid = msgget(key, 0666 | IPC_CREAT);
     // Ripulisco inizialmente per evitare errori.
     msgrcv(msgid, &message, sizeof(message), 1, IPC_NOWAIT);

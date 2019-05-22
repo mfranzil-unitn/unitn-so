@@ -47,7 +47,6 @@ void sighandle_usr1(int sig) {
 }
 
 void sighandle_usr2(int sig) {
-
     /* Al ricevimento del segnale, la finestra apre la pipe in lettura e ottiene cosa deve fare.
     0|... -> accendi/spegni lampadina
     1|... -> restituisci PID*/
@@ -57,7 +56,7 @@ void sighandle_usr2(int sig) {
     vars = split_fixed(tmp, 2);
     lprintf("Entering user2\n");
     read(fd, tmp, MAX_BUF_SIZE);
-    char** vars = split_fixed(tmp, 2);
+    vars = split_fixed(tmp, 2);
 
     if (atoi(vars[0]) == 0) {
         if (!status) {
