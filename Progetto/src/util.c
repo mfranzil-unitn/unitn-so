@@ -375,15 +375,14 @@ int hub_tree_pid_finder(char *__buf, int id) {
 }
 
 int get_shell_pid() {
-    /*Creo message queue per comunicare shellpid */
-    int msgid_sh, shellpid;
+    //Creo message queue per comunicare shellpid
     key_t key_sh;
-
     key_sh = ftok("/tmp", 20);
+    int msgid_sh;
     msgid_sh = msgget(key_sh, 0666 | IPC_CREAT);
     message.mesg_type = 1;
     msgrcv(msgid_sh, &message, sizeof(message), 1, IPC_NOWAIT);
-    shellpid = atoi(message.mesg_text);
+    int shellpid = atoi(message.mesg_text);
     sprintf(message.mesg_text, "%d", shellpid);
     msgsnd(msgid_sh, &message, MAX_BUF_SIZE, 1);
     return shellpid;

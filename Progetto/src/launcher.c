@@ -19,6 +19,14 @@ int main(int argc, char *argv[]) {
     int j;
     char *name = get_shell_text();
 
+    int i=0;
+    for(i=0; i < MAX_CHILDREN; i++){
+        key_t key;
+        key = ftok("/tmp", i);
+        int msgid;
+        msgid = msgget(key, 0666|IPC_CREAT);
+    }
+
     key_t key;
     int msgid;
 
