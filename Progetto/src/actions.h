@@ -6,11 +6,11 @@
 void __switch(int device, char *action, char *position, int *children_pids);
 void __info(int index, int *children_pids);
 void __list(int *children_pids);
-void __print(char** vars);
+void __print(char **vars);
 int __add(char *device, int device_index, int *children_pids, char *__out_buf);
 void __del(int index, int *children_pids, char *__out_buf);
 void __link(int index1, int index2, int *children_pids);
 void __add_ex(char **vars, int *children_pids);
-int __link_ex(int* son_pids, int parent_pid, int shellpid);
+int __link_ex(int *son_pids, int parent_pid, int shellpid);
 
 #endif

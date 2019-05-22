@@ -60,7 +60,7 @@
 #define LINK_STRING \
     "Sintassi: link <id> to <controller>\n"
 
-// structure for message queue
+/* structure for message queue */
 struct mesg_buffer {
     long mesg_type;
     char mesg_text[MAX_BUF_SIZE];

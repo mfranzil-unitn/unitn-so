@@ -1,13 +1,38 @@
 #include "shell.h"
 
-// extern int print_mode;
+/* extern int print_mode; */
 
 int ppid;
-int stato = 1;                    //Stato della centralina.
-int children_pids[MAX_CHILDREN];  // array contenenti i PID dei figli
+int stato = 1;                   /*Stato della centralina. */
+int children_pids[MAX_CHILDREN]; /* array contenenti i PID dei figli */
 int fd;
 
 int main(int argc, char *argv[]) {
+    char __out_buf[MAX_BUF_SIZE];                                     /* Per la stampa dell'output delle funzioni */
+    char(*buf)[MAX_BUF_SIZE]; /* array che conterrà i comandi da eseguire */
+    char *name;                            /* Mostrato a ogni riga della shell */
+
+    int cmd_n;        /* numero di comandi disponibili */
+    int device_i = 0; /* indice progressivo dei dispositivi */
+    int j;
+
+    char pipe[MAX_BUF_SIZE];
+
+    key_t key;
+    int msgid;
+
+    key_t key_sh;
+    int msgid_sh;
+
+    char current_msg[MAX_BUF_SIZE] = "0|";
+
+    char tmp_c[MAX_BUF_SIZE];
+    char child[8];
+    int i = 0;
+
+    buf = malloc(MAX_BUF_SIZE * sizeof(char *));
+    name = get_shell_text();
+
     printf("MYPID: %d\n", (int)getpid());
     signal(SIGUSR1, stop_sig);
     signal(SIGTERM, cleanup_sig);
@@ -16,73 +41,56 @@ int main(int argc, char *argv[]) {
     signal(SIGINT, SIG_IGN);
     signal(SIGCHLD, SIG_IGN);
 
-    char(*buf)[MAX_BUF_SIZE] = malloc(MAX_BUF_SIZE * sizeof(char *));  // array che conterrà i comandi da eseguire
-    char __out_buf[MAX_BUF_SIZE];                                      // Per la stampa dell'output delle funzioni
-    char *name = get_shell_text();                                     // Mostrato a ogni riga della shell
-
-    int cmd_n;         // numero di comandi disponibili
-    int device_i = 0;  // indice progressivo dei dispositivi
-
-    char pipe[MAX_BUF_SIZE];
     get_pipe_name((int)getpid(), pipe);
     mkfifo(pipe, 0666);
     fd = open(pipe, O_RDWR);
 
-    // Inizializzo l'array dei figli
-    int j;
+    /* Inizializzo l'array dei figli */
     for (j = 0; j < MAX_CHILDREN; j++) {
-        children_pids[j] = -1;  // se è -1 non contiene nulla
+        children_pids[j] = -1; /* se è -1 non contiene nulla */
     }
 
-    // PID del launcher.
+    /* PID del launcher. */
     ppid = atoi(argv[1]);
 
     signal(SIGHUP, handle_sig);
 
-    // Credo message queue tra shell e launcher
-    key_t key;
+    /* Credo message queue tra shell e launcher */
     key = ftok("/tmp", 10);
-    int msgid;
     msgid = msgget(key, 0666 | IPC_CREAT);
     message.mesg_type = 1;
 
-    //Creo message queue per comunicare shellpid
-    key_t key_sh;
+    /*Creo message queue per comunicare shellpid */
     key_sh = ftok("/tmp", 20);
-    int msgid_sh;
     msgid_sh = msgget(key_sh, 0666 | IPC_CREAT);
     message.mesg_type = 1;
 
-    char current_msg[MAX_BUF_SIZE] = "0|";
     sprintf(message.mesg_text, "%d", (int)getpid());
     msgsnd(msgid_sh, &message, MAX_BUF_SIZE, 0);
-   
-    // Ready
+
+    /* Ready */
     system("clear");
 
     while (1) {
         if (stato) {
-            //Scrive numero devices e elenco dei pid a launcher.
-                //Ripulisco Forzatamente.
-                msgrcv(msgid, &message, MAX_BUF_SIZE, 1, IPC_NOWAIT);
+            /*Scrive numero devices e elenco dei pid a launcher. */
+            /*Ripulisco Forzatamente. */
+            msgrcv(msgid, &message, MAX_BUF_SIZE, 1, IPC_NOWAIT);
 
-                char tmp_c[MAX_BUF_SIZE];
-                sprintf(tmp_c, "%d|", device_i);
-                char child[8];
-                int i = 0;
-                while (i < device_i) {
-                    sprintf(child, "%d|", children_pids[i]);
-                    strcat(tmp_c, child);
-                    i++;
-                }
-                sprintf(message.mesg_text, "%s", tmp_c);
-                sprintf(current_msg, "%s", message.mesg_text);
-                msgsnd(msgid, &message, MAX_BUF_SIZE, 0);
+            sprintf(tmp_c, "%d|", device_i);
+            while (i < device_i) {
+                sprintf(child, "%d|", children_pids[i]);
+                strcat(tmp_c, child);
+                i++;
+            }
+            sprintf(message.mesg_text, "%s", tmp_c);
+            sprintf(current_msg, "%s", message.mesg_text);
+            msgsnd(msgid, &message, MAX_BUF_SIZE, 0);
 
             printf("\e[92m%s\e[39m:\e[31mCentralina\033[0m$ ", name);
             cmd_n = parse(buf, cmd_n);
 
-            if (strcmp(buf[0], "help") == 0) {  // guida
+            if (strcmp(buf[0], "help") == 0) { /* guida */
                 printf(HELP_STRING);
             } else if (strcmp(buf[0], "list") == 0) {
                 if (cmd_n != 0) {
@@ -124,21 +132,21 @@ int main(int argc, char *argv[]) {
                 } else {
                     __link(atoi(buf[1]), atoi(buf[3]), children_pids);
                 }
-            } else if (strcmp(buf[0], "exit") == 0) {  // supponiamo che l'utente scriva solo "exit" per uscire
+            } else if (strcmp(buf[0], "exit") == 0) { /* supponiamo che l'utente scriva solo "exit" per uscire */
                 kill(ppid, SIGTERM);
                 break;
-            } else if (strcmp(buf[0], "\0") == 0) {  // a capo a vuoto
+            } else if (strcmp(buf[0], "\0") == 0) { /* a capo a vuoto */
                 continue;
-            } else {  //tutto il resto
+            } else { /*tutto il resto */
                 printf("Comando non riconosciuto. Usa help per visualizzare i comandi disponibili\n");
             }
         } else {
-            //Ripulisco forzatamente.
+            /*Ripulisco forzatamente. */
             msgrcv(msgid, &message, MAX_BUF_SIZE, 1, IPC_NOWAIT);
-            //A centralina spenta continuo a scrivere il vecchio stato sulla messagequeue.
+            /*A centralina spenta continuo a scrivere il vecchio stato sulla messagequeue. */
             sprintf(message.mesg_text, "%s", current_msg);
             msgsnd(msgid, &message, MAX_BUF_SIZE, 0);
-            getchar();  //Per ignorare i comandi quando non accessa.
+            getchar(); /*Per ignorare i comandi quando non accessa. */
         }
     }
     free(buf);
@@ -182,21 +190,24 @@ void stop_sig(int sig) {
 }
 
 void link_child(int signal) {
+    char *tmp, **vars, **var_tmp;
+    int count, i;
+
     printf("Link_Child\n");
-    //Analogamente ad Hub
-    char *tmp = malloc(MAX_BUF_SIZE * sizeof(tmp));
+    /*Analogamente ad Hub */
+    tmp = malloc(MAX_BUF_SIZE * sizeof(tmp));
     read(fd, tmp, MAX_BUF_SIZE);
     printf("End Read: %s\n\n", tmp);
-    int count = tmp[0] - '0';
-        tmp = tmp + 2;
-        char **vars = split_sons(tmp, count);
-        printf("VARSSSS\n   %s\n    %s\n", vars[0], vars[1]);
-        int i =0;
-        for(i=0; i < count; i++){
-            printf("Var %d: %s\n", i, vars[i]);
-            char** var_tmp = split(vars[i]);
-            __add_ex(var_tmp, children_pids);
-        }
-        free(vars);
-        free(tmp - 2);
+    count = tmp[0] - '0';
+    tmp = tmp + 2;
+    vars = split_sons(tmp, count);
+    printf("VARSSSS\n   %s\n    %s\n", vars[0], vars[1]);
+    i = 0;
+    for (i = 0; i < count; i++) {
+        printf("Var %d: %s\n", i, vars[i]);
+        var_tmp = split(vars[i]);
+        __add_ex(var_tmp, children_pids);
+    }
+    free(vars);
+    free(tmp - 2);
 }

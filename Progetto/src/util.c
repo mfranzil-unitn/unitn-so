@@ -4,7 +4,7 @@ int print_mode = 1;
 */
 void lprintf(const char *__restrict__ __format, ...) {
     va_list(args);
-    //  printf("%d - ", time(NULL));
+    /*  printf("%d - ", time(NULL)); */
     va_start(args, __format);
     printf("\033[0;31m");
     vfprintf(stdout, __format, args);
@@ -13,8 +13,8 @@ void lprintf(const char *__restrict__ __format, ...) {
 }
 
 int parse(char buf[][MAX_BUF_SIZE], int cmd_n) {
-    char ch;   // carattere usato per la lettura dei comandi
-    int ch_i;  // indice del carattere corrente
+    char ch;  /* carattere usato per la lettura dei comandi */
+    int ch_i; /* indice del carattere corrente */
 
     ch = ' ';
     ch_i = -1;
@@ -36,10 +36,10 @@ int parse(char buf[][MAX_BUF_SIZE], int cmd_n) {
 }
 
 char **split(char *__buf) {
-    // Divide una stringa presa dalla pipe
-    // a seconda del dispositivo.
+    /* Divide una stringa presa dalla pipe */
+    /* a seconda del dispositivo. */
 
-    // La prima cifra di __buf è sempre il tipo di dispositivo.
+    /* La prima cifra di __buf è sempre il tipo di dispositivo. */
 
     int device = __buf[0] - '0';
     int __count;
@@ -133,7 +133,9 @@ void get_device_name_str(char *device_type, char *buf) {
 
 int get_device_pid(int device_identifier, int *children_pids, char **raw_info) {
     int i;
-    for (i = 0; i < MAX_CHILDREN; i++) {  // l'indice i è logicamente indipendente dal nome/indice del dispositivo
+    char var_buffer[MAX_BUF_SIZE];
+
+    for (i = 0; i < MAX_CHILDREN; i++) { /* l'indice i è logicamente indipendente dal nome/indice del dispositivo */
         int children_pid = children_pids[i];
         if (children_pid != -1) {
             char *tmp = get_raw_device_info(children_pid);
@@ -142,8 +144,7 @@ int get_device_pid(int device_identifier, int *children_pids, char **raw_info) {
                     *raw_info = tmp;
                 }
 
-                // Evito fastidiose modifiche a TMP da strtok
-                char var_buffer[MAX_BUF_SIZE];
+                /* Evito fastidiose modifiche a TMP da strtok */
                 strcpy(var_buffer, tmp);
 
                 if (strncmp(tmp, HUB_S, 1) == 0) {
@@ -182,7 +183,6 @@ char **get_device_info(int pid) {
     if (fd > 0) {
         read(fd, tmp, MAX_BUF_SIZE);
         char **vars = split(tmp);
-        // Pulizia
         close(fd);
         return vars;
     }
@@ -190,26 +190,26 @@ char **get_device_info(int pid) {
 }*/
 
 char *get_raw_device_info(int pid) {
-    // const int MAX_ATTEMPTS = 3;
-    //  lprintf("DEBUG: Attempt 0");
+    /* const int MAX_ATTEMPTS = 3; */
+    /*  lprintf("DEBUG: Attempt 0"); */
 
-    //  int i;
-    //   for (i = 0; i < MAX_ATTEMPTS; i++) {
-    //    lprintf("\b%d", i + 1);
-    int kill_o = kill(pid, SIGUSR1);
-    if (kill_o != 0) {
-        return NULL;  //continue;
-    }
-
+    /*  int i; */
+    /*   for (i = 0; i < MAX_ATTEMPTS; i++) { */
+    /*    lprintf("\b%d", i + 1); */
     char pipe_str[MAX_BUF_SIZE];
-    char *tmp = malloc(MAX_BUF_SIZE * sizeof(tmp));
-
-    get_pipe_name(pid, pipe_str);
-    
-    int fd = open(pipe_str, O_RDONLY);
-    
+    int fd, _read;
+    char *tmp;
     fd_set set;
     struct timeval timeout;
+
+    int kill_o = kill(pid, SIGUSR1);
+    if (kill_o != 0) {
+        return NULL; /*continue; */
+    }
+
+    tmp = malloc(MAX_BUF_SIZE * sizeof(tmp));
+    get_pipe_name(pid, pipe_str);
+    fd = open(pipe_str, O_RDONLY);
 
     /* Initialize the file descriptor set. */
     FD_ZERO(&set);
@@ -222,21 +222,21 @@ char *get_raw_device_info(int pid) {
     /* select returns 0 if timeout, 1 if input available, -1 if error. */
     if (fd > 0 && select(FD_SETSIZE, &set, NULL, NULL, &timeout)) {
         lprintf("DEBUG: In read for PID: %d and pipe %s\n", pid, pipe_str);
-        int _read = read(fd, tmp, MAX_BUF_SIZE);
+        _read = read(fd, tmp, MAX_BUF_SIZE);
         printf("End read, TMP: %s\n", tmp);
-        // Pulizia
+        /* Pulizia */
         close(fd);
         if (_read != 0) {
-            //  lprintf("\n");
+            /*  lprintf("\n"); */
             return tmp;
         } else {
             lprintf("ERRORE in READDDDDDD\n");
         }
     } else {
-        return NULL;  //continue;
+        return NULL; /*continue; */
     }
-    //}
-    // lprintf("\n");
+    /*} */
+    /* lprintf("\n"); */
     return NULL;
 }
 
@@ -268,9 +268,10 @@ void hub_tree_print(char **vars) {
 }
 
 void hub_tree_spaces(int level) {
+    int j;
+
     if (level > 0) {
         printf("\n");
-        int j;
         for (j = 0; j < level; j++) {
             printf("  ");
         }
@@ -282,25 +283,24 @@ void hub_tree_parser(char *__buf) {
     char *tokenizer = strtok(__buf, "|");
     char *old = NULL;
     int level = 0;
-
-    // printf("Level_a %d\n", level);
-
-    char **vars = malloc((FRIDGE_PARAMETERS + 4) * sizeof(*vars));
+    char **vars;
     int i = 0;
     int to_be_printed = 1;
 
-    while (tokenizer != NULL) {
-        // printf("\nLevel %d tokenizer %s to_be_printed %d\n", level, tokenizer, to_be_printed);
+    /* printf("Level_a %d\n", level); */
 
-        int j;
+    vars = malloc((FRIDGE_PARAMETERS + 4) * sizeof(*vars));
+
+    while (tokenizer != NULL) {
+        /* printf("\nLevel %d tokenizer %s to_be_printed %d\n", level, tokenizer, to_be_printed); */
         if (strcmp(tokenizer, "<!") == 0) {
             to_be_printed += atoi(old) - 1;
             hub_tree_spaces(level);
             i = 0;
-            ++level;  //  printf("\nLevel_b %d\n", level);
+            ++level; /*  printf("\nLevel_b %d\n", level); */
             hub_tree_print(vars);
         } else if (strcmp(tokenizer, "!>") == 0) {
-            --level;  //  printf("\nLevel_c %d\n", level);
+            --level; /*  printf("\nLevel_c %d\n", level); */
             if (!strcmp(old, "<!") == 0 && to_be_printed > 0) {
                 i = 0;
                 hub_tree_spaces(level);
@@ -316,7 +316,7 @@ void hub_tree_parser(char *__buf) {
             }
         } else {
             vars[i++] = tokenizer;
-            //printf("%s, ", tokenizer);
+            /*printf("%s, ", tokenizer); */
         }
         old = tokenizer;
         tokenizer = strtok(NULL, "|");
@@ -328,18 +328,16 @@ void hub_tree_parser(char *__buf) {
 int hub_tree_pid_finder(char *__buf, int id) {
     char *tokenizer = strtok(__buf, "|");
     char *old = NULL;
-    int level = 0;
-
-    //printf("Level %d\n", level);
-
-    // DISPOSITIVO; PID; ID
-
-    char **vars = malloc((FRIDGE_PARAMETERS + 4) * sizeof(*vars));
+    char **vars;
     int i = 0;
     int to_be_printed = 1;
+    /*printf("Level %d\n", level); */
+
+    /* DISPOSITIVO; PID; ID */
+
+    vars = malloc((FRIDGE_PARAMETERS + 4) * sizeof(*vars));
 
     while (tokenizer != NULL) {
-        int j;
         if (strcmp(tokenizer, "<!") == 0) {
             to_be_printed += atoi(old) - 1;
             i = 0;
@@ -366,7 +364,7 @@ int hub_tree_pid_finder(char *__buf, int id) {
             }
         } else {
             vars[i++] = tokenizer;
-            //printf("%s, ", tokenizer);
+            /*printf("%s, ", tokenizer); */
         }
         old = tokenizer;
         tokenizer = strtok(NULL, "|");
@@ -376,23 +374,27 @@ int hub_tree_pid_finder(char *__buf, int id) {
 }
 
 int get_shell_pid() {
-    //Creo message queue per comunicare shellpid
+    /*Creo message queue per comunicare shellpid */
+    int msgid_sh, shellpid;
     key_t key_sh;
+
     key_sh = ftok("/tmp", 20);
-    int msgid_sh;
     msgid_sh = msgget(key_sh, 0666 | IPC_CREAT);
     message.mesg_type = 1;
     msgrcv(msgid_sh, &message, sizeof(message), 1, IPC_NOWAIT);
-    int shellpid = atoi(message.mesg_text);
+    shellpid = atoi(message.mesg_text);
     sprintf(message.mesg_text, "%d", shellpid);
     msgsnd(msgid_sh, &message, MAX_BUF_SIZE, 1);
     return shellpid;
 }
 
 char **split_sons(char *__buf, int __count) {
-    char *tokenizer = strtok(__buf, "-");
-    char **vars = malloc((__count + 3) * sizeof(*vars));
     int j = 0;
+    char *tokenizer;
+    char **vars;
+
+    tokenizer = strtok(__buf, "-");
+    vars = malloc((__count + 3) * sizeof(*vars));
     while (tokenizer != NULL && j <= __count) {
         vars[j++] = tokenizer;
         tokenizer = strtok(NULL, "-");

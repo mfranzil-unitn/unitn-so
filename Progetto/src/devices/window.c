@@ -1,6 +1,6 @@
 #include "../util.h"
 
-// Window = 3
+/* Window = 3 */
 
 /*
 Suppongo che i due interruttori che comandano la finestra Interr_Aperto e
@@ -12,13 +12,13 @@ Sia lo switch della centarlina sia lo switch "manuale" modificano lo stato degli
 Con il comando switch permetto solo: switch <id> <Interr_Aperto/Chiuso> ON   	
 */
 
-int fd;                // file descriptor della pipe verso il padre
-char* pipe_fd = NULL;  // nome della pipe
-//char log_buf[512];     // buffer della pipe
+int fd;               /* file descriptor della pipe verso il padre */
+char* pipe_fd = NULL; /* nome della pipe */
+/*char log_buf[512];     // buffer della pipe */
 int shellpid;
-int pid, __index, delay;  // variabili di stato
+int pid, __index, delay; /* variabili di stato */
 
-int status = 0;  // interruttore apertura
+int status = 0; /* interruttore apertura */
 time_t start;
 
 void sighandle_sigterm(int signal) {
@@ -26,7 +26,7 @@ void sighandle_sigterm(int signal) {
         int ppid = (int)getppid();
         kill(ppid, SIGUSR2);
         char pipe_str[MAX_BUF_SIZE];
-        get_pipe_name(ppid, pipe_str);  // Nome della pipe
+        get_pipe_name(ppid, pipe_str);   Nome della pipe
         int fd = open(pipe_str, O_RDWR);
         char tmp[MAX_BUF_SIZE];
         sprintf(tmp, "2|%d", (int)getpid());
@@ -52,12 +52,13 @@ void sighandle_usr1(int sig) {
 }
 
 void sighandle_usr2(int sig) {
-    // Al ricevimento del segnale, la finestra apre la pipe in lettura e ottiene cosa deve fare.
-    // 0|... -> chiudi/apri finestra
+    /* Al ricevimento del segnale, la finestra apre la pipe in lettura e ottiene cosa deve fare. */
+    /* 0|... -> chiudi/apri finestra */
     char tmp[MAX_BUF_SIZE];
+    char ** vars;
 
     read(fd, tmp, MAX_BUF_SIZE);
-    char** vars = split_fixed(tmp, 2);
+    vars = split_fixed(tmp, 2);
 
     if (atoi(vars[0]) == 0) {
         if (!status) {
@@ -71,7 +72,7 @@ void sighandle_usr2(int sig) {
 }
 
 int main(int argc, char* argv[]) {
-    // argv = [./window, indice, /tmp/pid];
+    /* argv = [./window, indice, /tmp/pid]; */
     pipe_fd = argv[2];
     pid = getpid();
     __index = atoi(argv[1]);
