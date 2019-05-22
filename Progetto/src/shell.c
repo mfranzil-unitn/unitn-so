@@ -154,7 +154,7 @@ int main(int argc, char *argv[]) {
 }
 
 int add_shell(char buf[][MAX_BUF_SIZE], int *device_i, int *children_pids, char *__out_buf) {
-    if (strcmp(buf[1], "bulb") == 0 || strcmp(buf[1], "fridge") == 0 || strcmp(buf[1], "window") == 0 || strcmp(buf[1], "hub") == 0) {
+    if (strcmp(buf[1], "bulb") == 0 || strcmp(buf[1], "fridge") == 0 || strcmp(buf[1], "window") == 0 || strcmp(buf[1], "hub") == 0 || strcmp(buf[1], "timer") == 0) {
         (*device_i)++;
         if (__add(buf[1], *device_i, children_pids, __out_buf) == 0) {
             (*device_i)--;

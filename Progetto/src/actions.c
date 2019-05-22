@@ -145,6 +145,22 @@ void __switch(int index, char *action, char *position, int *children_pids) {
         } else {
             printf("Operazione non permessa su un hub!\nOperazioni permesse: accensione\n");
         }
+    } else if (strcmp(vars[0], TIMER_S) == 0) {
+        if (strcmp(action, "orario") == 0) {
+            int h_start, m_start, h_end, m_end;
+            /* Aggiungere controlli sugli orari */
+            int scan = sscanf("%d:%d -> %d:%d", h_start, m_start, h_end, m_end);
+            if (scan != 4 || h_start < 0 || h_start > 23 || h_end < 0 || h_end > 59 || h_start > h_end || m_start > m_end) {
+                printf("Formattazione degli orari sbagliata. Formato (24 ore): \"HH:MM -> HH:MM\"\n");
+            } else {
+                sprintf(pipe_message, "0|%d|%d|%d|%d", h_start, m_start, h_end, m_end);
+                write(fd, pipe_message, MAX_BUF_SIZE);
+                kill(pid, SIGUSR2);
+                printf("Timer settato dalle ore %d:%d alle ore %d:%d\n", h_start, m_start, h_end, m_end);
+            }
+        } else {
+            printf("Operazione non permessa su un hub!\nOperazioni permesse: orario\n");
+        }
     } else { /* tutti gli altri dispositivi */
         printf("Dispositivo non supportato.\n");
     }
@@ -198,6 +214,10 @@ void __print(char **vars) {
     } else if (strcmp(vars[0], HUB_S) == 0) {
         printf("Oggetto: Hub\nPID: %s\nIndice: %s\nStato: %s\nDispositivi collegati: %s\n",
                vars[1], vars[2], atoi(vars[3]) ? "Acceso" : "Spento", vars[4]);
+    }  else if (strcmp(vars[0], TIMER_S) == 0) {
+        printf("Oggetto: Timer\nPID: %s\nIndice: %s\nStato: %s\nFascia oraria: %s:%s -> %s:%s\nDispositivi collegati: -\n",
+               vars[1], vars[2], atoi(vars[3]) ? "Acceso" : "Spento"
+               , vars[4], vars[5], vars[6], vars[7]);
     } else {
         printf("Dispositivo non supportato.\n");
     }
