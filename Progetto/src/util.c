@@ -112,6 +112,9 @@ void get_device_name(int device_type, char *buf) {
         case HUB:
             sprintf(buf, "hub");
             break;
+        case TIMER:
+            sprintf(buf, "timer");
+            break;
         default:
             sprintf(buf, "-");
             break;
@@ -129,6 +132,8 @@ void get_device_name_str(char *device_type, char *buf) {
         sprintf(buf, "centralina");
     } else if (strcmp(device_type, "hub") == 0) {
         sprintf(buf, "hub");
+    } else if (strcmp(device_type, "timer") == 0) {
+        sprintf(buf, "timer");
     } else {
         sprintf(buf, "-");
     }

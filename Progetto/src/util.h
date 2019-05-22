@@ -21,16 +21,19 @@
 #define FRIDGE 2
 #define WINDOW 3
 #define HUB 4
+#define TIMER 5
 
 #define BULB_S "1"
 #define FRIDGE_S "2"
 #define WINDOW_S "3"
 #define HUB_S "4"
+#define TIMER_S "S"
 
 #define BULB_PARAMETERS 5
 #define FRIDGE_PARAMETERS 9
 #define WINDOW_PARAMETERS 5
 #define HUB_PARAMETERS 5000
+#define TIMER_PARAMETERS 8
 
 #define MAX_CHILDREN 20
 

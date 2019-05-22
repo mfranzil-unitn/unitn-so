@@ -12,25 +12,27 @@ int main(int argc, char *argv[]) {
     signal(SIGHUP, handle_sighup);
     signal(SIGINT, handle_sigint);
 
-    char(*buf)[MAX_BUF_SIZE] = malloc(MAX_BUF_SIZE * sizeof(char *));  // array che conterrà i comandi da eseguire
-
-    int i=0;
-    for(i=0; i < MAX_CHILDREN; i++){
-        key_t key;
-        key = ftok("/tmp", i);
-        int msgid;
-        msgid = msgget(key, 0666|IPC_CREAT);
-    }
+    char(*buf)[MAX_BUF_SIZE];      // array che conterrà i comandi da eseguire
+    int cmd_n;                     /* numero di comandi disponibili */
+    int device_pids[MAX_CHILDREN]; /* array contenenti i PID dei figli */
 
     key_t key;
     int msgid;
-    int cmd_n;  // numero di comandi disponibili
 
-    int device_pids[MAX_CHILDREN];  // array contenenti i PID dei figli
+    int j;
+    char *name;
+
+    buf = malloc(MAX_BUF_SIZE * sizeof(char *));
+    name = get_shell_text();
+
+    int i = 0;
+    for (i = 0; i < MAX_CHILDREN; i++) {
+        key = ftok("/tmp", i);
+        msgid = msgget(key, 0666 | IPC_CREAT);
+    }
 
     print_mode = 1;  // abilito la stampa
 
-    int j;
     for (j = 0; j < MAX_CHILDREN; j++) {
         // Inizializzo l'array dei figli
         device_pids[j] = -1;  // se è -1 non contiene nulla
@@ -43,12 +45,12 @@ int main(int argc, char *argv[]) {
 
     char *name = get_shell_text();
 
-    int i=0;
-    for(i=0; i < MAX_CHILDREN; i++){
+    int i = 0;
+    for (i = 0; i < MAX_CHILDREN; i++) {
         key_t key;
         key = ftok("/tmp", i);
         int msgid;
-        msgid = msgget(key, 0666|IPC_CREAT);
+        msgid = msgget(key, 0666 | IPC_CREAT);
     }
 
     // Creo message queue tra shell e launcher.
