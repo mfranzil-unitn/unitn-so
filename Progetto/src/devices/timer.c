@@ -16,6 +16,10 @@ int pid, __index; /* variabili di stato */
 int status = 0; /* interruttore accensione */
 time_t start;
 
+struct tm tm_start;
+struct tm tm_end;
+struct tm tm_current;
+
 void sighandle_sigterm(int signal) {
     /*if ((int)getppid() != shellpid) {
         int ppid = (int)getppid();
@@ -31,48 +35,52 @@ void sighandle_sigterm(int signal) {
 }
 
 void sighandle_usr1(int sig) {
-    time_t time_on;
     char buffer[MAX_BUF_SIZE];
 
-    lprintf("DEBUG: SIGUSR1 catched\n");
-    if (status) {
-        time_on = (time(NULL) - start);
-    } else {
-        time_on = 0;
-    }
-
-    sprintf(buffer, "1|%i|%i|%i|%i",
-            pid, __index, status, (int)time_on);
-    lprintf("DEBUG: Writing on pipe: %s\n", pipe_fd);
+    sprintf(buffer, "5|%i|%i|%i|%i|%i|%i",
+            pid, __index, status,
+            tm_start.tm_hour, tm_start.tm_min,
+            tm_end.tm_hour, tm_end.tm_min);
     write(fd, buffer, MAX_BUF_SIZE);
-    lprintf("DEBUG: Exiting Handler with tmp: %s\n", buffer);
 }
 
 void sighandle_usr2(int sig) {
-    lprintf("Entering user2\n");
     // Al ricevimento del segnale, la finestra apre la pipe in lettura e ottiene cosa deve fare.
-    // 0|... -> accendi/spegni lampadina
-    // 1|... -> restituisci PID
+    // 0|ORA|MINUTI|ORAFINE|MINUTIFINE -> imposta timer
     char tmp[MAX_BUF_SIZE];
     char** vars;
-    
-    vars = split_fixed(tmp, 2);
+
+    int mode = tmp[0] - '0';
+
     lprintf("Entering user2\n");
     read(fd, tmp, MAX_BUF_SIZE);
 
-    if (atoi(vars[0]) == 0) {
-        if (!status) {
-            status = 1;
-            start = time(NULL);
-        } else {
-            status = 0;
-            start = 0;
-        }
+    if (mode == 0) {
+        vars = split_fixed(tmp, 5);
+
+        tm_start = *localtime(&(time_t){time(NULL)});
+        tm_end = *localtime(&(time_t){time(NULL)});
+
+        tm_start.tm_hour = atoi(vars[1]);
+        tm_start.tm_min = atoi(vars[2]);
+        tm_end.tm_hour = atoi(vars[3]);
+        tm_end.tm_min = atoi(vars[4]);
+    }
+}
+
+int check_time() {
+    tm_current = *localtime(&(time_t){time(NULL)});
+    if (tm_current.tm_hour == tm_start.tm_hour && tm_current.tm_min == tm_start.tm_min) {
+        /* Accendo il dispositivo sotto... */
+        status = 1;
+    } else if (tm_current.tm_hour == tm_end.tm_hour && tm_current.tm_min == tm_end.tm_min) {
+        status = 0;
+    } else {
     }
 }
 
 int main(int argc, char* argv[]) {
-    /* argv = [./bulb, indice, /tmp/pid]; */
+    /* argv = [./timer, indice, /tmp/pid]; */
     pipe_fd = argv[2];
     pid = getpid();
     __index = atoi(argv[1]);
@@ -84,7 +92,8 @@ int main(int argc, char* argv[]) {
     signal(SIGUSR2, sighandle_usr2);
 
     while (1) {
-        ; /*sleep(10); */
+        check_time();
+        sleep(10);
     }
 
     return 0;
