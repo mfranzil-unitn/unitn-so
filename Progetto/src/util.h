@@ -11,9 +11,7 @@
 #include <sys/ipc.h>
 #include <sys/msg.h>
 #include <sys/stat.h>
-#include <sys/time.h>
 #include <sys/types.h>
-#include <time.h>
 #include <unistd.h>
 
 #define MAX_BUF_SIZE 1024
@@ -60,13 +58,11 @@
 #define LINK_STRING \
     "Sintassi: link <id> to <controller>\n"
 
-/* structure for message queue */
+// structure for message queue
 struct mesg_buffer {
     long mesg_type;
     char mesg_text[MAX_BUF_SIZE];
 } message;
-
-void lprintf(const char *__restrict__ __format, ...);
 
 int parse(char buf[][MAX_BUF_SIZE], int cmd_n);
 
@@ -76,16 +72,16 @@ char **split_fixed(char *__buf, int __count);
 char *get_shell_text();
 void get_pipe_name(int pid, char *pipe_str);
 
-int get_device_pid(int device_identifier, int *children_pids, char **raw_info);
+int get_device_pid(int device_identifier, int *children_pids);
 void get_device_name(int device_type, char *buf);
 void get_device_name_str(char *device_type, char *buf);
 int get_shell_pid();
 
 char *get_raw_device_info(int pid);
-/*char **get_device_info(int pid);*/
+char **get_device_info(int pid);
 
-int is_controller(int pid, char *raw_info);
-int hub_is_full(int pid, char *raw_info);
+int is_controller(int pid);
+int hub_is_full(int pid);
 
 void hub_tree_print(char **vars);
 void hub_tree_spaces(int level);

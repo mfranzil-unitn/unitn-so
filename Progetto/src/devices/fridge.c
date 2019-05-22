@@ -1,18 +1,23 @@
+#include <fcntl.h>
+#include <signal.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <time.h>
 #include "../util.h"
 
-/* Frigo = 2 */
+// Frigo = 2
 
-int fd;                         /* file descriptor della pipe verso il padre */
-char* pipe_fd = NULL;           /* nome della pipe */
-char log_buf[MAX_BUF_SIZE / 4]; /* buffer della pipe // SE CI SONO PROBLEMI; GUARDA QUI */
+int fd;                          // file descriptor della pipe verso il padre
+char* pipe_fd = NULL;            // nome della pipe
+char log_buf[MAX_BUF_SIZE / 4];  // buffer della pipe // SE CI SONO PROBLEMI; GUARDA QUI
 
-int pid, __index, delay, perc, temp; /* variabili di stato */
+int pid, __index, delay, perc, temp;  // variabili di stato
 int shellpid;
-volatile int status = 0; /* interruttore accensione */
+int status = 0;  // interruttore accensione
 time_t start;
 
-void sighandle_sigterm(int signal) {
-    /*if ((int)getppid() != shellpid) {
+void sighandle_sigterm(int signal){
+    /*if((int)getppid() != shellpid){
         int ppid = (int)getppid();
         kill(ppid, SIGUSR2);
         char pipe_str[MAX_BUF_SIZE];
@@ -20,9 +25,8 @@ void sighandle_sigterm(int signal) {
         int fd = open(pipe_str, O_RDWR);
         char tmp[MAX_BUF_SIZE];
         sprintf(tmp, "2|%d", (int)getpid());
-        write(fd, tmp, sizeof(tmp));
-    }
-*/
+        write(fd,tmp, sizeof(tmp) );
+    }*/
     exit(0);
 }
 
@@ -41,21 +45,20 @@ void sighandle_usr1(int sig) {
 
     write(fd, tmp, MAX_BUF_SIZE);
 
-    /* Resetto il contenuto del buffer */
+    // Resetto il contenuto del buffer
     sprintf(log_buf, "-");
 }
 
 void sighandle_usr2(int sig) {
-    /* Al ricevimento del segnale, il frigo apre la pipe in lettura e ottiene cosa deve fare. */
-    /* 0|... -> chiudi/apri frigo */
-    /* 1|TEMP -> setta temperatura del frigo */
-    /* 2|DELAY -> setta delay di chiusura */
-    /* 3|PERCENT -> setta contenuto */
+    // Al ricevimento del segnale, il frigo apre la pipe in lettura e ottiene cosa deve fare.
+    // 0|... -> chiudi/apri frigo
+    // 1|TEMP -> setta temperatura del frigo
+    // 2|DELAY -> setta delay di chiusura
+    // 3|PERCENT -> setta contenuto
     char tmp[MAX_BUF_SIZE];
-    char** vars;
 
     read(fd, tmp, MAX_BUF_SIZE);
-    vars = split_fixed(tmp, 2);
+    char** vars = split_fixed(tmp, 2);
 
     if (atoi(vars[0]) == 0) {
         if (!status) {
@@ -75,7 +78,7 @@ void sighandle_usr2(int sig) {
 }
 
 int main(int argc, char* argv[]) {
-    /* argv = [./fridge, indice, /tmp/pid]; */
+    // argv = [./fridge, indice, /tmp/indice];
     pipe_fd = argv[2];
     pid = getpid();
     __index = atoi(argv[1]);
@@ -84,7 +87,7 @@ int main(int argc, char* argv[]) {
     perc = 50;
     temp = 5;
 
-    shellpid = get_shell_pid();
+   shellpid = get_shell_pid();
     sprintf(log_buf, "-");
 
     fd = open(pipe_fd, O_RDWR);
@@ -100,7 +103,7 @@ int main(int argc, char* argv[]) {
                     "Il frigorifero %d si è chiuso automaticamente dopo %d secondi",
                     __index, delay);
         }
-        /*sleep(1); */
+        sleep(1);
     }
 
     return 0;

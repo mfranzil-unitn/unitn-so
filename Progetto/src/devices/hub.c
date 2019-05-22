@@ -44,7 +44,6 @@ void read_msgqueue_hub(int msgid, int* device_pids) {
                 if (j >= 1) {
                     printf("Reading: %s\n", vars[j]);
                     char** son_j = split(vars[j]);
-
                     printf("Vars 0: %s  -Vars 2: %s-\n", son_j[0], son_j[2]);
                     __add_ex(son_j, children_pids);
                 }
@@ -53,6 +52,7 @@ void read_msgqueue_hub(int msgid, int* device_pids) {
         }
     }
 }
+
 
 void sighandle_sigterm(int signal) {
     printf("IN SIGTERM i'm HUB: %d\n", __index);
@@ -67,11 +67,11 @@ void sighandle_sigterm(int signal) {
         sprintf(tmp, "2|%d", (int)getpid());
         write(fd, tmp, sizeof(tmp));
     }*/
-    /*
+/*
     int i = 0;
     for (i = 0; i < MAX_CHILDREN; i++) {
         if (children_pids[i] != -1) {
-            printf("Chiamata link_ex per figlio %d\n", children_pids[i]);
+            cprintf("Chiamata link_ex per figlio %d\n", children_pids[i]);
             int ret = __link_ex(children_pids[i], ppid, shellpid);
             if (ret != 1) {
                 done = 0;
@@ -82,16 +82,16 @@ void sighandle_sigterm(int signal) {
     int count = 0;
     int i = 0;
     char tmp[MAX_BUF_SIZE];
-    sprintf(tmp, "-");
-    for (i = 0; i < MAX_CHILDREN; i++) {
-        if (children_pids[i] != -1) {
-            printf("Children: %d\n", children_pids[i]);
-            count++;
-            char info[MAX_BUF_SIZE];
-            sprintf(info, "%s-", get_raw_device_info(children_pids[i]));
-            printf("info: %s\n", info);
-            strcat(tmp, info);
-        }
+    sprintf(tmp,"-");
+    for(i=0; i < MAX_CHILDREN; i++){
+            if(children_pids[i]!= -1){
+                 printf("Children: %d\n", children_pids[i]);
+                count++;
+                char info[MAX_BUF_SIZE];
+                sprintf(info, "%s-", get_raw_device_info(children_pids[i]));
+                printf("info: %s\n", info);
+                strcat(tmp, info);
+            }
     }
 
     sprintf(message.mesg_text, "%d%s", count, tmp);
@@ -101,7 +101,7 @@ void sighandle_sigterm(int signal) {
     if (done) {
         exit(0);
     } else {
-        printf("Errore nell'eliminazione\n");
+        cprintf("Errore nell'eliminazione\n");
     }
 }
 
@@ -226,10 +226,8 @@ int main(int argc, char* argv[]) {
     }
 
     shellpid = get_shell_pid();
-
     key = ftok("/tmp", __index);
     msgid = msgget(key, 0666 | IPC_CREAT);
-
     read_msgqueue_hub(msgid, children_pids);
 
     signal(SIGTERM, sighandle_sigterm);
