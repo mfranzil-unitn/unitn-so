@@ -8,9 +8,9 @@ int children_pids[MAX_CHILDREN]; /* array contenenti i PID dei figli */
 int fd;
 
 int main(int argc, char *argv[]) {
-    char __out_buf[MAX_BUF_SIZE];                                     /* Per la stampa dell'output delle funzioni */
-    char(*buf)[MAX_BUF_SIZE]; /* array che conterrà i comandi da eseguire */
-    char *name;                            /* Mostrato a ogni riga della shell */
+    char __out_buf[MAX_BUF_SIZE]; /* Per la stampa dell'output delle funzioni */
+    char(*buf)[MAX_BUF_SIZE];     /* array che conterrà i comandi da eseguire */
+    char *name;                   /* Mostrato a ogni riga della shell */
 
     int cmd_n;        /* numero di comandi disponibili */
     int device_i = 0; /* indice progressivo dei dispositivi */
@@ -198,17 +198,17 @@ void link_child(int signal) {
     tmp = malloc(MAX_BUF_SIZE * sizeof(tmp));
     read(fd, tmp, MAX_BUF_SIZE);
     printf("End Read: %s\n\n", tmp);
-    pgid = tmp[0]-'0';
-    tmp = tmp+2;
+    pgid = tmp[0] - '0';
+    tmp = tmp + 2;
     count = tmp[0] - '0';
-        tmp = tmp + 2;
-        vars = split_sons(tmp, count);
-        printf("VARSSSS\n   %s\n    %s\n", vars[0], vars[1]);
-        for(i=0; i < count; i++){
-            printf("Var %d: %s\n", i, vars[i]);
-            var_tmp = split(vars[i]);
-            __add_ex(var_tmp, children_pids);
-        }
-        free(vars);
-        free(tmp - 2);
+    tmp = tmp + 2;
+    vars = split_sons(tmp, count);
+    printf("VARSSSS\n   %s\n    %s\n", vars[0], vars[1]);
+    for (i = 0; i < count; i++) {
+        printf("Var %d: %s\n", i, vars[i]);
+        var_tmp = split(vars[i]);
+        __add_ex(var_tmp, children_pids);
+    }
+    free(vars);
+    free(tmp - 2);
 }
