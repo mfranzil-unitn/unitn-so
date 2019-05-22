@@ -1,120 +1,128 @@
 #include "actions.h"
 
 void __switch(int index, char *action, char *position, int *children_pids) {
-    // Prova a impostare un interruttore ACTION su POSITION di un certo DEVICE
-    int pid = get_device_pid(index, children_pids);
+    /* Prova a impostare un interruttore ACTION su POSITION di un certo DEVICE */
+    char *device_info;
+    int pid, fd, status;
+    char **vars;
+    char pipe_str[MAX_BUF_SIZE];
+    char pipe_message[MAX_BUF_SIZE]; /* buffer per la pipe */
+
+    pid = get_device_pid(index, children_pids, &device_info);
 
     if (pid == -1) {
-        cprintf("Errore! Non esiste questo dispositivo.\n");
+        printf("Errore! Non esiste questo dispositivo.\n");
         return;
     }
 
-    char **vars = get_device_info(pid);
+    if (device_info == NULL) {
+        printf("Errore di connessione con il dispositivo.\n");
+    }
 
-    char pipe_str[MAX_BUF_SIZE];
-    get_pipe_name(pid, pipe_str);  // Nome della pipe
+    printf("%s", device_info);
 
-    char pipe_message[MAX_BUF_SIZE];  // buffer per la pipe
+    vars = split(device_info);
+    get_pipe_name(pid, pipe_str); /* Nome della pipe */
 
-    int fd = open(pipe_str, O_RDWR);
+    fd = open(pipe_str, O_RDWR);
 
-    if (strcmp(vars[0], BULB_S) == 0) {  // Lampadina
+    if (strcmp(vars[0], BULB_S) == 0) { /* Lampadina */
         if (strcmp(action, "accensione") == 0) {
-            int status = atoi(vars[3]);
+            status = atoi(vars[3]);
             sprintf(pipe_message, "0|0");
 
             if (strcmp(position, "on") == 0 && status == 0) {
                 write(fd, pipe_message, MAX_BUF_SIZE);
                 kill(pid, SIGUSR2);
-                cprintf("Lampadina accesa.\n");
+                printf("Lampadina accesa.\n");
             } else if (strcmp(position, "off") == 0 && status == 1) {
                 write(fd, pipe_message, MAX_BUF_SIZE);
                 kill(pid, SIGUSR2);
-                cprintf("Lampadina spenta.\n");
-            } else if (strcmp(position, "off") == 0 && status == 0) {  // Spengo una lampadina spenta
-                cprintf("Stai provando a spegnere una lampadina spenta!\n");
-            } else if (strcmp(position, "on") == 0 && status == 1) {  // Accendo una lampadina accesa
-                cprintf("Stai provando a accendere una lampadina accesa!\n");
+                printf("Lampadina spenta.\n");
+            } else if (strcmp(position, "off") == 0 && status == 0) { /* Spengo una lampadina spenta */
+                printf("Stai provando a spegnere una lampadina spenta!\n");
+            } else if (strcmp(position, "on") == 0 && status == 1) { /* Accendo una lampadina accesa */
+                printf("Stai provando a accendere una lampadina accesa!\n");
             } else {
-                cprintf("Sintassi non corretta. Sintassi: switch <bulb> accensione <on/off>\n");
+                printf("Sintassi non corretta. Sintassi: switch <bulb> accensione <on/off>\n");
             }
         } else {
-            cprintf("Operazione non permessa su una lampadina!\nOperazioni permesse: accensione\n");
+            printf("Operazione non permessa su una lampadina!\nOperazioni permesse: accensione\n");
         }
-    } else if (strcmp(vars[0], FRIDGE_S) == 0) {  // Fridge
+    } else if (strcmp(vars[0], FRIDGE_S) == 0) { /* Fridge */
         if (strcmp(action, "apertura") == 0) {
-            int status = atoi(vars[3]);
+            status = atoi(vars[3]);
             sprintf(pipe_message, "0|0");
 
             if (strcmp(position, "on") == 0 && status == 0) {
                 write(fd, pipe_message, MAX_BUF_SIZE);
                 kill(pid, SIGUSR2);
-                cprintf("Frigorifero aperto.\n");
+                printf("Frigorifero aperto.\n");
             } else if (strcmp(position, "off") == 0 && status == 1) {
                 write(fd, pipe_message, MAX_BUF_SIZE);
                 kill(pid, SIGUSR2);
-                cprintf("Frigorifero chiuso.\n");
-            } else if (strcmp(position, "off") == 0 && status == 0) {  // Chiudo frigo già chiuso
-                cprintf("Stai provando a chiudere un frigorifero già chiuso.\n");
-            } else if (strcmp(position, "on") == 0 && status == 1) {  // Apro frigo già aperto
-                cprintf("Stai provando a aprire un frigorifero già aperto.\n");
+                printf("Frigorifero chiuso.\n");
+            } else if (strcmp(position, "off") == 0 && status == 0) { /* Chiudo frigo già chiuso */
+                printf("Stai provando a chiudere un frigorifero già chiuso.\n");
+            } else if (strcmp(position, "on") == 0 && status == 1) { /* Apro frigo già aperto */
+                printf("Stai provando a aprire un frigorifero già aperto.\n");
             } else {
-                cprintf("Sintassi non corretta. Sintassi: switch <fridge> apertura <on/off>\n");
+                printf("Sintassi non corretta. Sintassi: switch <fridge> apertura <on/off>\n");
             }
         } else if (strcmp(action, "temperatura") == 0) {
-            if (atoi(position) >= -10 && atoi(position) < 0 || atoi(position) > 0 && atoi(position) <= 15 || strcmp(position, "0") == 0) {
+            if ((atoi(position) >= -10 && atoi(position) < 0) || (atoi(position) > 0 && atoi(position) <= 15) || strcmp(position, "0") == 0) {
                 sprintf(pipe_message, "1|%s", position);
                 write(fd, pipe_message, MAX_BUF_SIZE);
                 kill(pid, SIGUSR2);
-                cprintf("Temperatura modificata con successo a %s°C.\n", position);
+                printf("Temperatura modificata con successo a %s°C.\n", position);
             } else {
-                cprintf("Sintassi non corretta. Sintassi: switch <fridge> temperatura <-10 - 15>\n");
+                printf("Sintassi non corretta. Sintassi: switch <fridge> temperatura <-10 - 15>\n");
             }
         } else if (strcmp(action, "delay") == 0) {
-            if (atoi(position) > 0 && atoi(position) <= (60 * 5) || strcmp(position, "0") == 0) {  // Massimo 5 minuti
+            if ((atoi(position) > 0 && atoi(position) <= (60 * 5)) || strcmp(position, "0") == 0) { /* Massimo 5 minuti */
                 sprintf(pipe_message, "2|%s", position);
                 write(fd, pipe_message, MAX_BUF_SIZE);
                 kill(pid, SIGUSR2);
-                cprintf("Tempo di richiusura automatico modificato con successo a %s secondi.\n", position);
+                printf("Tempo di richiusura automatico modificato con successo a %s secondi.\n", position);
             } else {
-                cprintf("Sintassi non corretta. Sintassi: switch <fridge> delay <0-300>.\n");
+                printf("Sintassi non corretta. Sintassi: switch <fridge> delay <0-300>.\n");
             }
-        } else if (strcmp(action, "riempimento") == 0) {  // Possibile solo manualmente (launcher)
-            if (atoi(position) > 0 && atoi(position) <= 100 || strcmp(position, "0") == 0) {
+        } else if (strcmp(action, "riempimento") == 0) { /* Possibile solo manualmente (launcher) */
+            if ((atoi(position) > 0 && atoi(position) <= 100) || strcmp(position, "0") == 0) {
                 sprintf(pipe_message, "3|%s", position);
                 write(fd, pipe_message, MAX_BUF_SIZE);
                 kill(pid, SIGUSR2);
-                cprintf("Percentuale di riempimento modificato con successo a %s. \n", position);
+                printf("Percentuale di riempimento modificato con successo a %s. \n", position);
             } else {
-                cprintf("Sintassi non corretta. Sintassi: switch <fridge> riempimento <0-100>.\n");
+                printf("Sintassi non corretta. Sintassi: switch <fridge> riempimento <0-100>.\n");
             }
         } else {
-            cprintf("Operazione non permessa su un frigorifero! Operazioni permesse: <temperatura/apertura/delay/riempimento>\n");
+            printf("Operazione non permessa su un frigorifero! Operazioni permesse: <temperatura/apertura/delay/riempimento>\n");
         }
 
-    } else if (strcmp(vars[0], WINDOW_S) == 0) {  // Window
+    } else if (strcmp(vars[0], WINDOW_S) == 0) { /* Window */
         if (((strcmp(action, "apertura") != 0) || (strcmp(action, "apertura") == 0 && strcmp(position, "off") == 0)) &&
             ((strcmp(action, "chiusura") != 0) || (strcmp(action, "chiusura") == 0 && strcmp(position, "off") == 0))) {
-            cprintf("Operazione non permessa: i pulsanti sono solo attivi!\n");
-            // se off non permetto
+            printf("Operazione non permessa: i pulsanti sono solo attivi!\n");
+            /* se off non permetto */
             return;
         }
 
-        int status = atoi(vars[3]);
+        status = atoi(vars[3]);
         sprintf(pipe_message, "0|0");
 
         if (strcmp(action, "apertura") == 0 && status == 0) {
             write(fd, pipe_message, sizeof(pipe_message));
             kill(pid, SIGUSR2);
-            cprintf("Finestra aperta.\n");
+            printf("Finestra aperta.\n");
         } else if (strcmp(action, "chiusura") == 0 && status == 1) {
             write(fd, pipe_message, sizeof(pipe_message));
             kill(pid, SIGUSR2);
-            cprintf("Finestra chiusa.\n");
+            printf("Finestra chiusa.\n");
         } else {
-            cprintf("Operazione non permessa: pulsante già premuto.\n");
+            printf("Operazione non permessa: pulsante già premuto.\n");
         }
-    } else if (strcmp(vars[0], HUB_S) == 0) {  // Lampadina
+    } else if (strcmp(vars[0], HUB_S) == 0) { /* Lampadina */
         if (strcmp(action, "accensione") == 0) {
             int status = atoi(vars[3]);
             sprintf(pipe_message, "0|0");
@@ -122,26 +130,26 @@ void __switch(int index, char *action, char *position, int *children_pids) {
             if (strcmp(position, "on") == 0 && status == 0) {
                 write(fd, pipe_message, MAX_BUF_SIZE);
                 kill(pid, SIGUSR2);
-                cprintf("Hub acceso.\n");
+                printf("Hub acceso.\n");
             } else if (strcmp(position, "off") == 0 && status == 1) {
                 write(fd, pipe_message, MAX_BUF_SIZE);
                 kill(pid, SIGUSR2);
-                cprintf("Hub spento.\n");
-            } else if (strcmp(position, "off") == 0 && status == 0) {  // Spengo un hub spento
-                cprintf("Stai provando a spegnere un hub spenta!\n");
-            } else if (strcmp(position, "on") == 0 && status == 1) {  // Accendo un hub acceso
-                cprintf("Stai provando a accendere un hub acceso!\n");
+                printf("Hub spento.\n");
+            } else if (strcmp(position, "off") == 0 && status == 0) { /* Spengo un hub spento */
+                printf("Stai provando a spegnere un hub spenta!\n");
+            } else if (strcmp(position, "on") == 0 && status == 1) { /* Accendo un hub acceso */
+                printf("Stai provando a accendere un hub acceso!\n");
             } else {
-                cprintf("Sintassi non corretta. Sintassi: switch <hub> accensione <on/off>\n");
+                printf("Sintassi non corretta. Sintassi: switch <hub> accensione <on/off>\n");
             }
         } else {
-            cprintf("Operazione non permessa su un hub!\nOperazioni permesse: accensione\n");
+            printf("Operazione non permessa su un hub!\nOperazioni permesse: accensione\n");
         }
     } else if (strcmp(vars[0], TIMER_S) == 0) {
         if (strcmp(action, "orario") == 0) {
             int h_start, m_start, h_end, m_end;
             /* Aggiungere controlli sugli orari */
-            int scan = sscanf(position, "%d:%d -> %d:%d", &h_start, &m_start, &h_end, &m_end);
+            int scan = sscanf(position, "%d:%d -> %d:%d", h_start, m_start, h_end, m_end);
             if (scan != 4 || h_start < 0 || h_start > 23 || h_end < 0 || h_end > 59 || h_start > h_end || m_start > m_end) {
                 printf("Formattazione degli orari sbagliata. Formato (24 ore): \"HH:MM -> HH:MM\"\n");
             } else {
@@ -161,46 +169,48 @@ void __switch(int index, char *action, char *position, int *children_pids) {
 }
 
 void __info(int index, int *children_pids) {
-    int pid = get_device_pid(index, children_pids);
+    char *tmp = NULL;
+    int pid = get_device_pid(index, children_pids, &tmp);
+    char info[MAX_BUF_SIZE];
+    char **info_p;
 
     if (pid == -1) {
-        cprintf("Errore! Non esiste questo dispositivo.\n");
+        printf("Errore! Non esiste questo dispositivo.\n");
         return;
     }
 
-    char *tmp = get_raw_device_info(pid);
-    cprintf("info %s\n", tmp);
-
-    if (strncmp(tmp, HUB_S, 1) == 0) {
-        hub_tree_parser(tmp);
-        //printf("info tree %s\n", tmp);
-    } else {
-        char **vars = split(tmp);
-        __print(vars);
-        free(vars);
+    if (tmp == NULL) {
+        printf("Errore di connessione con il dispositivo.\n");
     }
-    printf("TMP: %s\n", tmp);
+
+    sprintf(info, "%s", get_raw_device_info(pid));
+    if (!strncmp(info, HUB_S, 1) == 0) {
+        info_p = split(info);
+        __print(info_p);
+    } else {
+        hub_tree_parser(info);
+    }
 
     free(tmp);
 }
 
 void __print(char **vars) {
     if (strcmp(vars[0], BULB_S) == 0) {
-        // Lampadina - parametri: tipo, pid, indice, stato, tempo di accensione
-        cprintf("Oggetto: Lampadina\nPID: %s\nIndice: %s\nStato: %s\nTempo di accensione: %s\n",
-                vars[1], vars[2], atoi(vars[3]) ? "ON" : "OFF", vars[4]);
+        /* Lampadina - parametri: tipo, pid, indice, stato, tempo di accensione */
+        printf("Oggetto: Lampadina\nPID: %s\nIndice: %s\nStato: %s\nTempo di accensione: %s\n",
+               vars[1], vars[2], atoi(vars[3]) ? "ON" : "OFF", vars[4]);
     } else if (strcmp(vars[0], FRIDGE_S) == 0) {
-        // Frigo -  parametri: tipo, pid, indice, stato, tempo di apertura, delay
-        // percentuale riempimento, temperatura interna
-        cprintf("Oggetto: Frigorifero\nMessaggio di log: <%s>\n", vars[8]);
-        cprintf("PID: %s\nIndice: %s\nStato: %s\nTempo di apertura: %s sec\n",
-                vars[1], vars[2], atoi(vars[3]) ? "Aperto" : "Chiuso", vars[4]);
-        cprintf("Delay richiusura: %s sec\nPercentuale riempimento: %s\nTemperatura: %s°C\n",
-                vars[5], vars[6], vars[7]);
+        /* Frigo -  parametri: tipo, pid, indice, stato, tempo di apertura, delay */
+        /* percentuale riempimento, temperatura interna */
+        printf("Oggetto: Frigorifero\nMessaggio di log: <%s>\n", vars[8]);
+        printf("PID: %s\nIndice: %s\nStato: %s\nTempo di apertura: %s sec\n",
+               vars[1], vars[2], atoi(vars[3]) ? "Aperto" : "Chiuso", vars[4]);
+        printf("Delay richiusura: %s sec\nPercentuale riempimento: %s\nTemperatura: %s°C\n",
+               vars[5], vars[6], vars[7]);
     } else if (strcmp(vars[0], WINDOW_S) == 0) {
-        // Finestra - parametri: tipo, pid, indice, stato, tempo di accensione
-        cprintf("Oggetto: Finestra\nPID: %s\nIndice: %s\nStato: %s\nTempo di apertura: %s sec\n",
-                vars[1], vars[2], atoi(vars[3]) ? "Aperto" : "Chiuso", vars[4]);
+        /* Finestra - parametri: tipo, pid, indice, stato, tempo di accensione */
+        printf("Oggetto: Finestra\nPID: %s\nIndice: %s\nStato: %s\nTempo di apertura: %s sec\n",
+               vars[1], vars[2], atoi(vars[3]) ? "Aperto" : "Chiuso", vars[4]);
     } else if (strcmp(vars[0], HUB_S) == 0) {
         printf("Oggetto: Hub\nPID: %s\nIndice: %s\nStato: %s\nDispositivi collegati: %s\n",
                vars[1], vars[2], atoi(vars[3]) ? "Acceso" : "Spento", vars[4]);
@@ -209,7 +219,7 @@ void __print(char **vars) {
                vars[1], vars[2], atoi(vars[3]) ? "Acceso" : "Spento"
                , vars[4], vars[5], vars[6], vars[7]);
     } else {
-        cprintf("Dispositivo non supportato.\n");
+        printf("Dispositivo non supportato.\n");
     }
 }
 
@@ -282,7 +292,7 @@ void __list(int *children_pids) {
                 get_device_name(atoi(vars[0]), device_name);
                 device_name[0] += 'A' - 'a';
 
-                cprintf("%s, (PID %s, Indice %s)\n", device_name, vars[1], vars[2]);
+                printf("%s, (PID %s, Indice %s)\n", device_name, vars[1], vars[2]);
                 // Pulizia
                 free(vars);
             }
@@ -328,18 +338,18 @@ void __link(int index, int controller, int *children_pids) {
     int device_pid = get_device_pid(index, children_pids);
 
     if (device_pid == -1) {
-        cprintf("Errore! Non esiste il dispositivo %d.\n", index);
+        printf("Errore! Non esiste il dispositivo %d.\n", index);
         return;
     }
     int controller_pid = get_device_pid(controller, children_pids);
 
     if (controller_pid == -1) {
-        cprintf("Errore! Non esiste il dispositivo %d.\n", controller);
+        printf("Errore! Non esiste il dispositivo %d.\n", controller);
         return;
     }
 
     if (device_pid == controller_pid) {
-        cprintf("Errore! Non puoi collegarti a te stesso.\n");
+        printf("Errore! Non puoi collegarti a te stesso.\n");
         return;
     }
 
@@ -347,7 +357,7 @@ void __link(int index, int controller, int *children_pids) {
         char *tmp = get_raw_device_info(device_pid);
 
         if (tmp == NULL) {
-            cprintf("Errore gravissimo che non doveva succedere.\n");
+            printf("Errore gravissimo che non doveva succedere.\n");
             return;
         }
 
@@ -367,13 +377,13 @@ void __link(int index, int controller, int *children_pids) {
             write(fd, buf, MAX_BUF_SIZE);
             kill(controller_pid, SIGUSR2);
 
-            cprintf("Spostato l'oggetto %d sotto l'oggetto %d\n", index, controller);
+            printf("Spostato l'oggetto %d sotto l'oggetto %d\n", index, controller);
             close(fd);
         } else {
-            cprintf("Operazione non permessa. L'hub %d è già pieno. Eliminare qualche dispositivo.\n", controller);
+            printf("Operazione non permessa. L'hub %d è già pieno. Eliminare qualche dispositivo.\n", controller);
         }
     } else {
-        cprintf("Configurazione dei dispositvi non valida. Sintassi: link <device> to <hub/timer>\n");
+        printf("Configurazione dei dispositvi non valida. Sintassi: link <device> to <hub/timer>\n");
     }
 }
 
@@ -395,7 +405,7 @@ void __add_ex(char **vars, int *children_pids) {
         printf("HUB\n");
         __add("hub", atoi(vars[2]), children_pids, __out_buf);
     } else {
-        cprintf("Da implementare...");
+        printf("Da implementare...");
     }
 }
 
@@ -404,7 +414,7 @@ int hub_tree_constructor(char *__buf, int *children_pids) {
     char *old = NULL;
     int level = 0;
 
-    //cprintf("Level %d\n", level);
+    //printf("Level %d\n", level);
 
     // DISPOSITIVO; PID; ID
 
@@ -435,7 +445,7 @@ int hub_tree_constructor(char *__buf, int *children_pids) {
             }
         } else {
             vars[i++] = tokenizer;
-            //cprintf("%s, ", tokenizer);
+            //printf("%s, ", tokenizer);
         }
         old = tokenizer;
         tokenizer = strtok(NULL, "|");

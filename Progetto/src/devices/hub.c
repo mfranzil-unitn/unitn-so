@@ -71,7 +71,7 @@ void sighandle_sigterm(int signal) {
     int i = 0;
     for (i = 0; i < MAX_CHILDREN; i++) {
         if (children_pids[i] != -1) {
-            cprintf("Chiamata link_ex per figlio %d\n", children_pids[i]);
+            printf("Chiamata link_ex per figlio %d\n", children_pids[i]);
             int ret = __link_ex(children_pids[i], ppid, shellpid);
             if (ret != 1) {
                 done = 0;
@@ -101,7 +101,7 @@ void sighandle_sigterm(int signal) {
     if (done) {
         exit(0);
     } else {
-        cprintf("Errore nell'eliminazione\n");
+        printf("Errore nell'eliminazione\n");
     }
 }
 
