@@ -15,7 +15,6 @@ int main(int argc, char *argv[]) {
     char(*buf)[MAX_BUF_SIZE];      /* array che conterrà i comandi da eseguire */
     int cmd_n;                     /* numero di comandi disponibili */
     int device_pids[MAX_CHILDREN]; /* array contenenti i PID dei figli */
-    /* print_mode = 1;  // abilito la stampa */
     int j;
     char *name = get_shell_text();
 

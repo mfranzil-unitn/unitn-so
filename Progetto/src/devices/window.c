@@ -14,7 +14,6 @@ Con il comando switch permetto solo: switch <id> <Interr_Aperto/Chiuso> ON
 
 int fd;               /* file descriptor della pipe verso il padre */
 char* pipe_fd = NULL; /* nome della pipe */
-/*char log_buf[512];     // buffer della pipe */
 int shellpid;
 int pid, __index, delay; /* variabili di stato */
 

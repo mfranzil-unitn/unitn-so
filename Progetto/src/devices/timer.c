@@ -37,7 +37,7 @@ void sighandle_sigterm(int signal) {
 void sighandle_usr1(int sig) {
     char buffer[MAX_BUF_SIZE];
 
-    sprintf(buffer, "5|%i|%i|%i|%i|%i|%i",
+    sprintf(buffer, "5|%i|%i|%i|%i|%i|%i|%i",
             pid, __index, status,
             tm_start.tm_hour, tm_start.tm_min,
             tm_end.tm_hour, tm_end.tm_min);
@@ -45,15 +45,17 @@ void sighandle_usr1(int sig) {
 }
 
 void sighandle_usr2(int sig) {
-    // Al ricevimento del segnale, la finestra apre la pipe in lettura e ottiene cosa deve fare.
-    // 0|ORA|MINUTI|ORAFINE|MINUTIFINE -> imposta timer
+    /* Al ricevimento del segnale, la finestra apre la pipe in lettura e ottiene cosa deve fare.
+     0|ORA|MINUTI|ORAFINE|MINUTIFINE -> imposta timer*/
     char tmp[MAX_BUF_SIZE];
     char** vars;
+    int mode;
 
-    int mode = tmp[0] - '0';
+    read(fd, tmp, MAX_BUF_SIZE);
+
+    mode = tmp[0] - '0';
 
     lprintf("Entering user2\n");
-    read(fd, tmp, MAX_BUF_SIZE);
 
     if (mode == 0) {
         vars = split_fixed(tmp, 5);
@@ -68,15 +70,15 @@ void sighandle_usr2(int sig) {
     }
 }
 
-int check_time() {
+void check_time() {
     tm_current = *localtime(&(time_t){time(NULL)});
     if (tm_current.tm_hour == tm_start.tm_hour && tm_current.tm_min == tm_start.tm_min) {
         /* Accendo il dispositivo sotto... */
         status = 1;
     } else if (tm_current.tm_hour == tm_end.tm_hour && tm_current.tm_min == tm_end.tm_min) {
         status = 0;
-    } else {
     }
+    return;
 }
 
 int main(int argc, char* argv[]) {

@@ -149,7 +149,7 @@ void __switch(int index, char *action, char *position, int *children_pids) {
         if (strcmp(action, "orario") == 0) {
             int h_start, m_start, h_end, m_end;
             /* Aggiungere controlli sugli orari */
-            int scan = sscanf("%d:%d -> %d:%d", h_start, m_start, h_end, m_end);
+            int scan = sscanf(position, "%d:%d -> %d:%d", &h_start, &m_start, &h_end, &m_end);
             if (scan != 4 || h_start < 0 || h_start > 23 || h_end < 0 || h_end > 59 || h_start > h_end || m_start > m_end) {
                 printf("Formattazione degli orari sbagliata. Formato (24 ore): \"HH:MM -> HH:MM\"\n");
             } else {
@@ -340,7 +340,6 @@ void __del(int index, int *children_pids, char *__out_buf) {
     free(vars);
 
     kill(pid, SIGTERM);
-    /*kill(pid, 9);      // da modificare con un comando opportuno... */
     remove(pipe_str); /* RIP pipe */
 
     for (i = 0; i < MAX_CHILDREN; i++) {
