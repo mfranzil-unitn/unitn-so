@@ -42,63 +42,62 @@ void hub_tree_parser(char *__buf, int __count) {
     char *old = NULL;
     int level = 0;
 
-    //printf("Level %d\n", level);
+    printf("Level %d\n", level); 
+char **vars = malloc((10) * sizeof(*vars));
+int i = 0;
+int to_be_printed = 1;
 
-    char **vars = malloc((10) * sizeof(*vars));
-    int i = 0;
-    int to_be_printed = 1;
-
-    while (tokenizer != NULL) {
-        int j;
-        if (strcmp(tokenizer, "<!") == 0) {
-            to_be_printed += atoi(old) - 1;
-            if (level > 0) {
-                printf("\n");
-                for (int j = 0; j < level; j++) {
-                    printf("  ");
-                }
-                printf("∟ ");
+while (tokenizer != NULL) {
+    int j;
+    if (strcmp(tokenizer, "<!") == 0) {
+        to_be_printed += atoi(old) - 1;
+        if (level > 0) {
+            printf("\n");
+            for (int j = 0; j < level; j++) {
+                printf("  ");
             }
-            i = 0;
-            ++level;  //   printf("\nLevel %d\n", ++level);
-            hub_tree_print(vars);
-        } else if (strcmp(tokenizer, "!>") == 0) {
-            --level;  //   printf("\nLevel %d\n", --level);
-            if (strcmp(old, "<!") == 0 && to_be_printed > 0) {
-                i = 0;
-                printf("\n");
-                for (int j = 0; j < level; j++) {
-                    printf("  ");
-                }
-                printf("∟ ");
-                hub_tree_print(vars);
-                to_be_printed--;
-            }
-        } else if (strcmp(tokenizer, "!") == 0) {
-            if (to_be_printed > 0) {
-                i = 0;
-                printf("\n");
-                for (int j = 0; j < level; j++) {
-                    printf("  ");
-                }
-                printf("∟ ");
-                hub_tree_print(vars);
-                to_be_printed--;
-            }
-        } else {
-            vars[i++] = tokenizer;
-            //printf("%s, ", tokenizer);
+            printf("∟ ");
         }
-        old = tokenizer;
-        tokenizer = strtok(NULL, "|");
+        i = 0;
+        ++level;    printf("\nLevel %d\n", ++level);
+        hub_tree_print(vars);
+    } else if (strcmp(tokenizer, "!>") == 0) {
+        --level;   printf("\nLevel %d\n", --level);
+        if (strcmp(old, "<!") == 0 && to_be_printed > 0) {
+            i = 0;
+            printf("\n");
+            for (int j = 0; j < level; j++) {
+                printf("  ");
+            }
+            printf("∟ ");
+            hub_tree_print(vars);
+            to_be_printed--;
+        }
+    } else if (strcmp(tokenizer, "!") == 0) {
+        if (to_be_printed > 0) {
+            i = 0;
+            printf("\n");
+            for (int j = 0; j < level; j++) {
+                printf("  ");
+            }
+            printf("∟ ");
+            hub_tree_print(vars);
+            to_be_printed--;
+        }
+    } else {
+        vars[i++] = tokenizer;
+        /*printf("%s, ", tokenizer); 
     }
+    old = tokenizer;
+    tokenizer = strtok(NULL, "|");
+}
 }
 
 char **Nsplit(char *__buf) {
-    // Divide una stringa presa dalla pipe
-    // a seconda del dispositivo.
+    /* Divide una stringa presa dalla pipe 
+    /* a seconda del dispositivo. 
 
-    // La prima cifra di __buf è sempre il tipo di dispositivo.
+    /* La prima cifra di __buf è sempre il tipo di dispositivo. 
 
     int device = __buf[0] - '0';
     int __count;
@@ -124,16 +123,37 @@ char **Nsplit(char *__buf) {
     return hub_tree_parser(__buf, __count);
 }
 */
-int main() {
-    mkfifo("/tmp/ipc/12388", 0666);
-    char buffer[MAX_BUF_SIZE];
-    sprintf(buffer, "1|12388|1|0|0");
-    int fd = open("/tmp/ipc/12388", O_RDWR);
-    write(fd, buffer, MAX_BUF_SIZE);
-    printf(buffer);
-    close(fd);
-     
-/*
+    int main() {
+    time_t tempo = time(NULL);
+    char *c = ctime(&tempo);
+    printf("%d, %s\n", (int)tempo, c);
+
+    struct tm tm_start = *localtime(&(time_t){time(NULL)});
+    struct tm tm_end = *localtime(&(time_t){time(NULL)});
+
+    scanf("%d:%d -> %d:%d",
+          &tm_start.tm_hour, &tm_start.tm_min,
+          &tm_end.tm_hour, &tm_end.tm_min);
+
+    char buf[MAX_BUF_SIZE];
+
+    strftime(buf, MAX_BUF_SIZE, "%H:%M", &tm_start);
+    printf("Timer set from %s", buf);
+    strftime(buf, MAX_BUF_SIZE, "%H:%M", &tm_end);
+    printf(" to %s\n", buf);
+
+    while (1) {
+        time_t tim = time(NULL);
+        if ((tim / 60) % 60 == tm_start.tm_min) {
+            printf("WOW!\n");
+            return;
+        }
+    }
+
+    /*printf("%d:%d\n", tempo % 60, tempo / 60); */
+
+    return 0;
+    /*
     while (1) {
         printf("\n> ");
         scanf("%s", buf);

@@ -21,11 +21,11 @@ int main() {
 
     printf("%d\n", *shared);
     pid = fork();
-    if (pid == 0)  // son
+    if (pid == 0)  /* son */
     {
         *shared = 1000;
         shmdt((const void *)shared);
-    } else  // father
+    } else  /* father */
     {
         wait(&s);
         printf("%d\n", *shared);
