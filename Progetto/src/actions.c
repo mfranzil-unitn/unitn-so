@@ -179,6 +179,7 @@ void __switch(int index, char *action, char *position, int *children_pids) {
 void __info(int index, int *children_pids) {
     char *info = NULL;
     int pid = get_device_pid(index, children_pids, &info);
+    printf("PID info: %d\n", pid);
     char **info_p;
 
     if (pid == -1) {
@@ -384,19 +385,29 @@ void __link(int index, int controller, int *children_pids) {
         if (!hub_is_full(controller_pid, raw_controller_info)) {
             sprintf(buf, "1|");
             strcat(buf, raw_device_info);
-            printf("BUFFER TO BE SENT TO CONTROLLER TOTOOT: %s\n", buf);
+            //printf("BUFFER TO BE SENT TO CONTROLLER TOTOOT: %s\n", buf);
             free(raw_device_info);
 
             __del(index, children_pids, __out_buf);
+            
+            
 
-            get_pipe_name(controller_pid, controller_pipe_name);
+            /*get_pipe_name(controller_pid, controller_pipe_name);
 
             fd = open(controller_pipe_name, O_RDWR);
-            write(fd, buf, MAX_BUF_SIZE);
+            write(fd, buf, MAX_BUF_SIZE);*/
+
+            key_t key = ftok("/tmp/ipc/mqueues", controller_pid);
+            int msgid = msgget(key, 0666 | IPC_CREAT);
+            message.mesg_type = 1;
+            sprintf(message.mesg_text, "%s", buf);
+            msgsnd(msgid, &message, sizeof(message),0);
             kill(controller_pid, SIGUSR2);
+            
+            
 
             printf("Spostato l'oggetto %d sotto l'oggetto %d\n", index, controller);
-            close(fd);
+            //close(fd);
         } else {
             printf("Operazione non permessa. L'hub %d è già pieno. Eliminare qualche dispositivo.\n", controller);
         }
@@ -517,7 +528,7 @@ int __link_ex(int son_pid, int parent_pid, int shellpid) {
     write(fd, buf, MAX_BUF_SIZE);
 
     printf("Spostato l'oggetto %d sotto l'oggetto %d\n", index, controller);
-    /*close(fd); */
+    close(fd);
 
     free(son_info);
 

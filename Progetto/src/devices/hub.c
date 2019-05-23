@@ -20,6 +20,8 @@ char info[MAX_BUF_SIZE];
 
 key_t key;
 int msgid;
+key_t key_pid;
+int msgid_pid;
 
 
 volatile int flag_usr1 = 0;
@@ -94,18 +96,21 @@ int main(int argc, char* argv[]) {
         children_pids[i] = -1;
     }
 
-    key = ftok("/tmp/ipc",__index + 5000);
+    key = ftok("/tmp/ipc/mqueues",__index);
     msgid = msgget(key, 0666 | IPC_CREAT);
-    message.mesg_type = 1;
+    
         read_msgqueue(msgid, children_pids);
-        printf("HI BRO I'M HUB %d\n", __index);
+        //printf("HI BRO I'M HUB %d\n", __index);
         for (i = 0; i < MAX_CHILDREN; i++) {
                 if (children_pids[i] != -1) {
-                    printf("Dispositivo %d: %d\n", i, children_pids[i]);
+                    //printf("Dispositivo %d: %d\n", i, children_pids[i]);
                 }
             }
     shellpid = get_shell_pid();
 
+    key_pid = ftok("/tmp/ipc/mqueues", pid) ;
+    msgid_pid = msgget(key_pid, 0666 | IPC_CREAT);
+    //printf(" KEY %d MSGID: %d\n",key_pid, msgid_pid);
 
     signal(SIGCHLD, SIG_IGN);
     signal(SIGTERM, sighandler_int);
@@ -114,9 +119,11 @@ int main(int argc, char* argv[]) {
 
 
     while (1) {
+           __index = atoi(argv[1]);
+            
         if (flag_usr1) {
             flag_usr1 = 0;
-            /*printf("hub usr1: %d\n", pid); */
+            //printf("hub usr1: %d\n", pid);
             /* bisogna controllare se i dispositivi sono allineati o meno (override) */
 
             /* conto i dispositivi connessi */
@@ -126,21 +133,23 @@ int main(int argc, char* argv[]) {
 
             for (i = 0; i < MAX_CHILDREN; i++) {
                 if (children_pids[i] != -1) {
+                    //printf("Children pids[%d]: %d\n", i, children_pids[i] );
                     connected++;
                 }
             }
 
-
+            /*
             sprintf(tmp, "4|%d|%d|%d|%d|<!|",
                     pid, __index, status, connected);
+            */
             
             /* Stampo nel buffer tante volte quanti device ho */
-            
+            /*
             for (i = 0; i < MAX_CHILDREN; i++) {
                 if (children_pids[i] != -1) {
                     raw_info = get_raw_device_info(children_pids[i]);
                     if(raw_info != NULL){
-                    printf("INFO PER FIGLIO: %d di HUB %d: %s\n", children_pids[i], pid, raw_info);
+                    //printf("INFO PER FIGLIO: %d di HUB %d: %s\n", children_pids[i], pid, raw_info);
                     strcat(tmp, raw_info);
                     strcat(tmp, "|!|");
                     free(raw_info);
@@ -152,8 +161,41 @@ int main(int argc, char* argv[]) {
 
             strcat(tmp, "!>");
             //printf("TMP DI HUB %d: %s\n",pid,  tmp);
-            write(fd, tmp, MAX_BUF_SIZE);
+            sprintf(message.mesg_text, "%s", tmp);
+            printf("HUB message: %s\n", message.mesg_text);
+            msgsnd(msgid_pid, &message, sizeof(message), 0);
+            */
+
+            //write(fd, tmp, MAX_BUF_SIZE);
             //printf("INFO SENT\n");
+
+             sprintf(tmp, "4|%d|%d|%d|%d|<!|",
+                    pid, __index, status, connected);
+            
+            
+            /* Stampo nel buffer tante volte quanti device ho */
+            
+            for (i = 0; i < MAX_CHILDREN; i++) {
+                if (children_pids[i] != -1) {
+                    raw_info = get_raw_device_info(children_pids[i]);
+                    if(raw_info != NULL){
+                    //printf("INFO PER FIGLIO: %d di HUB %d: %s\n", children_pids[i], pid, raw_info);
+                    strcat(tmp, raw_info);
+                    strcat(tmp, "|!|");
+                    free(raw_info);
+                    }else{
+                        printf("Ti ho beccato, pezzo di merda\n");
+                    }
+                }
+            }
+
+            strcat(tmp, "!>");
+            //printf("TMP DI HUB %d: %s\n",pid,  tmp);
+            message.mesg_type = 1;
+            sprintf(message.mesg_text, "%s", tmp);
+            //printf("HUB message: %s\n", message.mesg_text);
+            msgsnd(msgid_pid, &message, sizeof(message), 0);
+            //printf("MESSAGE SENT %s\n", message.mesg_text);
         }
         if (flag_usr2) {
             flag_usr2 = 0;
@@ -162,11 +204,14 @@ int main(int argc, char* argv[]) {
             /* 1|.. -> attacca contenuto */
             /* 2|.. -> toglie contenuto */
 
-            /*printf("hub usr2: %d\n", pid); */
+            printf("hub usr2: %d\n", pid);
 
             mall_tmp = malloc(MAX_BUF_SIZE * sizeof(mall_tmp));
-            read(fd, mall_tmp, MAX_BUF_SIZE);
-            /*printf("End Read: %s\n\n", mall_tmp);*/
+            /*read(fd, mall_tmp, MAX_BUF_SIZE);
+            printf("End Read: %s\n\n", mall_tmp);*/
+            msgrcv(msgid_pid, &message, sizeof(message), 1, 0);
+            sprintf(mall_tmp, "%s", message.mesg_text);
+            printf("End Read: %s\n\n", mall_tmp);
             code = mall_tmp[0] - '0';
             /*printf("hub code: %d\n", code); */
 
@@ -188,9 +233,9 @@ int main(int argc, char* argv[]) {
                 free(mall_tmp);
             }
             if (code == 1) {
-                /*printf("CODE 1\n"); */
+                //printf("CODE 1\n");
                 mall_tmp = mall_tmp + 2;
-                printf("MALL TMP FOR HUB %d: %s\n",__index, mall_tmp);
+                //printf("\n\nMALL TMP FOR HUB %d: %s\n\n",__index, mall_tmp);
                 vars = split(mall_tmp);
                 __add_ex(vars, children_pids);
                 free(vars);
@@ -210,7 +255,7 @@ int main(int argc, char* argv[]) {
         if (flag_term) {
             term();
         }
-        //sleep(10);
+        sleep(10);
     }
 
     return 0;
@@ -224,7 +269,7 @@ void term() {
     char tmp[MAX_BUF_SIZE];
     int ret;
 
-    printf("IN TERM FOR HUB: %d\n", __index);
+    //printf("IN TERM FOR HUB: %d\n", __index);
  /*  if (ppid != shellpid) {
         kill(ppid, SIGUSR2);
         get_pipe_name(ppid, pipe_str); 
@@ -259,9 +304,9 @@ void term() {
             kill(children_pids[i], SIGTERM);
         }
     }
-
+    message.mesg_type = 1;
     sprintf(message.mesg_text, "%d%s", count, tmp);
-    msgsnd(msgid, &message, sizeof(message), 1);
+    msgsnd(msgid, &message, sizeof(message), 0);
 
     //int ret = __link_ex(children_pids, ppid, shellpid);
 
@@ -295,10 +340,10 @@ void read_msgqueue(int msgid, int* device_pids) {
             int j = 0;
             while (j <= __count) {
                 if (j >= 1) {
-                    printf("Vars %d: %s\n", j, vars[j]);
+                    //printf("Vars %d: %s\n", j, vars[j]);
                     char** son_j = split(vars[j]);
                     __add_ex(son_j, children_pids);
-                    printf("ADD_EX GOOD\n");
+                    //printf("ADD_EX GOOD\n");
                 }
                 j++;
             }

@@ -25,6 +25,7 @@ int main(int argc, char *argv[]) {
 
     char c;
 
+
     name = get_shell_text();
     buf = malloc(MAX_BUF_SIZE * sizeof(char *)); /* array che conterrà i comandi da eseguire */
 
@@ -42,6 +43,7 @@ int main(int argc, char *argv[]) {
     msgid = msgget(key, 0666 | IPC_CREAT);
     /* Ripulisco inizialmente per evitare errori. */
     msgrcv(msgid, &message, sizeof(message), 1, IPC_NOWAIT);
+    printf("Message launcher: %s\n", message.mesg_text);
     emergencyid = msgid;
 
     /*Creo message queue per comunicare shellpid */
@@ -53,7 +55,7 @@ int main(int argc, char *argv[]) {
  /*Aggiungo message_queue per indice*/
     int i=0; 
     for(i=0; i < MAX_CHILDREN; i++){
-        key_t key = ftok("/tmp/ipc", i + 5000);
+        key_t key = ftok("/tmp/ipc/mqueues", i);
         int msgid = msgget(key, 0666|IPC_CREAT);
         message.mesg_type = 1;
         msgrcv(msgid, &message,sizeof(message), 1, IPC_NOWAIT);
@@ -172,6 +174,10 @@ void handle_sig(int signal) {
 void handle_sigint(int signal) {
     msgctl(emergencyid, IPC_RMID, NULL);
     msgctl(emergencyid2, IPC_RMID, NULL);
+    key_t key = 42;
+    int msgid = msgget(key, 0666 | IPC_CREAT);
+    msgctl(msgid, IPC_RMID, NULL);
+
     if (shell_pid != -1) {
         kill(shell_pid, SIGTERM);
     }
@@ -263,11 +269,11 @@ void user_launcher(char buf[][MAX_BUF_SIZE], int msgid, int *device_pids, int ms
             strcat(tmp, stringpid);
             if (execl("/usr/bin/gnome-terminal", "gnome-terminal", "-e", tmp, NULL) == -1) {
                 sprintf(message.mesg_text, "%s", "Errore");
-                msgsnd(msgid, &message, MAX_BUF_SIZE, 0);
+                msgsnd(msgid_sh, &message, MAX_BUF_SIZE, 0);
             }
         } else if (pid > 0) {
             /*Legge il contenuto della pipe => Se = "Errore" la finestra è stata aperta. */
-            msgrcv(msgid, &message, sizeof(message), 1, 0);
+            msgrcv(msgid_sh, &message, sizeof(message), 1, 0);
             if (strcmp(message.mesg_text, "Errore") == 0) {
                 printf("Errore nell'apertura della shell\n");
             } else {

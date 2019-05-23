@@ -14,6 +14,9 @@ int fd;           /* file descriptor della pipe verso il padre */
 int pid, __index; /* variabili di stato */
 int status = 0;   /* interruttore accensione */
 time_t start, time_on;
+int changed  =1;
+key_t key; 
+int msgid;
 
 volatile int flag_usr1 = 0;
 volatile int flag_usr2 = 0;
@@ -51,32 +54,44 @@ int main(int argc, char* argv[]) {
     signal(SIGUSR1, sighandler_int);
     signal(SIGUSR2, sighandler_int);
 
+    key = ftok("/tmp/ipc/mqueues", pid);
+    msgid = msgget(key, 0666 |IPC_CREAT);
+    
+
     while (1) {
+       __index = atoi(argv[1]);
+        
         if (flag_usr1) {
             flag_usr1 = 0;
-            /*printf("bulb usr1: %d - %d\n", pid, flag_usr1); */
+            printf("bulb usr1: %d - %d\n", pid, flag_usr1); 
             if (status) {
                 time_on = (time(NULL) - start);
             } else {
                 time_on = 0;
             }
-            sprintf(tmp, "1|%d|%d|%d|%d",
-                    pid, __index, status, (int)time_on);
 
-            write(fd, tmp, MAX_BUF_SIZE);
+             sprintf(tmp, "1|%d|%d|%d|%d",
+                    pid, __index, status, (int)time_on);
+            message.mesg_type = 1;
+            sprintf(message.mesg_text, "%s", tmp);
+            //printf("Sending Message...\n");
+            int rc = msgsnd(msgid, &message, sizeof(message),0);
+            //printf("Message Sent: %s\n", message.mesg_text);
+            
+            //write(fd, tmp, MAX_BUF_SIZE);
+
         }
         if (flag_usr2) {
             flag_usr2 = 0;
             /* La finestra apre la pipe in lettura e ottiene cosa deve fare. */
             /* 0|... -> accendi/spegni lampadina */
 
-            /*printf("ho ricevuto un messaggio pid: %d\n", pid); */
+            //printf("ho ricevuto un messaggio pid: %d\n", pid); 
 
             read(fd, tmp, MAX_BUF_SIZE);
             vars = split_fixed(tmp, 2);
             if (atoi(vars[0]) == 0) {
                 if (!status) {
-                    
                     status = 1;
                     start = time(NULL);
                 } else {
@@ -84,6 +99,7 @@ int main(int argc, char* argv[]) {
                     start = 0;
                 }
             }
+            changed = 1;
         }
         if (flag_term) {
             /*if ((int)getppid() != shellpid) {
@@ -95,6 +111,7 @@ int main(int argc, char* argv[]) {
                 write(ppid_pipe_fd, tmp, sizeof(tmp));
                 close(ppid_pipe_fd);
             }*/
+            msgctl(msgid, IPC_RMID, NULL);
             exit(0);
         }
         sleep(10);

@@ -61,7 +61,7 @@ int main(int argc, char *argv[]) {
     message.mesg_type = 1;
 
     sprintf(message.mesg_text, "%d", (int)getpid());
-    msgsnd(msgid, &message, MAX_BUF_SIZE, 0);
+    msgsnd(msgid_sh, &message, MAX_BUF_SIZE, 0);
 
     /* Ready */
     system("clear");

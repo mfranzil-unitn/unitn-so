@@ -156,15 +156,15 @@ int get_device_pid(int device_identifier, int *children_pids, char **raw_info) {
                     char buf_info[MAX_BUF_SIZE];
                     /* Evito fastidiose modifiche a TMP da strtok */
                     strcpy(buf_info, tmp);
-                    printf("BUF INFO %s\n", buf_info);
+                    //printf("BUF INFO %s\n", buf_info);
                     char **vars = split(buf_info);
                     if (vars != NULL && atoi(vars[2]) == device_identifier) {
-                        printf("SONO ENTRATO PER PID: %d\n", children_pid);
+                        //printf("SONO ENTRATO PER PID: %d\n", children_pid);
                         free(vars);
                         return children_pid;
                     }
                     int possible_pid = hub_tree_pid_finder(var_buffer, device_identifier);
-                    printf("Possible PID found: %d\n", possible_pid);
+                    //printf("Possible PID found: %d\n", possible_pid);
                     if (possible_pid != -1) {
                         return possible_pid;
                     }
@@ -207,6 +207,7 @@ char **get_device_info(int pid) {
     return NULL;
 }*/
 
+
 char *get_raw_device_info(int pid) {
     /* const int MAX_ATTEMPTS = 3; */
     /*  lprintf("DEBUG: Attempt 0"); */
@@ -214,6 +215,36 @@ char *get_raw_device_info(int pid) {
     /*  int i; */
     /*   for (i = 0; i < MAX_ATTEMPTS; i++) { */
     /*    lprintf("\b%d", i + 1); */
+
+    int enter =0; 
+    
+    printf("GET_RAW_DEVICE: %d\n", pid);
+    fflush(stdout);
+
+    kill(pid, SIGUSR1);
+    key_t key = ftok("/tmp/ipc/mqueues", pid);
+    int msgid = msgget(key, 0666 | IPC_CREAT);
+    //printf("KEY: %d PID: %d MESSAGE ID: %d MESSAGE TYPE: %d\n",key, pid, msgid,  message.mesg_type);
+
+    char* tmp;
+    int ret = msgrcv(msgid, &message, sizeof(message), 1, 0);
+    //printf("HERE RET: %d\n", ret);
+    //printf("Message: %s\n", message.mesg_text);
+    if(ret!=-1){
+            tmp = malloc(MAX_BUF_SIZE * sizeof(char));
+            sprintf(tmp, "%s", message.mesg_text);
+            printf("TMP: %s\n", tmp);
+            return tmp;
+    }
+    else{
+        return NULL;
+    }
+
+
+
+
+
+    if(enter){
     char pipe_str[MAX_BUF_SIZE];
     int fd, _read;
     char *tmp;
@@ -227,6 +258,7 @@ char *get_raw_device_info(int pid) {
 
     tmp = malloc(MAX_BUF_SIZE * sizeof(tmp));
     get_pipe_name(pid, pipe_str);
+    printf("%s\n", pipe_str);
     fd = open(pipe_str, O_RDONLY);
     if(!(fd > 0)){
         printf("FD_ERROR: %d", fd);
@@ -243,7 +275,7 @@ char *get_raw_device_info(int pid) {
     timeout.tv_usec = 0;
 
     /* select returns 0 if timeout, 1 if input available, -1 if error. */
-    if (fd > 0){ //&& select(FD_SETSIZE, &set, NULL, NULL, &timeout)==1) {
+    if (fd > 0 && select(FD_SETSIZE, &set, NULL, NULL, &timeout)==1) {
         lprintf("DEBUG: In read for PID: %d and pipe %s\n", pid, pipe_str);
         _read = read(fd, tmp, MAX_BUF_SIZE);
         lprintf("End read, TMP: %s\n", tmp);
@@ -262,12 +294,16 @@ char *get_raw_device_info(int pid) {
         }else{
         printf("Timed out\n");
         }
+        close(fd);
         return NULL; /*continue; */
     }
     /*} */
     /* lprintf("\n"); */
     return NULL;
 }
+}
+
+
 int is_controller(int pid, char *raw_info) {
     char **vars = split(raw_info);
     int id = atoi(vars[0]);
@@ -413,7 +449,7 @@ int get_shell_pid() {
     shellpid = atoi(message.mesg_text);
     sprintf(message.mesg_text, "%d", shellpid);
     msgsnd(msgid_sh, &message, MAX_BUF_SIZE, 1);
-    printf("SHELLPID FUORI\n");
+    //printf("SHELLPID FUORI\n");
     return shellpid;
 }
 

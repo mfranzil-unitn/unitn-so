@@ -64,10 +64,11 @@
     "Sintassi: link <id> to <controller>\n"
 
 /* structure for message queue */
-struct mesg_buffer {
+ struct mesg_buffer {
     long mesg_type;
     char mesg_text[MAX_BUF_SIZE];
 } message;
+
 
 void lprintf(const char *__restrict__ __format, ...);
 
