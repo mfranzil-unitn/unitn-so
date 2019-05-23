@@ -20,10 +20,10 @@ volatile int flag_term = 0;
 
 void check_time() {
     tm_current = *localtime(&(time_t){time(NULL)});
-    if (tm_current.tm_hour == tm_start.tm_hour && tm_current.tm_min == tm_start.tm_min) {
+    if (tm_current.tm_hour >= tm_start.tm_hour && tm_current.tm_min >= tm_start.tm_min) {
         /* Accendo il dispositivo sotto... */
         status = 1;
-    } else if (tm_current.tm_hour == tm_end.tm_hour && tm_current.tm_min == tm_end.tm_min) {
+    } else if (tm_current.tm_hour >= tm_end.tm_hour && tm_current.tm_min >= tm_end.tm_min) {
         status = 0;
     }
     return;
@@ -42,7 +42,7 @@ void sighandler_int(int sig) {
 }
 
 int main(int argc, char* argv[]) {
-    /* argv = [./bulb, indice, /tmp/indice]; */
+    /* argv = [./timer, indice, /tmp/indice]; */
     char tmp[MAX_BUF_SIZE];       /* Buffer per le pipe*/
     char ppid_pipe[MAX_BUF_SIZE]; /* Pipe per il padre*/
     char* this_pipe = NULL;       /* Pipe di questo dispositivo */
@@ -76,13 +76,10 @@ int main(int argc, char* argv[]) {
                 Al ricevimento del segnale, la finestra apre la pipe in lettura e ottiene cosa deve fare.
                 0|ORA|MINUTI|ORAFINE|MINUTIFINE -> imposta timer
             */
-
             read(fd, tmp, MAX_BUF_SIZE);
-
             mode = tmp[0] - '0';
 
-            /*lprintf("Entering user2\n");*/
-
+            /* lprintf("Entering user2\n");*/
             if (mode == 0) {
                 vars = split_fixed(tmp, 5);
 

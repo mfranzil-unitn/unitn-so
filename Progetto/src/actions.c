@@ -17,6 +17,7 @@ void __switch(int index, char *action, char *position, int *children_pids) {
 
     if (device_info == NULL) {
         printf("Errore di connessione (PID %d)\n", pid);
+        return;
     }
 
     vars = split(device_info);
@@ -32,10 +33,7 @@ void __switch(int index, char *action, char *position, int *children_pids) {
 
             if (strcmp(position, "on") == 0 && status == 0) {
                 write(fd, pipe_message, MAX_BUF_SIZE);
-                prova = kill(pid, SIGUSR2); /* sleep(1) */
-                if (prova == -1) {
-                    printf("ERRORE CHIAMATA\n");
-                }
+                kill(pid, SIGUSR2);
                 printf("Lampadina accesa.\n");
             } else if (strcmp(position, "off") == 0 && status == 1) {
                 write(fd, pipe_message, MAX_BUF_SIZE);

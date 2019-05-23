@@ -35,41 +35,41 @@ int main(int argc, char *argv[]) {
     signal(SIGUSR2, link_child);
     signal(SIGINT, SIG_IGN);
     signal(SIGCHLD, SIG_IGN);
-
-    get_pipe_name((int)getpid(), pipe);
-    mkfifo(pipe, 0666);
-    fd = open(pipe, O_RDWR);
+    signal(SIGHUP, handle_sig);
 
     /* Inizializzo l'array dei figli */
     for (j = 0; j < MAX_CHILDREN; j++) {
         children_pids[j] = -1; /* se è -1 non contiene nulla */
     }
 
-    /* PID del launcher. */
-    ppid = atoi(argv[1]);
+    if (argc != 2 || strcmp(argv[1], "--no-wrapper") != 0) {
+        get_pipe_name((int)getpid(), pipe);
+        mkfifo(pipe, 0666);
+        fd = open(pipe, O_RDWR);
 
-    signal(SIGHUP, handle_sig);
+        /* PID del launcher. */
+        ppid = atoi(argv[1]);
 
-    /* Credo message queue tra shell e launcher */
-    key = ftok("/tmp", 10);
-    msgid = msgget(key, 0666 | IPC_CREAT);
-    message.mesg_type = 1;
+        /* Credo message queue tra shell e launcher */
+        key = ftok("/tmp", 10);
+        msgid = msgget(key, 0666 | IPC_CREAT);
+        message.mesg_type = 1;
 
-    /*Creo message queue per comunicare shellpid */
-    key_sh = ftok("/tmp", 20);
-    msgid_sh = msgget(key_sh, 0666 | IPC_CREAT);
-    message.mesg_type = 1;
+        /*Creo message queue per comunicare shellpid */
+        key_sh = ftok("/tmp", 20);
+        msgid_sh = msgget(key_sh, 0666 | IPC_CREAT);
+        message.mesg_type = 1;
 
-    sprintf(message.mesg_text, "%d", (int)getpid());
-    msgsnd(msgid, &message, MAX_BUF_SIZE, 0);
-
+        sprintf(message.mesg_text, "%d", (int)getpid());
+        msgsnd(msgid, &message, MAX_BUF_SIZE, 0);
+    }
     /* Ready */
     system("clear");
 
     while (1) {
         if (stato) {
             /*Scrive numero devices e elenco dei pid a launcher. */
-            if (changed) {
+            if ((argc != 2 || strcmp(argv[1], "--no-wrapper") != 0) && changed) {
                 /*Ripulisco Forzatamente. */
                 msgrcv(msgid, &message, MAX_BUF_SIZE, 1, IPC_NOWAIT);
 
@@ -199,7 +199,7 @@ void link_child(int signal) {
     int code;
     char **vars;
 
-    printf("Link_Child\n");
+    /*printf("Link_Child\n");*/
     /*Analogamente ad Hub */
     tmp = malloc(MAX_BUF_SIZE * sizeof(tmp));
     read(fd, tmp, MAX_BUF_SIZE);
