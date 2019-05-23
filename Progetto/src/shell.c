@@ -202,7 +202,7 @@ void link_child(int signal) {
     /*Analogamente ad Hub */
     tmp = malloc(MAX_BUF_SIZE * sizeof(tmp));
     read(fd, tmp, MAX_BUF_SIZE);
-    printf("End Read: %s\n\n", tmp);
+    lprintf("End Read: %s\n\n", tmp);
     code = tmp[0] - '0';
     if (code == 1) {
         tmp = tmp + 2;

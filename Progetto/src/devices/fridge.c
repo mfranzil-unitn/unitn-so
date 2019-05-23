@@ -67,7 +67,7 @@ int main(int argc, char* argv[]) {
                 time_on = 0;
             }
 
-            sprintf(tmp, "2|%i|%i|%i|%i|%i|%i|%i|%s",
+            sprintf(tmp, "2|%d|%d|%d|%d|%d|%d|%d|%s",
                     pid, __index, status, (int)time_on, delay, perc, temp, log_buf);
 
             write(fd, tmp, MAX_BUF_SIZE);

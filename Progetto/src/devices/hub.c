@@ -21,6 +21,8 @@ volatile int flag_usr1 = 0;
 volatile int flag_usr2 = 0;
 volatile int flag_term = 0;
 
+void term();
+
 void sighandler_int(int sig) {
     if (sig == SIGUSR1) {
         flag_usr1 = 1;
@@ -64,7 +66,14 @@ int main(int argc, char* argv[]) {
     /* argv = [./hub, indice, /tmp/indice]; */
     char tmp[MAX_BUF_SIZE];
     char* this_pipe = NULL; /* nome della pipe */
-    
+
+    /* Le seguenti variabili sono usate in usr2 */
+    char* mall_tmp = NULL; /* Viene usato al posto di tmp in USR2, richiede malloc */
+    char* raw_info = NULL;
+    int over_index[MAX_CHILDREN];
+    int code;
+    char** vars;
+
     int i;
 
     int connected;
@@ -100,13 +109,13 @@ int main(int argc, char* argv[]) {
                 }
             }
 
-            sprintf(tmp, "4|%i|%i|%i|%i|<!|",
+            sprintf(tmp, "4|%d|%d|%d|%d|<!|",
                     pid, __index, status, connected);
 
             /* Stampo nel buffer tante volte quanti device ho */
             for (i = 0; i < MAX_CHILDREN; i++) {
                 if (children_pids[i] != -1) {
-                    char* raw_info = get_raw_device_info(children_pids[i]);
+                    raw_info = get_raw_device_info(children_pids[i]);
                     strcat(tmp, raw_info);
                     strcat(tmp, "|!|");
                     free(raw_info);
@@ -125,11 +134,10 @@ int main(int argc, char* argv[]) {
 
             /*printf("hub usr2: %d\n", pid); */
 
-            char* tmp = malloc(MAX_BUF_SIZE * sizeof(tmp));
-            int over_index[MAX_CHILDREN];
-            read(fd, tmp, MAX_BUF_SIZE);
-            /*printf("End Read: %s\n\n", tmp); */
-            int code = tmp[0] - '0';
+            mall_tmp = malloc(MAX_BUF_SIZE * sizeof(mall_tmp));
+            read(fd, mall_tmp, MAX_BUF_SIZE);
+            /*printf("End Read: %s\n\n", mall_tmp); */
+            code = mall_tmp[0] - '0';
             /*printf("hub code: %d\n", code); */
 
             for (i = 0; i < MAX_CHILDREN; i++) {
@@ -142,69 +150,69 @@ int main(int argc, char* argv[]) {
             if (code == 0) {
                 /*printf("CODE 0\n"); */
                 status = !status;
-                int i = 0;
-                char* pipe_str;
                 for (i = 0; i < MAX_CHILDREN; i++) {
                     if (children_pids[i] != -1 && !over_index[i]) {
-                        char* pos = "on";
-                        if (status) {
-                            pos = "off";
-                        }
-                        __switch(children_pids[i], "accensione", pos, children_pids);
+                        __switch(children_pids[i], "accensione", status ? "off" : "on", children_pids);
                     }
                 }
-                free(tmp);
+                free(mall_tmp);
             }
             if (code == 1) {
                 /*printf("CODE 1\n"); */
-                tmp = tmp + 2;
-                char** vars = split(tmp);
+                mall_tmp = mall_tmp + 2;
+                vars = split(mall_tmp);
                 __add_ex(vars, children_pids);
                 free(vars);
-                free(tmp - 2);
+                free(mall_tmp - 2);
             }
             if (code == 2) {
                 /*printf("CODE 2\n"); */
-                char** vars = split(tmp);
-                int j = 0;
-                for (j = 0; j < MAX_CHILDREN; j++) {
-                    if (children_pids[j] == atoi(vars[1])) {
-                        /*printf("BECCATO: childern_Pids: %d, atoi: %d\n", children_pids[j], atoi(vars[1])); */
-                        children_pids[j] = -1;
+                vars = split(mall_tmp);
+                for (i = 0; i < MAX_CHILDREN; i++) {
+                    if (children_pids[i] == atoi(vars[1])) {
+                        /*printf("BECCATO: childern_Pids: %d, atoi: %d\n", children_pids[i], atoi(vars[1])); */
+                        children_pids[i] = -1;
                     }
                 }
             }
         }
         if (flag_term) {
-            int done = 1;
-            int ppid = (int)getppid();
-            if (ppid != shellpid) {
-                kill(ppid, SIGUSR2);
-                char pipe_str[MAX_BUF_SIZE];
-                get_pipe_name(ppid, pipe_str); /* Nome della pipe */
-                int fd = open(pipe_str, O_RDWR);
-                char tmp[MAX_BUF_SIZE];
-                sprintf(tmp, "2|%d", (int)getpid());
-                write(fd, tmp, sizeof(tmp));
-            }
-
-            for (i = 0; i < MAX_CHILDREN; i++) {
-                if (children_pids[i] != -1) {
-                    printf("Chiamata link_ex per figlio %d\n", children_pids[i]);
-                    int ret = __link_ex(children_pids[i], ppid, shellpid);
-                    if (ret != 1) {
-                        done = 0;
-                    }
-                }
-            }
-            if (done) {
-                exit(0);
-            } else {
-                printf("Errore nell'eliminazione\n");
-            }
+            term();
         }
         sleep(10);
     }
 
     return 0;
+}
+
+void term() {
+    int done = 1;
+    int ppid = (int)getppid();
+    int fd, i;
+    char pipe_str[MAX_BUF_SIZE];
+    char tmp[MAX_BUF_SIZE];
+    int ret;
+
+    if (ppid != shellpid) {
+        kill(ppid, SIGUSR2);
+        get_pipe_name(ppid, pipe_str); /* Nome della pipe */
+        fd = open(pipe_str, O_RDWR);
+        sprintf(tmp, "2|%d", (int)getpid());
+        write(fd, tmp, sizeof(tmp));
+    }
+
+    for (i = 0; i < MAX_CHILDREN; i++) {
+        if (children_pids[i] != -1) {
+            printf("Chiamata link_ex per figlio %d\n", children_pids[i]);
+            ret = __link_ex(children_pids[i], ppid, shellpid);
+            if (ret != 1) {
+                done = 0;
+            }
+        }
+    }
+    if (done) {
+        exit(0);
+    } else {
+        printf("Errore nell'eliminazione\n");
+    }
 }

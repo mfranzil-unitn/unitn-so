@@ -4,35 +4,18 @@ src/util.c:85:5: warning: implicit declaration of function ‘cuserid’; did yo
      ^~~~~~~
      ctermid
 src/actions.c: In function ‘__link_ex’:
-src/actions.c:478:14: warning: assignment to ‘char **’ from incompatible pointer type ‘char *’ [-Wincompatible-pointer-types]
-     son_info = get_raw_device_info(son_pid);
+src/actions.c:503:14: warning: assignment to ‘char *’ from incompatible pointer type ‘char **’ [-Wincompatible-pointer-types]
+     son_info = split(tmp);
               ^
-src/actions.c:481:48: warning: format ‘%s’ expects argument of type ‘char *’, but argument 2 has type ‘int’ [-Wformat=]
-         printf("Errore di comunicazione (PID: %s)\n", son_pid);
-                                               ~^      ~~~~~~~
-                                               %d
-src/actions.c:482:9: warning: ‘return’ with no value, in function returning non-void [-Wreturn-type]
-         return;
-         ^~~~~~
-src/actions.c:467:5: note: declared here
- int __link_ex(int son_pid, int parent_pid, int shellpid) {
-     ^~~~~~~~~
-src/actions.c:489:52: warning: format ‘%s’ expects argument of type ‘char *’, but argument 2 has type ‘int’ [-Wformat=]
-             printf("Errore di comunicazione (PID: %s)\n", parent_pid);
-                                                   ~^      ~~~~~~~~~~
-                                                   %d
-src/actions.c:490:13: warning: ‘return’ with no value, in function returning non-void [-Wreturn-type]
-             return;
-             ^~~~~~
-src/actions.c:467:5: note: declared here
- int __link_ex(int son_pid, int parent_pid, int shellpid) {
-     ^~~~~~~~~
-src/actions.c:500:22: warning: format ‘%s’ expects argument of type ‘char *’, but argument 3 has type ‘char **’ [-Wformat=]
-     sprintf(buf, "1|%s", son_info);
-                     ~^   ~~~~~~~~
-src/actions.c:502:20: warning: format ‘%s’ expects argument of type ‘char *’, but argument 3 has type ‘char **’ [-Wformat=]
-     sprintf(tmp, "%s", son_info);
-                   ~^   ~~~~~~~~
+src/actions.c:504:26: warning: passing argument 1 of ‘atoi’ makes pointer from integer without a cast [-Wint-conversion]
+     index = atoi(son_info[2]);
+                  ~~~~~~~~^~~
+In file included from src/util.h:9,
+                 from src/actions.h:4,
+                 from src/actions.c:1:
+/usr/include/stdlib.h:104:30: note: expected ‘const char *’ but argument is of type ‘char’
+ extern int atoi (const char *__nptr)
+                  ~~~~~~~~~~~~^~~~~~
 src/launcher.c: In function ‘main’:
 src/launcher.c:14:5: warning: ISO C90 forbids mixed declarations and code [-Wdeclaration-after-statement]
      char(*buf)[MAX_BUF_SIZE];
@@ -57,28 +40,3 @@ src/shell.c:98:17: warning: string length ‘1174’ is greater than the length 
 src/shell.c:23:9: warning: variable ‘msgid_sh’ set but not used [-Wunused-but-set-variable]
      int msgid_sh;
          ^~~~~~~~
-src/devices/hub.c: In function ‘main’:
-src/devices/hub.c:128:13: warning: ISO C90 forbids mixed declarations and code [-Wdeclaration-after-statement]
-             char* tmp = malloc(MAX_BUF_SIZE * sizeof(tmp));
-             ^~~~
-src/devices/hub.c:132:13: warning: ISO C90 forbids mixed declarations and code [-Wdeclaration-after-statement]
-             int code = tmp[0] - '0';
-             ^~~
-src/devices/hub.c:145:17: warning: ISO C90 forbids mixed declarations and code [-Wdeclaration-after-statement]
-                 int i = 0;
-                 ^~~
-src/devices/hub.c:146:23: warning: unused variable ‘pipe_str’ [-Wunused-variable]
-                 char* pipe_str;
-                       ^~~~~~~~
-src/devices/hub.c:161:17: warning: ISO C90 forbids mixed declarations and code [-Wdeclaration-after-statement]
-                 char** vars = split(tmp);
-                 ^~~~
-src/devices/hub.c:183:17: warning: ISO C90 forbids mixed declarations and code [-Wdeclaration-after-statement]
-                 char pipe_str[MAX_BUF_SIZE];
-                 ^~~~
-src/devices/hub.c:185:17: warning: ISO C90 forbids mixed declarations and code [-Wdeclaration-after-statement]
-                 int fd = open(pipe_str, O_RDWR);
-                 ^~~
-src/devices/hub.c:194:21: warning: ISO C90 forbids mixed declarations and code [-Wdeclaration-after-statement]
-                     int ret = __link_ex(children_pids[i], ppid, shellpid);
-                     ^~~

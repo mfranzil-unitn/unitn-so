@@ -37,7 +37,7 @@ void sighandle_sigterm(int signal) {
 void sighandle_usr1(int sig) {
     char buffer[MAX_BUF_SIZE];
 
-    sprintf(buffer, "5|%i|%i|%i|%i|%i|%i|%i",
+    sprintf(buffer, "5|%d|%d|%d|%d|%d|%d|%d",
             pid, __index, status,
             tm_start.tm_hour, tm_start.tm_min,
             tm_end.tm_hour, tm_end.tm_min);

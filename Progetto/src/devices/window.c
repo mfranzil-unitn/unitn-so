@@ -70,7 +70,7 @@ int main(int argc, char* argv[]) {
                 time_on = 0;
             }
 
-            sprintf(tmp, "3|%i|%i|%i|%i",
+            sprintf(tmp, "3|%d|%d|%d|%d",
                     pid, __index, status, (int)time_on);
 
             write(fd, tmp, MAX_BUF_SIZE);

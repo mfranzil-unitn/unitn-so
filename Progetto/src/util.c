@@ -87,7 +87,7 @@ char *get_shell_text() {
 }
 
 void get_pipe_name(int pid, char *pipe_str) {
-    sprintf(pipe_str, "%s%i", PIPES_POSITIONS, pid);
+    sprintf(pipe_str, "%s%d", PIPES_POSITIONS, pid);
 }
 
 void get_device_name(int device_type, char *buf) {
@@ -226,14 +226,14 @@ char *get_raw_device_info(int pid) {
     if (fd > 0 && select(FD_SETSIZE, &set, NULL, NULL, &timeout)) {
         lprintf("DEBUG: In read for PID: %d and pipe %s\n", pid, pipe_str);
         _read = read(fd, tmp, MAX_BUF_SIZE);
-        printf("End read, TMP: %s\n", tmp);
+        lprintf("End read, TMP: %s\n", tmp);
         /* Pulizia */
         close(fd);
         if (_read != 0) {
             /*  lprintf("\n"); */
             return tmp;
         } else {
-            lprintf("ERRORE in READDDDDDD\n");
+            lprintf("Errore durante la read.\n");
         }
     } else {
         return NULL; /*continue; */

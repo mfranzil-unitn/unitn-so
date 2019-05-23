@@ -16,11 +16,11 @@ void __switch(int index, char *action, char *position, int *children_pids) {
     }
 
     if (device_info == NULL) {
-        printf("Errore di connessione con il dispositivo.\n");
+        printf("Errore di connessione (PID %d)\n", pid);
     }
 
-    printf("%s", device_info);
-
+    /* printf("%s", device_info);
+*/
     vars = split(device_info);
     get_pipe_name(pid, pipe_str); /* Nome della pipe */
 
@@ -270,7 +270,7 @@ int __add(char *device, int device_index, int *children_pids, char *__out_buf) {
 
         get_device_name_str(device, device_name);
 
-        sprintf(__out_buf, "Aggiunto un dispositivo di tipo %s con PID %i e indice %i\n",
+        sprintf(__out_buf, "Aggiunto un dispositivo di tipo %s con PID %d e indice %d\n",
                 device_name, pid, device_index);
     }
     return 1;
@@ -470,7 +470,8 @@ int __link_ex(int son_pid, int parent_pid, int shellpid) {
     char **parent_info;
     char buf[MAX_BUF_SIZE];
     char tmp[1024];
-    char **son_info;
+    char *son_info;
+    char **son_info_split;
     int index;
     char controller_pipe_name[MAX_BUF_SIZE];
     int fd;
@@ -478,16 +479,16 @@ int __link_ex(int son_pid, int parent_pid, int shellpid) {
     son_info = get_raw_device_info(son_pid);
 
     if (son_info == NULL) {
-        printf("Errore di comunicazione (PID: %s)\n", son_pid);
-        return;
+        printf("Errore di comunicazione (PID: %d)\n", son_pid);
+        return -1;
     }
 
     if (parent_pid != shellpid) {
         tmp_controller = get_raw_device_info(parent_pid);
 
         if (tmp_controller == NULL) {
-            printf("Errore di comunicazione (PID: %s)\n", parent_pid);
-            return;
+            printf("Errore di comunicazione (PID: %d)\n", parent_pid);
+            return -1;
         }
 
         parent_info = split(tmp_controller);
@@ -500,8 +501,8 @@ int __link_ex(int son_pid, int parent_pid, int shellpid) {
     sprintf(buf, "1|%s", son_info);
     printf("Buf: %s\n", buf);
     sprintf(tmp, "%s", son_info);
-    son_info = split(tmp);
-    index = atoi(son_info[2]);
+    son_info_split = split(tmp);
+    index = atoi(son_info_split[2]);
 
     /*Deleting son */
     /*printf("Deleting\n"); */
