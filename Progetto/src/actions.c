@@ -285,9 +285,13 @@ void __list(int *children_pids) {
     int children_pid;
     char device_name[MAX_BUF_SIZE];
 
+    /* Centralina */
+    printf("Centralina, (PID %d, Indice 0)\n", (int)getpid());
+
     for (i = 0; i < MAX_CHILDREN; i++) { /* l'indice i è logicamente indipendente dal nome/indice del dispositivo */
         children_pid = children_pids[i];
         if (children_pid != -1) {
+            printf("∟ ");
             tmp = get_raw_device_info(children_pid);
 
             if (tmp == NULL) {
