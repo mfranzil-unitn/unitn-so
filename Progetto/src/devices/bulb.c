@@ -76,6 +76,7 @@ int main(int argc, char* argv[]) {
             vars = split_fixed(tmp, 2);
             if (atoi(vars[0]) == 0) {
                 if (!status) {
+                    
                     status = 1;
                     start = time(NULL);
                 } else {
@@ -85,15 +86,15 @@ int main(int argc, char* argv[]) {
             }
         }
         if (flag_term) {
-            if ((int)getppid() != shellpid) {
+            /*if ((int)getppid() != shellpid) {
                 ppid = (int)getppid();
                 kill(ppid, SIGUSR2);
-                get_pipe_name(ppid, ppid_pipe); /* Nome della pipe */
+                get_pipe_name(ppid, ppid_pipe); 
                 ppid_pipe_fd = open(ppid_pipe, O_RDWR);
                 sprintf(tmp, "2|%d", (int)getpid());
                 write(ppid_pipe_fd, tmp, sizeof(tmp));
                 close(ppid_pipe_fd);
-            }
+            }*/
             exit(0);
         }
         sleep(10);

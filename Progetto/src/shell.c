@@ -51,12 +51,12 @@ int main(int argc, char *argv[]) {
     signal(SIGHUP, handle_sig);
 
     /* Credo message queue tra shell e launcher */
-    key = ftok("/tmp", 10);
+    key = ftok("/tmp", 1000);
     msgid = msgget(key, 0666 | IPC_CREAT);
     message.mesg_type = 1;
 
     /*Creo message queue per comunicare shellpid */
-    key_sh = ftok("/tmp", 20);
+    key_sh = ftok("/tmp", 2000);
     msgid_sh = msgget(key_sh, 0666 | IPC_CREAT);
     message.mesg_type = 1;
 

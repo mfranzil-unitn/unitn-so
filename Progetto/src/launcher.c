@@ -38,17 +38,27 @@ int main(int argc, char *argv[]) {
         system("clear");
     }
     /* Creo message queue tra shell e launcher. */
-    key = ftok("/tmp", 10);
+    key = ftok("/tmp", 1000);
     msgid = msgget(key, 0666 | IPC_CREAT);
     /* Ripulisco inizialmente per evitare errori. */
     msgrcv(msgid, &message, sizeof(message), 1, IPC_NOWAIT);
     emergencyid = msgid;
 
     /*Creo message queue per comunicare shellpid */
-    key_sh = ftok("/tmp", 20);
+    key_sh = ftok("/tmp", 2000);
     msgid_sh = msgget(key_sh, 0666 | IPC_CREAT);
     message.mesg_type = 1;
     emergencyid2 = msgid_sh;
+
+ /*Aggiungo message_queue per indice*/
+    int i=0; 
+    for(i=0; i < MAX_CHILDREN; i++){
+        key_t key = ftok("/tmp/ipc", i + 5000);
+        int msgid = msgget(key, 0666|IPC_CREAT);
+        message.mesg_type = 1;
+        msgrcv(msgid, &message,sizeof(message), 1, IPC_NOWAIT);
+    }
+
 
     while (1) {
         /*Leggo il numero di devices presenti e i rispettivi id, solo se centralina creata (Ma anche se momentaneamente spenta). */

@@ -141,7 +141,9 @@ int get_device_pid(int device_identifier, int *children_pids, char **raw_info) {
     for (i = 0; i < MAX_CHILDREN; i++) { /* l'indice i è logicamente indipendente dal nome/indice del dispositivo */
         int children_pid = children_pids[i];
         if (children_pid != -1) {
+            //printf("GET_ DEVICE_PID: %d\n", children_pid);
             char *tmp = get_raw_device_info(children_pid);
+            //printf("TMP: %s\n", tmp);
             if (tmp != NULL) {
                 if (raw_info != NULL) {
                     *raw_info = tmp;
@@ -151,6 +153,16 @@ int get_device_pid(int device_identifier, int *children_pids, char **raw_info) {
                 strcpy(var_buffer, tmp);
 
                 if (strncmp(tmp, HUB_S, 1) == 0) {
+                    char buf_info[MAX_BUF_SIZE];
+                    /* Evito fastidiose modifiche a TMP da strtok */
+                    strcpy(buf_info, tmp);
+                    printf("BUF INFO %s\n", buf_info);
+                    char **vars = split(buf_info);
+                    if (vars != NULL && atoi(vars[2]) == device_identifier) {
+                        printf("SONO ENTRATO PER PID: %d\n", children_pid);
+                        free(vars);
+                        return children_pid;
+                    }
                     int possible_pid = hub_tree_pid_finder(var_buffer, device_identifier);
                     printf("Possible PID found: %d\n", possible_pid);
                     if (possible_pid != -1) {
@@ -163,6 +175,9 @@ int get_device_pid(int device_identifier, int *children_pids, char **raw_info) {
                         return children_pid;
                     }
                 }
+            } 
+            else{
+                printf("TMP IS FCKN NULLL\n");
             }
         }
     }
@@ -213,17 +228,22 @@ char *get_raw_device_info(int pid) {
     tmp = malloc(MAX_BUF_SIZE * sizeof(tmp));
     get_pipe_name(pid, pipe_str);
     fd = open(pipe_str, O_RDONLY);
+    if(!(fd > 0)){
+        printf("FD_ERROR: %d", fd);
+    }else{
+        printf("FD: %d\n", fd);
+    }
 
     /* Initialize the file descriptor set. */
     FD_ZERO(&set);
     FD_SET(fd, &set);
 
     /* Initialize the timeout data structure. */
-    timeout.tv_sec = 2;
+    timeout.tv_sec = 3;
     timeout.tv_usec = 0;
 
     /* select returns 0 if timeout, 1 if input available, -1 if error. */
-    if (fd > 0 && select(FD_SETSIZE, &set, NULL, NULL, &timeout)) {
+    if (fd > 0){ //&& select(FD_SETSIZE, &set, NULL, NULL, &timeout)==1) {
         lprintf("DEBUG: In read for PID: %d and pipe %s\n", pid, pipe_str);
         _read = read(fd, tmp, MAX_BUF_SIZE);
         lprintf("End read, TMP: %s\n", tmp);
@@ -231,11 +251,17 @@ char *get_raw_device_info(int pid) {
         close(fd);
         if (_read != 0) {
             /*  lprintf("\n"); */
+            //printf("TMP: %s\n", tmp);
             return tmp;
         } else {
             lprintf("Errore durante la read.\n");
         }
     } else {
+        if(fd < 0){
+            printf("ERRORE FD\n");
+        }else{
+        printf("Timed out\n");
+        }
         return NULL; /*continue; */
     }
     /*} */
@@ -380,13 +406,14 @@ int get_shell_pid() {
     int msgid_sh, shellpid;
     key_t key_sh;
 
-    key_sh = ftok("/tmp", 20);
+    key_sh = ftok("/tmp/ipc", 2000);
     msgid_sh = msgget(key_sh, 0666 | IPC_CREAT);
     message.mesg_type = 1;
     msgrcv(msgid_sh, &message, sizeof(message), 1, IPC_NOWAIT);
     shellpid = atoi(message.mesg_text);
     sprintf(message.mesg_text, "%d", shellpid);
     msgsnd(msgid_sh, &message, MAX_BUF_SIZE, 1);
+    printf("SHELLPID FUORI\n");
     return shellpid;
 }
 

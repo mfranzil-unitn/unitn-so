@@ -16,15 +16,22 @@ int status = 0;   /* interruttore accensione */
 
 int children_pids[MAX_CHILDREN];
 int override = 0;
+char info[MAX_BUF_SIZE];
+
+key_t key;
+int msgid;
+
 
 volatile int flag_usr1 = 0;
 volatile int flag_usr2 = 0;
 volatile int flag_term = 0;
 
 void term();
+void read_msgqueue(int msgid, int* device_pids); 
 
 void sighandler_int(int sig) {
     if (sig == SIGUSR1) {
+        printf("SIGUSR1 SONO HUB %d CON %d\n", __index, pid);
         flag_usr1 = 1;
     }
     if (sig == SIGUSR2) {
@@ -76,7 +83,7 @@ int main(int argc, char* argv[]) {
 
     int i;
 
-    int connected;
+    int connected=0;
 
     this_pipe = argv[2];
     pid = getpid();
@@ -87,12 +94,24 @@ int main(int argc, char* argv[]) {
         children_pids[i] = -1;
     }
 
+    key = ftok("/tmp/ipc",__index + 5000);
+    msgid = msgget(key, 0666 | IPC_CREAT);
+    message.mesg_type = 1;
+        read_msgqueue(msgid, children_pids);
+        printf("HI BRO I'M HUB %d\n", __index);
+        for (i = 0; i < MAX_CHILDREN; i++) {
+                if (children_pids[i] != -1) {
+                    printf("Dispositivo %d: %d\n", i, children_pids[i]);
+                }
+            }
     shellpid = get_shell_pid();
+
 
     signal(SIGCHLD, SIG_IGN);
     signal(SIGTERM, sighandler_int);
     signal(SIGUSR1, sighandler_int);
     signal(SIGUSR2, sighandler_int);
+
 
     while (1) {
         if (flag_usr1) {
@@ -103,27 +122,38 @@ int main(int argc, char* argv[]) {
             /* conto i dispositivi connessi */
             connected = 0;
 
+           
+
             for (i = 0; i < MAX_CHILDREN; i++) {
                 if (children_pids[i] != -1) {
                     connected++;
                 }
             }
 
+
             sprintf(tmp, "4|%d|%d|%d|%d|<!|",
                     pid, __index, status, connected);
-
+            
             /* Stampo nel buffer tante volte quanti device ho */
+            
             for (i = 0; i < MAX_CHILDREN; i++) {
                 if (children_pids[i] != -1) {
                     raw_info = get_raw_device_info(children_pids[i]);
+                    if(raw_info != NULL){
+                    printf("INFO PER FIGLIO: %d di HUB %d: %s\n", children_pids[i], pid, raw_info);
                     strcat(tmp, raw_info);
                     strcat(tmp, "|!|");
                     free(raw_info);
+                    }else{
+                        printf("Ti ho beccato, pezzo di merda\n");
+                    }
                 }
             }
 
             strcat(tmp, "!>");
+            //printf("TMP DI HUB %d: %s\n",pid,  tmp);
             write(fd, tmp, MAX_BUF_SIZE);
+            //printf("INFO SENT\n");
         }
         if (flag_usr2) {
             flag_usr2 = 0;
@@ -136,7 +166,7 @@ int main(int argc, char* argv[]) {
 
             mall_tmp = malloc(MAX_BUF_SIZE * sizeof(mall_tmp));
             read(fd, mall_tmp, MAX_BUF_SIZE);
-            /*printf("End Read: %s\n\n", mall_tmp); */
+            /*printf("End Read: %s\n\n", mall_tmp);*/
             code = mall_tmp[0] - '0';
             /*printf("hub code: %d\n", code); */
 
@@ -160,6 +190,7 @@ int main(int argc, char* argv[]) {
             if (code == 1) {
                 /*printf("CODE 1\n"); */
                 mall_tmp = mall_tmp + 2;
+                printf("MALL TMP FOR HUB %d: %s\n",__index, mall_tmp);
                 vars = split(mall_tmp);
                 __add_ex(vars, children_pids);
                 free(vars);
@@ -179,7 +210,7 @@ int main(int argc, char* argv[]) {
         if (flag_term) {
             term();
         }
-        sleep(10);
+        //sleep(10);
     }
 
     return 0;
@@ -193,9 +224,10 @@ void term() {
     char tmp[MAX_BUF_SIZE];
     int ret;
 
-    if (ppid != shellpid) {
+    printf("IN TERM FOR HUB: %d\n", __index);
+ /*  if (ppid != shellpid) {
         kill(ppid, SIGUSR2);
-        get_pipe_name(ppid, pipe_str); /* Nome della pipe */
+        get_pipe_name(ppid, pipe_str); 
         fd = open(pipe_str, O_RDWR);
         sprintf(tmp, "2|%d", (int)getpid());
         write(fd, tmp, sizeof(tmp));
@@ -210,9 +242,66 @@ void term() {
             }
         }
     }
+*/
+    int count = 0;
+    sprintf(tmp, "-");
+    for (i = 0; i < MAX_CHILDREN; i++) {
+        if (children_pids[i] != -1) {
+            //printf("Trying to send pids\n");
+            count++;
+            //printf("Trying to get INFO\n");
+            char* info = get_raw_device_info(children_pids[i]);
+            //printf("INFO WE HAVE!: %s\n", info);
+            char intern[MAX_BUF_SIZE];
+            sprintf(intern, "-%s", info);
+            //printf("INTERN: %s\n", intern);
+            strcat(tmp, intern);
+            kill(children_pids[i], SIGTERM);
+        }
+    }
+
+    sprintf(message.mesg_text, "%d%s", count, tmp);
+    msgsnd(msgid, &message, sizeof(message), 1);
+
+    //int ret = __link_ex(children_pids, ppid, shellpid);
+
+
     if (done) {
         exit(0);
     } else {
         printf("Errore nell'eliminazione\n");
+    }
+}
+
+
+void read_msgqueue(int msgid, int* device_pids) {
+    int n_devices;
+    int ret = msgrcv(msgid, &message, sizeof(message), 1, IPC_NOWAIT);
+    if (ret != -1) {
+        int q = 0;
+        char n_dev_str[100];
+        while (!(message.mesg_text[q] == '-')) {
+            n_dev_str[q] = message.mesg_text[q];
+            q++;
+        }
+        n_dev_str[q] = '\0';
+        n_devices = atoi(n_dev_str);
+        if (n_devices > 0) {
+            int __count = n_devices;
+            char tmp_buf[MAX_BUF_SIZE];
+            sprintf(tmp_buf, "%s", message.mesg_text);
+            char** vars = NULL;
+            vars = split_sons(tmp_buf, __count);
+            int j = 0;
+            while (j <= __count) {
+                if (j >= 1) {
+                    printf("Vars %d: %s\n", j, vars[j]);
+                    char** son_j = split(vars[j]);
+                    __add_ex(son_j, children_pids);
+                    printf("ADD_EX GOOD\n");
+                }
+                j++;
+            }
+        }
     }
 }

@@ -384,6 +384,7 @@ void __link(int index, int controller, int *children_pids) {
         if (!hub_is_full(controller_pid, raw_controller_info)) {
             sprintf(buf, "1|");
             strcat(buf, raw_device_info);
+            printf("BUFFER TO BE SENT TO CONTROLLER TOTOOT: %s\n", buf);
             free(raw_device_info);
 
             __del(index, children_pids, __out_buf);
