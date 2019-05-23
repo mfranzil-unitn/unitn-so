@@ -69,7 +69,7 @@ int main(int argc, char *argv[]) {
             printf("Sei sicuro di voler uscire dal launcher? Tutte le modifiche verranno perse!");
 
             while (1) {
-                printf("[s/n]: ");
+                printf(" [s/n]: ");
                 if (scanf(" %c", &c) != 1) {
                     printf("Errore durante la lettura.\n");
                     continue;
@@ -113,11 +113,9 @@ int main(int argc, char *argv[]) {
             } else {
                 user_launcher(buf, msgid, device_pids, msgid_sh);
             }
-        } else if (strcmp(buf[0], "restart") == 0) {
+       /* } else if (strcmp(buf[0], "restart") == 0) {
             printf("Riavvio sta dando problemi, non usarmi\n");
-            continue;
-            /*  int pid = fork(); */
-            /*if (pid == 0) { */
+           
             if (shell_pid != -1) {
                 kill(shell_pid, SIGTERM);
             }
@@ -126,12 +124,8 @@ int main(int argc, char *argv[]) {
             free(buf);
             printf("Riavvio in corso...\n");
             system("make build");
-            system("./run --no-clear");
-            /*  } else { */
-            /*    wait(NULL); */
-            /*  } */
-            /*  exit(0); */
-        } else { /*tutto il resto */
+            system("./run --no-clear");*/
+        } else { /* tutto il resto */
             printf("Comando non riconosciuto. Usa help per visualizzare i comandi disponibili\n");
         }
     }
@@ -237,7 +231,7 @@ void user_launcher(char buf[][MAX_BUF_SIZE], int msgid, int *device_pids, int ms
     if (strcmp(buf[3], "on") == 0 && shell_pid == -1) { /*Se non è ancora accesa => shell_pid == -1 */
         pid = fork();
         if (pid < 0) {
-            printf("Errore durante il fork\n");
+            printf("Errore durante il fork.\n");
             exit(1);
         }
 
@@ -259,14 +253,14 @@ void user_launcher(char buf[][MAX_BUF_SIZE], int msgid, int *device_pids, int ms
             /*Legge il contenuto della pipe => Se = "Errore" la finestra è stata aperta. */
             msgrcv(msgid, &message, sizeof(message), 1, 0);
             if (strcmp(message.mesg_text, "Errore") == 0) {
-                printf("Errore nell'apertura della shell\n");
+                printf("Errore nell'apertura della shell. Codice di errore: %d\n", errno);
             } else {
                 shell_pid = atoi(message.mesg_text);
                 shell_on = 1;
                 msgsnd(msgid_sh, &message, MAX_BUF_SIZE, 0);
             }
             system("clear");
-            printf("La centralina è aperta\n");
+            printf("Centralina aperta.\n");
             return;
         }
     } else if (strcmp(buf[3], "off") == 0 && shell_pid != -1) {
@@ -282,11 +276,11 @@ void user_launcher(char buf[][MAX_BUF_SIZE], int msgid, int *device_pids, int ms
             kill(shell_pid, SIGUSR1); /*sleep(1); */
             shell_on = 1;
         } else {
-            printf("Centralina già accesa\n");
+            printf("Centralina già accesa.\n");
         }
     } else if (strcmp(buf[3], "off") == 0 && shell_pid == -1) {
-        printf("Centralina già spenta\n");
+        printf("Centralina già spenta.\n");
     } else {
-        printf("Comando non riconosciuto\n");
+        printf("Comando non riconosciuto.\n");
     }
 }

@@ -1,8 +1,3 @@
-#include <fcntl.h>
-#include <signal.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <time.h>
 #include "../util.h"
 
 /* Frigo = 2 */

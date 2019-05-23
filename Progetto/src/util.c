@@ -55,6 +55,9 @@ char **split(char *__buf) {
         case HUB:
             __count = HUB_PARAMETERS;
             break;
+        case TIMER:
+            __count = TIMER_PARAMETERS;
+            break;
         default:
             __count = 1;
             break;
@@ -93,44 +96,44 @@ void get_pipe_name(int pid, char *pipe_str) {
 void get_device_name(int device_type, char *buf) {
     switch (device_type) {
         case BULB:
-            sprintf(buf, "lampadina");
+            sprintf(buf, BULB_IT);
             break;
         case FRIDGE:
-            sprintf(buf, "frigo");
+            sprintf(buf, FRIDGE_IT);
             break;
         case WINDOW:
-            sprintf(buf, "finestra");
+            sprintf(buf, WINDOW_IT);
             break;
         case CONTROLLER:
-            sprintf(buf, "centralina");
+            sprintf(buf, CONTROLLER_IT);
             break;
         case HUB:
-            sprintf(buf, "hub");
+            sprintf(buf, HUB_IT);
             break;
         case TIMER:
-            sprintf(buf, "timer");
+            sprintf(buf, TIMER_IT);
             break;
         default:
-            sprintf(buf, "-");
+            sprintf(buf, INVALID_OUTPUT);
             break;
     }
 }
 
 void get_device_name_str(char *device_type, char *buf) {
-    if (strcmp(device_type, "bulb") == 0) {
-        sprintf(buf, "lampadina");
-    } else if (strcmp(device_type, "fridge") == 0) {
-        sprintf(buf, "frigo");
-    } else if (strcmp(device_type, "window") == 0) {
-        sprintf(buf, "finestra");
-    } else if (strcmp(device_type, "controller") == 0) {
-        sprintf(buf, "centralina");
-    } else if (strcmp(device_type, "hub") == 0) {
-        sprintf(buf, "hub");
-    } else if (strcmp(device_type, "timer") == 0) {
-        sprintf(buf, "timer");
+    if (strcmp(device_type, BULB_ENG) == 0) {
+        sprintf(buf, BULB_IT);
+    } else if (strcmp(device_type, FRIDGE_ENG) == 0) {
+        sprintf(buf, FRIDGE_IT);
+    } else if (strcmp(device_type, WINDOW_ENG) == 0) {
+        sprintf(buf, WINDOW_IT);
+    } else if (strcmp(device_type, CONTROLLER_ENG) == 0) {
+        sprintf(buf, CONTROLLER_IT);
+    } else if (strcmp(device_type, HUB_ENG) == 0) {
+        sprintf(buf, HUB_IT);
+    } else if (strcmp(device_type, TIMER_ENG) == 0) {
+        sprintf(buf, TIMER_IT);
     } else {
-        sprintf(buf, "-");
+        sprintf(buf, INVALID_OUTPUT);
     }
 }
 
@@ -152,7 +155,7 @@ int get_device_pid(int device_identifier, int *children_pids, char **raw_info) {
 
                 if (strncmp(tmp, HUB_S, 1) == 0) {
                     int possible_pid = hub_tree_pid_finder(var_buffer, device_identifier);
-                    printf("Possible PID found: %d\n", possible_pid);
+                    /*printf("Possible PID found: %d\n", possible_pid);*/
                     if (possible_pid != -1) {
                         return possible_pid;
                     }
@@ -171,6 +174,7 @@ int get_device_pid(int device_identifier, int *children_pids, char **raw_info) {
     }
     return -1;
 }
+
 /* DEPRECATED
 char **get_device_info(int pid) {
     if (kill(pid, SIGUSR1) != 0) {
@@ -224,16 +228,16 @@ char *get_raw_device_info(int pid) {
 
     /* select returns 0 if timeout, 1 if input available, -1 if error. */
     if (fd > 0 && select(FD_SETSIZE, &set, NULL, NULL, &timeout)) {
-        lprintf("DEBUG: In read for PID: %d and pipe %s\n", pid, pipe_str);
+        /* lprintf("DEBUG: In read for PID: %d and pipe %s\n", pid, pipe_str);*/
         _read = read(fd, tmp, MAX_BUF_SIZE);
-        lprintf("End read, TMP: %s\n", tmp);
+        /*lprintf("End read, TMP: %s\n", tmp);*/
         /* Pulizia */
         close(fd);
         if (_read != 0) {
             /*  lprintf("\n"); */
             return tmp;
         } else {
-            lprintf("Errore durante la read.\n");
+            /* lprintf("Errore durante la read.\n");*/
         }
     } else {
         return NULL; /*continue; */
@@ -242,6 +246,7 @@ char *get_raw_device_info(int pid) {
     /* lprintf("\n"); */
     return NULL;
 }
+
 int is_controller(int pid, char *raw_info) {
     char **vars = split(raw_info);
     int id = atoi(vars[0]);
@@ -259,6 +264,9 @@ int hub_is_full(int pid, char *raw_info) {
 void hub_tree_print(char **vars) {
     if (strcmp(vars[0], HUB_S) == 0) {
         printf("Hub (PID: %s, Indice: %s), Stato: %s, Collegati: %s",
+               vars[1], vars[2], atoi(vars[3]) ? "Acceso" : "Spento", vars[4]);
+    } else if (strcmp(vars[0], TIMER_S) == 0) {
+        printf("Timer (PID: %s, Indice: %s), Stato: %s, Collegati: %s",
                vars[1], vars[2], atoi(vars[3]) ? "Acceso" : "Spento", vars[4]);
     } else {
         char device_name[MAX_BUF_SIZE];

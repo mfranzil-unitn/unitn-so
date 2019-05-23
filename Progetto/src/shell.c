@@ -142,7 +142,7 @@ int main(int argc, char *argv[]) {
             } else if (strcmp(buf[0], "\0") == 0) { /* a capo a vuoto */
                 continue;
             } else { /*tutto il resto */
-                printf("Comando non riconosciuto. Usa help per visualizzare i comandi disponibili\n");
+                printf(UNKNOWN_COMMAND);
             }
         } else {
             /*Ripulisco forzatamente. */
@@ -161,6 +161,7 @@ int add_shell(char buf[][MAX_BUF_SIZE], int *device_i, int *children_pids, char 
     if (strcmp(buf[1], "bulb") == 0 || strcmp(buf[1], "fridge") == 0 || strcmp(buf[1], "window") == 0 || strcmp(buf[1], "hub") == 0 || strcmp(buf[1], "timer") == 0) {
         (*device_i)++;
         if (__add(buf[1], *device_i, children_pids, __out_buf) == 0) {
+            /* Non c'è spazio, ci rinuncio */
             (*device_i)--;
             return 0;
         } else {
@@ -185,11 +186,11 @@ void handle_sig(int sig) {
 void stop_sig(int sig) {
     if (stato) {
         stato = 0;
-        printf("La centralina è stata spenta. Nessun comando sarà accettato\n");
+        printf("La centralina è stata spenta. Nessun comando sarà accettato.\n");
     } else {
         stato = 1;
         system("clear");
-        printf("\nLa centralina è accessa. Premi Invio per proseguire.\n");
+        printf("\nLa centralina è accesa. Premi Invio per proseguire.\n");
     }
 }
 
@@ -202,7 +203,7 @@ void link_child(int signal) {
     /*Analogamente ad Hub */
     tmp = malloc(MAX_BUF_SIZE * sizeof(tmp));
     read(fd, tmp, MAX_BUF_SIZE);
-    lprintf("End Read: %s\n\n", tmp);
+    /*lprintf("End Read: %s\n\n", tmp);*/
     code = tmp[0] - '0';
     if (code == 1) {
         tmp = tmp + 2;

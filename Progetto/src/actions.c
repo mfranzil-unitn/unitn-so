@@ -19,8 +19,6 @@ void __switch(int index, char *action, char *position, int *children_pids) {
         printf("Errore di connessione (PID %d)\n", pid);
     }
 
-    /* printf("%s", device_info);
-*/
     vars = split(device_info);
     get_pipe_name(pid, pipe_str); /* Nome della pipe */
 
@@ -157,7 +155,7 @@ void __switch(int index, char *action, char *position, int *children_pids) {
         if (strcmp(action, "orario") == 0) {
             int h_start, m_start, h_end, m_end;
             /* Aggiungere controlli sugli orari */
-            int scan = sscanf(position, "%d:%d -> %d:%d", &h_start, &m_start, &h_end, &m_end);
+            int scan = sscanf(position, "%d:%d->%d:%d", &h_start, &m_start, &h_end, &m_end);
             if (scan != 4 || h_start < 0 || h_start > 23 || h_end < 0 || h_end > 59 || h_start > h_end || m_start > m_end) {
                 printf("Formattazione degli orari sbagliata. Formato (24 ore): \"HH:MM -> HH:MM\"\n");
             } else {
@@ -178,18 +176,19 @@ void __switch(int index, char *action, char *position, int *children_pids) {
 
 void __info(int index, int *children_pids) {
     char *info = NULL;
-    int pid = get_device_pid(index, children_pids, &info);
-    char **info_p;
+    char **info_p = NULL;
+
+    int pid;
+    
+    pid = get_device_pid(index, children_pids, &info);
 
     if (pid == -1) {
         printf("Errore! Non esiste questo dispositivo.\n");
         return;
     }
 
-    lprintf("TMP: %s\n", info);
-
     if (info == NULL) {
-        printf("Errore di connessione con il dispositivo.\n");
+        printf("Errore di connessione (PID %d)\n", pid);
     }
 
     if (strncmp(info, HUB_S, 1) != 0) {
@@ -256,20 +255,14 @@ int __add(char *device, int device_index, int *children_pids, char *__out_buf) {
         /* Apro una pipe per padre-figlio */
         get_pipe_name(getpid(), pipe_str);
         mkfifo(pipe_str, 0666);
-
         /* Conversione a stringa dell'indice */
         sprintf(index_str, "%d", device_index);
-
         sprintf(program_name, "./%s%s", DEVICES_POSITIONS, device);
-
         execlp(program_name, program_name, index_str, pipe_str, NULL);
-
         exit(0);
     } else { /* Padre */
         children_pids[actual_index] = pid;
-
         get_device_name_str(device, device_name);
-
         sprintf(__out_buf, "Aggiunto un dispositivo di tipo %s con PID %d e indice %d\n",
                 device_name, pid, device_index);
     }

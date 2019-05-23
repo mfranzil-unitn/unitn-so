@@ -17,7 +17,7 @@ default: help
 
 targets: bin/launcher bin/shell devices
 
-devices: bin/devices/hub bin/devices/bulb bin/devices/fridge bin/devices/window
+devices: bin/devices/hub bin/devices/bulb bin/devices/fridge bin/devices/window bin/devices/timer
 
 bin/launcher: src/launcher.c bin/util.o bin/actions.o
 	$(CC) $(CFLAGS) -o bin/launcher src/launcher.c bin/util.o bin/actions.o
@@ -36,6 +36,9 @@ bin/devices/window: src/devices/window.c bin/util.o
 
 bin/devices/hub: src/devices/hub.c bin/util.o bin/actions.o
 	$(CC) $(CFLAGS) -o bin/devices/hub src/devices/hub.c bin/util.o bin/actions.o
+
+bin/devices/timer: src/devices/timer.c bin/util.o bin/actions.o
+	$(CC) $(CFLAGS) -o bin/devices/timer src/devices/timer.c bin/util.o bin/actions.o
 
 bin/util.o: src/util.c
 	$(CC) $(CFLAGS) -c -o bin/util.o src/util.c 
