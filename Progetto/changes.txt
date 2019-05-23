@@ -1,0 +1,84 @@
+src/util.c: In function ‘get_shell_text’:
+src/util.c:85:5: warning: implicit declaration of function ‘cuserid’; did you mean ‘ctermid’? [-Wimplicit-function-declaration]
+     cuserid(user);
+     ^~~~~~~
+     ctermid
+src/actions.c: In function ‘__link_ex’:
+src/actions.c:478:14: warning: assignment to ‘char **’ from incompatible pointer type ‘char *’ [-Wincompatible-pointer-types]
+     son_info = get_raw_device_info(son_pid);
+              ^
+src/actions.c:481:48: warning: format ‘%s’ expects argument of type ‘char *’, but argument 2 has type ‘int’ [-Wformat=]
+         printf("Errore di comunicazione (PID: %s)\n", son_pid);
+                                               ~^      ~~~~~~~
+                                               %d
+src/actions.c:482:9: warning: ‘return’ with no value, in function returning non-void [-Wreturn-type]
+         return;
+         ^~~~~~
+src/actions.c:467:5: note: declared here
+ int __link_ex(int son_pid, int parent_pid, int shellpid) {
+     ^~~~~~~~~
+src/actions.c:489:52: warning: format ‘%s’ expects argument of type ‘char *’, but argument 2 has type ‘int’ [-Wformat=]
+             printf("Errore di comunicazione (PID: %s)\n", parent_pid);
+                                                   ~^      ~~~~~~~~~~
+                                                   %d
+src/actions.c:490:13: warning: ‘return’ with no value, in function returning non-void [-Wreturn-type]
+             return;
+             ^~~~~~
+src/actions.c:467:5: note: declared here
+ int __link_ex(int son_pid, int parent_pid, int shellpid) {
+     ^~~~~~~~~
+src/actions.c:500:22: warning: format ‘%s’ expects argument of type ‘char *’, but argument 3 has type ‘char **’ [-Wformat=]
+     sprintf(buf, "1|%s", son_info);
+                     ~^   ~~~~~~~~
+src/actions.c:502:20: warning: format ‘%s’ expects argument of type ‘char *’, but argument 3 has type ‘char **’ [-Wformat=]
+     sprintf(tmp, "%s", son_info);
+                   ~^   ~~~~~~~~
+src/launcher.c: In function ‘main’:
+src/launcher.c:14:5: warning: ISO C90 forbids mixed declarations and code [-Wdeclaration-after-statement]
+     char(*buf)[MAX_BUF_SIZE];
+     ^~~~
+src/launcher.c:62:16: warning: non-ISO-standard escape sequence, '\e'
+         printf("\e[92m%s\e[39m:\e[34mLauncher\033[0m$ ", name);
+                ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/launcher.c:62:16: warning: non-ISO-standard escape sequence, '\e'
+src/launcher.c:62:16: warning: non-ISO-standard escape sequence, '\e'
+src/launcher.c:97:13: warning: string length ‘567’ is greater than the length ‘509’ ISO C90 compilers are required to support [-Woverlength-strings]
+             printf(HELP_STRING_LAUNCHER);
+             ^~~~~~
+src/shell.c: In function ‘main’:
+src/shell.c:94:20: warning: non-ISO-standard escape sequence, '\e'
+             printf("\e[92m%s\e[39m:\e[31mCentralina\033[0m$ ", name);
+                    ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/shell.c:94:20: warning: non-ISO-standard escape sequence, '\e'
+src/shell.c:94:20: warning: non-ISO-standard escape sequence, '\e'
+src/shell.c:98:17: warning: string length ‘1174’ is greater than the length ‘509’ ISO C90 compilers are required to support [-Woverlength-strings]
+                 printf(HELP_STRING);
+                 ^~~~~~
+src/shell.c:23:9: warning: variable ‘msgid_sh’ set but not used [-Wunused-but-set-variable]
+     int msgid_sh;
+         ^~~~~~~~
+src/devices/hub.c: In function ‘main’:
+src/devices/hub.c:128:13: warning: ISO C90 forbids mixed declarations and code [-Wdeclaration-after-statement]
+             char* tmp = malloc(MAX_BUF_SIZE * sizeof(tmp));
+             ^~~~
+src/devices/hub.c:132:13: warning: ISO C90 forbids mixed declarations and code [-Wdeclaration-after-statement]
+             int code = tmp[0] - '0';
+             ^~~
+src/devices/hub.c:145:17: warning: ISO C90 forbids mixed declarations and code [-Wdeclaration-after-statement]
+                 int i = 0;
+                 ^~~
+src/devices/hub.c:146:23: warning: unused variable ‘pipe_str’ [-Wunused-variable]
+                 char* pipe_str;
+                       ^~~~~~~~
+src/devices/hub.c:161:17: warning: ISO C90 forbids mixed declarations and code [-Wdeclaration-after-statement]
+                 char** vars = split(tmp);
+                 ^~~~
+src/devices/hub.c:183:17: warning: ISO C90 forbids mixed declarations and code [-Wdeclaration-after-statement]
+                 char pipe_str[MAX_BUF_SIZE];
+                 ^~~~
+src/devices/hub.c:185:17: warning: ISO C90 forbids mixed declarations and code [-Wdeclaration-after-statement]
+                 int fd = open(pipe_str, O_RDWR);
+                 ^~~
+src/devices/hub.c:194:21: warning: ISO C90 forbids mixed declarations and code [-Wdeclaration-after-statement]
+                     int ret = __link_ex(children_pids[i], ppid, shellpid);
+                     ^~~

@@ -1,7 +1,5 @@
 #include "util.h"
-/*
-int print_mode = 1;
-*/
+
 void lprintf(const char *__restrict__ __format, ...) {
     va_list(args);
     /*  printf("%d - ", time(NULL)); */
@@ -178,7 +176,6 @@ char **get_device_info(int pid) {
     if (kill(pid, SIGUSR1) != 0) {
         return NULL;
     }
-
     char pipe_str[MAX_BUF_SIZE];
     char tmp[MAX_BUF_SIZE];
 
@@ -245,7 +242,6 @@ char *get_raw_device_info(int pid) {
     /* lprintf("\n"); */
     return NULL;
 }
-
 int is_controller(int pid, char *raw_info) {
     char **vars = split(raw_info);
     int id = atoi(vars[0]);
