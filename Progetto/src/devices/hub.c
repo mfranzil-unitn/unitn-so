@@ -340,10 +340,10 @@ void read_msgqueue(int msgid, int* device_pids) {
             int j = 0;
             while (j <= __count) {
                 if (j >= 1) {
-                    //printf("Vars %d: %s\n", j, vars[j]);
+                    printf("\nVars %d: %s\n", j, vars[j]);
                     char** son_j = split(vars[j]);
                     __add_ex(son_j, children_pids);
-                    //printf("ADD_EX GOOD\n");
+                    printf("\nADD_EX GOOD\n");
                 }
                 j++;
             }

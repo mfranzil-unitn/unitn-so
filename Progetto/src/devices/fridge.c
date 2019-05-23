@@ -15,6 +15,9 @@ int pid, __index, delay, perc, temp; /* variabili di stato */
 char log_buf[MAX_BUF_SIZE / 4]; /* buffer della pipe // SE CI SONO PROBLEMI; GUARDA QUI */
 int status = 0; /* interruttore accensione */
 time_t start, time_on;
+key_t key; 
+int msgid;
+
 
 volatile int flag_usr1 = 0;
 volatile int flag_usr2 = 0;
@@ -46,6 +49,9 @@ int main(int argc, char* argv[]) {
     __index = atoi(argv[1]);
     fd = open(this_pipe, O_RDWR);
 
+    key = ftok("/tmp/ipc/mqueues", pid);
+    msgid = msgget(key, 0666 |IPC_CREAT);
+
     delay = 15;
     perc = 50;
     temp = 5;
@@ -69,8 +75,13 @@ int main(int argc, char* argv[]) {
 
             sprintf(tmp, "2|%d|%d|%d|%d|%d|%d|%d|%s",
                     pid, __index, status, (int)time_on, delay, perc, temp, log_buf);
+            message.mesg_type = 1;
+            sprintf(message.mesg_text, "%s", tmp);
+            int rc = msgsnd(msgid, &message, sizeof(message),0);
 
-            write(fd, tmp, MAX_BUF_SIZE);
+           // write(fd, tmp, MAX_BUF_SIZE);
+
+
 
             /* Resetto il contenuto del buffer */
             sprintf(log_buf, "-");
@@ -103,15 +114,16 @@ int main(int argc, char* argv[]) {
             }
         }
         if (flag_term) {
-            if ((int)getppid() != shellpid) {
+            /*if ((int)getppid() != shellpid) {
                 ppid = (int)getppid();
                 kill(ppid, SIGUSR2);
-                get_pipe_name(ppid, ppid_pipe); /* Nome della pipe */
+                get_pipe_name(ppid, ppid_pipe); 
                 ppid_pipe_fd = open(ppid_pipe, O_RDWR);
                 sprintf(tmp, "2|%d", (int)getpid());
                 write(ppid_pipe_fd, tmp, sizeof(tmp));
                 close(ppid_pipe_fd);
-            }
+            }*/
+            msgctl(msgid, IPC_RMID, NULL);
             exit(0);
         }
         if (status == 1 && start <= time(NULL) - delay) {

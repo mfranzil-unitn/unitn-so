@@ -239,11 +239,6 @@ char *get_raw_device_info(int pid) {
     else{
         return NULL;
     }
-
-
-
-
-
     if(enter){
     char pipe_str[MAX_BUF_SIZE];
     int fd, _read;
@@ -365,14 +360,14 @@ void hub_tree_parser(char *__buf) {
             hub_tree_print(vars);
         } else if (strcmp(tokenizer, "!>") == 0) {
             --level; /*  printf("\nLevel_c %d\n", level); */
-            if (!strcmp(old, "<!") == 0 && to_be_printed > 0) {
+            if (strcmp(old, "<!") != 0 &&strcmp(old, "!") != 0 && to_be_printed > 0) {
                 i = 0;
                 hub_tree_spaces(level);
                 hub_tree_print(vars);
                 to_be_printed--;
             }
         } else if (strcmp(tokenizer, "!") == 0) {
-            if (!strcmp(old, "!>") == 0 && to_be_printed > 0) {
+            if (strcmp(old, "!>") != 0 && to_be_printed > 0) {
                 i = 0;
                 hub_tree_spaces(level);
                 hub_tree_print(vars);
@@ -409,7 +404,7 @@ int hub_tree_pid_finder(char *__buf, int id) {
                 return atoi(vars[1]);
             }
         } else if (strcmp(tokenizer, "!>") == 0) {
-            if (strcmp(old, "<!") == 0 && to_be_printed > 0) {
+            if (strcmp(old, "<!") != 0 &&strcmp(old, "!") != 0 && to_be_printed > 0) {
                 i = 0;
 
                 if (atoi(vars[2]) == id) {
@@ -418,7 +413,7 @@ int hub_tree_pid_finder(char *__buf, int id) {
                 to_be_printed--;
             }
         } else if (strcmp(tokenizer, "!") == 0) {
-            if (to_be_printed > 0) {
+            if (strcmp(old, "!>") != 0 && to_be_printed > 0) {
                 i = 0;
 
                 if (atoi(vars[2]) == id) {

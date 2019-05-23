@@ -452,14 +452,14 @@ int hub_tree_constructor(char *__buf, int *children_pids) {
             __add_ex(vars, children_pids);
             /* segnarsi chi è il padre e poi fare link */
         } else if (strcmp(tokenizer, "!>") == 0) {
-            if (strcmp(old, "<!") == 0 && to_be_added > 0) {
+            if (strcmp(old, "<!") != 0 &&strcmp(old, "!") != 0 && to_be_added > 0) {
                 i = 0;
 
                 __add_ex(vars, children_pids);
                 to_be_added--;
             }
         } else if (strcmp(tokenizer, "!") == 0) {
-            if (to_be_added > 0) {
+            if (strcmp(old, "!>") != 0 && to_be_added > 0) {
                 i = 0;
 
                 __add_ex(vars, children_pids);
