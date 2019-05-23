@@ -129,10 +129,9 @@ int main(int argc, char* argv[]) {
 
             /*printf("hub usr2: %d\n", pid); */
 
-            mall_tmp = malloc(MAX_BUF_SIZE * sizeof(mall_tmp));
-            read(fd, mall_tmp, MAX_BUF_SIZE);
-            /*printf("End Read: %s\n\n", mall_tmp); */
-            code = mall_tmp[0] - '0';
+            read(fd, tmp, MAX_BUF_SIZE);
+            /*printf("End Read: %s\n\n", tmp); */
+            code = tmp[0] - '0';
             /*printf("hub code: %d\n", code); */
 
             for (i = 0; i < MAX_CHILDREN; i++) {
@@ -150,19 +149,21 @@ int main(int argc, char* argv[]) {
                         __switch(children_pids[i], "accensione", status ? "off" : "on", children_pids);
                     }
                 }
-                free(mall_tmp);
+                free(tmp);
             }
             if (code == 1) {
-                /*printf("CODE 1\n"); */
-                mall_tmp = mall_tmp + 2;
-                vars = split(mall_tmp);
+                /* Devo rimuovere i primi due caratteri per passare i parametri nel modo corretto */
+                char* shifted_tmp = malloc(MAX_BUF_SIZE * sizeof(shifted_tmp));
+                strcpy(shifted_tmp, tmp);
+                shifted_tmp = shifted_tmp + 2;
+                vars = split(shifted_tmp);
                 __add_ex(vars, children_pids);
                 free(vars);
-                free(mall_tmp - 2);
+                free(shifted_tmp);
             }
             if (code == 2) {
                 /*printf("CODE 2\n"); */
-                vars = split(mall_tmp);
+                vars = split(tmp);
                 for (i = 0; i < MAX_CHILDREN; i++) {
                     if (children_pids[i] == atoi(vars[1])) {
                         /*printf("BECCATO: childern_Pids: %d, atoi: %d\n", children_pids[i], atoi(vars[1])); */

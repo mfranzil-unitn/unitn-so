@@ -399,21 +399,24 @@ void __link(int index, int controller, int *children_pids) {
     }
 }
 
-void __add_ex(char **vars, int *children_pids) {
+int __add_ex(char **vars, int *children_pids) {
     char __out_buf[MAX_BUF_SIZE];
     if (strcmp(vars[0], BULB_S) == 0) { /* Lampadina */
-        __add("bulb", atoi(vars[2]), children_pids, __out_buf);
+        return __add("bulb", atoi(vars[2]), children_pids, __out_buf);
         /* Chiaramente minchia posso replicare il time_on o lo stato... */
         /* se scollego una lampadina quella si spegne */
     } else if (strcmp(vars[0], FRIDGE_S) == 0) { /* Frigo */
-        __add("fridge", atoi(vars[2]), children_pids, __out_buf);
+        return __add("fridge", atoi(vars[2]), children_pids, __out_buf);
         /*    .... aggiungere la temperatura eventualmente riempimento etc */
     } else if (strcmp(vars[0], WINDOW_S) == 0) { /* Frigo */
-        __add("window", atoi(vars[2]), children_pids, __out_buf);
+        return __add("window", atoi(vars[2]), children_pids, __out_buf);
     } else if (strcmp(vars[0], HUB_S) == 0) {
-        __add("hub", atoi(vars[2]), children_pids, __out_buf);
+        return __add("hub", atoi(vars[2]), children_pids, __out_buf);
+    }  else if (strcmp(vars[0], TIMER_S) == 0) {
+        return __add("timer", atoi(vars[2]), children_pids, __out_buf);
     } else {
         printf("Da implementare...");
+        return 0;
     }
 }
 

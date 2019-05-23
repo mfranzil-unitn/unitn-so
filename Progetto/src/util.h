@@ -52,7 +52,7 @@
 #define FRIDGE_PARAMETERS 9
 #define WINDOW_PARAMETERS 5
 #define HUB_PARAMETERS 5000
-#define TIMER_PARAMETERS 8
+#define TIMER_PARAMETERS 1000
 
 #define MAX_CHILDREN 20
 
@@ -63,7 +63,7 @@
 
 #define SWITCH_STRING \
     "Sintassi: switch <id> <label> <pos>\n\
-    Interruttori disponibili:\n        bulb: accensione\n        fridge: temperatura, apertura, delay, riempimento\n        window: apertura\n        timer: accensione\n        timer: orario\n"
+    Interruttori disponibili:\n        bulb: accensione\n        fridge: temperatura, apertura, delay, riempimento\n        window: apertura\n        hub: accensione\n        timer: orario\n"
 
 #define ADD_STRING \
     "Sintassi: add <device>\nDispositivi disponibili: bulb, window, fridge, hub, timer\n"

@@ -251,14 +251,14 @@ int is_controller(int pid, char *raw_info) {
     char **vars = split(raw_info);
     int id = atoi(vars[0]);
     free(vars);
-    return id == HUB;
+    return id == HUB || id == TIMER;
 }
 
 int hub_is_full(int pid, char *raw_info) {
     char **vars = split(raw_info);
     int count = atoi(vars[4]);
     free(vars);
-    return count >= MAX_CHILDREN;
+    return atoi(vars[0]) == HUB ? count >= MAX_CHILDREN : 0;
 }
 
 void hub_tree_print(char **vars) {
