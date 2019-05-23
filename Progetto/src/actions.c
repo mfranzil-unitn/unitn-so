@@ -177,7 +177,7 @@ void __info(int index, int *children_pids) {
     char **info_p = NULL;
 
     int pid;
-    
+
     pid = get_device_pid(index, children_pids, &info);
 
     if (pid == -1) {
@@ -374,25 +374,31 @@ void __link(int index, int controller, int *children_pids) {
         printf("Errore! Non puoi collegarti a te stesso.\n");
         return;
     }
-
+       
     if (is_controller(controller_pid, raw_controller_info)) {
-        if (!hub_is_full(controller_pid, raw_controller_info)) {
+        if (!controller_is_full(controller_pid, raw_controller_info)) {
             sprintf(buf, "1|");
             strcat(buf, raw_device_info);
+
             free(raw_device_info);
+            free(raw_controller_info);
 
             __del(index, children_pids, __out_buf);
 
             get_pipe_name(controller_pid, controller_pipe_name);
 
             fd = open(controller_pipe_name, O_RDWR);
+
+            printf(buf);
+            fflush(stdout);
+
             write(fd, buf, MAX_BUF_SIZE);
             kill(controller_pid, SIGUSR2);
 
             printf("Spostato l'oggetto %d sotto l'oggetto %d\n", index, controller);
             close(fd);
         } else {
-            printf("Operazione non permessa. L'hub %d è già pieno. Eliminare qualche dispositivo.\n", controller);
+            printf("Operazione non permessa. Il dispositivo %d è già pieno. Eliminare qualche dispositivo.\n", controller);
         }
     } else {
         printf("Configurazione dei dispositvi non valida. Sintassi: link <device> to <hub/timer>\n");
@@ -412,7 +418,7 @@ int __add_ex(char **vars, int *children_pids) {
         return __add("window", atoi(vars[2]), children_pids, __out_buf);
     } else if (strcmp(vars[0], HUB_S) == 0) {
         return __add("hub", atoi(vars[2]), children_pids, __out_buf);
-    }  else if (strcmp(vars[0], TIMER_S) == 0) {
+    } else if (strcmp(vars[0], TIMER_S) == 0) {
         return __add("timer", atoi(vars[2]), children_pids, __out_buf);
     } else {
         printf("Da implementare...");

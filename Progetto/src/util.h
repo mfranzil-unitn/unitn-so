@@ -48,13 +48,14 @@
 #define HUB_IT "hub"
 #define TIMER_IT "timer"
 
+#define MAX_CHILDREN 20
+
 #define BULB_PARAMETERS 5
 #define FRIDGE_PARAMETERS 9
 #define WINDOW_PARAMETERS 5
-#define HUB_PARAMETERS 5000
-#define TIMER_PARAMETERS 1000
+#define HUB_PARAMETERS MAX_CHILDREN * MAX_CHILDREN
+#define TIMER_PARAMETERS 20
 
-#define MAX_CHILDREN 20
 
 #define SHELL_POSITION "bin/shell"
 #define DEVICES_POSITIONS "bin/devices/"
@@ -108,7 +109,7 @@ char *get_raw_device_info(int pid);
 /*char **get_device_info(int pid);*/
 
 int is_controller(int pid, char *raw_info);
-int hub_is_full(int pid, char *raw_info);
+int controller_is_full(int pid, char *raw_info);
 
 void hub_tree_print(char **vars);
 void hub_tree_spaces(int level);

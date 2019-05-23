@@ -153,7 +153,7 @@ int get_device_pid(int device_identifier, int *children_pids, char **raw_info) {
                 /* Evito fastidiose modifiche a TMP da strtok */
                 strcpy(var_buffer, tmp);
 
-                if (strncmp(tmp, HUB_S, 1) == 0) {
+                if (strncmp(tmp, HUB_S, 1) == 0 || strncmp(tmp, TIMER_S, 1) == 0) {
                     int possible_pid = hub_tree_pid_finder(var_buffer, device_identifier);
                     /*printf("Possible PID found: %d\n", possible_pid);*/
                     if (possible_pid != -1) {
@@ -168,9 +168,6 @@ int get_device_pid(int device_identifier, int *children_pids, char **raw_info) {
                 }
             }
         }
-    }
-    if (raw_info != NULL) {
-        *raw_info = NULL;
     }
     return -1;
 }
@@ -254,11 +251,17 @@ int is_controller(int pid, char *raw_info) {
     return id == HUB || id == TIMER;
 }
 
-int hub_is_full(int pid, char *raw_info) {
+int controller_is_full(int pid, char *raw_info) {
     char **vars = split(raw_info);
-    int count = atoi(vars[4]);
+    if (atoi(vars[0]) == HUB) {
+        int count = atoi(vars[4]);
+        return count >= MAX_CHILDREN;
+    } else if (atoi(vars[0]) == TIMER) {
+        return 0;
+    } else {
+        return 1;
+    }
     free(vars);
-    return atoi(vars[0]) == HUB ? count >= MAX_CHILDREN : 0;
 }
 
 void hub_tree_print(char **vars) {

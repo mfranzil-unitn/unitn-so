@@ -22,16 +22,19 @@ struct tm tm_current;
 volatile int flag_usr1 = 0;
 volatile int flag_usr2 = 0;
 volatile int flag_term = 0;
+volatile int flag_alarm = 0;
 
 void switch_child() {
+    char switch_names[5][MAX_BUF_SIZE];
+
     if (children_pids[0] == -1) {
         return;
     }
-    char* switch_names = {"-",           /* Per shiftare gli indici così che corrispondano */
-                          "accensione",  /* Bulb */
-                          "apertura",    /* Fridge */
-                          "apertura",    /* Window */
-                          "accensione"}; /* Hub */
+    sprintf(switch_names[0], "-");          /* Per shiftare gli indici così che corrispondano */
+    sprintf(switch_names[1], "accensione"); /* Bulb */
+    sprintf(switch_names[2], "apertura");   /* Fridge */
+    sprintf(switch_names[3], "apertura");   /* Window */
+    sprintf(switch_names[4], "accensione"); /* Hub */
 
     __switch(children_index, switch_names[device_type], status ? "on" : "off", children_pids);
 }
@@ -41,6 +44,7 @@ void check_time() {
     if (tm_current.tm_hour >= tm_start.tm_hour && tm_current.tm_min >= tm_start.tm_min) {
         /* Accendo il dispositivo sotto... */
         status = 1;
+        // IMPLEMENTARE sigalarm()
         switch_child();
     } else if (tm_current.tm_hour >= tm_end.tm_hour && tm_current.tm_min >= tm_end.tm_min) {
         status = 0;
@@ -58,6 +62,9 @@ void sighandler_int(int sig) {
     }
     if (sig == SIGTERM) {
         flag_term = 1;
+    }
+    if (sig == SIGALARM) {
+        flag_alarm = 1;
     }
 }
 
@@ -84,7 +91,7 @@ int main(int argc, char* argv[]) {
     while (1) {
         if (flag_usr1) {
             flag_usr1 = 0;
-            sprintf(tmp, "5|%d|%d|%d|%d|%d|%d|%d|<!",
+            sprintf(tmp, "5|%d|%d|%d|%d|%d|%d|%d|<!|",
                     pid, __index, status,
                     tm_start.tm_hour, tm_start.tm_min,
                     tm_end.tm_hour, tm_end.tm_min);
@@ -154,7 +161,10 @@ int main(int argc, char* argv[]) {
             }
             exit(0);
         }
-        check_time();
+
+        if (flag_alarm) {
+            check_time();
+        }
         sleep(10);
     }
 

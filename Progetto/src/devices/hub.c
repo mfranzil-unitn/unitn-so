@@ -63,7 +63,6 @@ int main(int argc, char* argv[]) {
     char* this_pipe = NULL; /* nome della pipe */
 
     /* Le seguenti variabili sono usate in usr2 */
-    char* mall_tmp = NULL; /* Viene usato al posto di tmp in USR2, richiede malloc */
     char* raw_info = NULL;
     int over_index[MAX_CHILDREN];
     int code;
@@ -149,7 +148,6 @@ int main(int argc, char* argv[]) {
                         __switch(children_pids[i], "accensione", status ? "off" : "on", children_pids);
                     }
                 }
-                free(tmp);
             }
             if (code == 1) {
                 /* Devo rimuovere i primi due caratteri per passare i parametri nel modo corretto */
