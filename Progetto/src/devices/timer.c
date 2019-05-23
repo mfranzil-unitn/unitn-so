@@ -11,7 +11,7 @@ int pid, __index; /* variabili di stato */
 int status = 0;   /* interruttore accensione */
 
 /* Registri per il figlio - array usato per intercompatibilità */
-int children_pids[1] = {-1};
+int children_pids[1];
 int children_index = -1; /* usato in cache*/
 int device_type = -1;
 
@@ -40,16 +40,16 @@ void switch_child() {
 }
 
 void check_time() {
-    tm_current = *localtime(&(time_t){time(NULL)});
+    tm_current = *localtime(&(time_t){time(NULL)}); /*
     if (tm_current.tm_hour >= tm_start.tm_hour && tm_current.tm_min >= tm_start.tm_min) {
-        /* Accendo il dispositivo sotto... */
         status = 1;
-        // IMPLEMENTARE sigalarm()
+        alarm(60 * (60 * ((tm_end.tm_hour - tm_current.tm_hour) % 24) + ((tm_end.tm_min - tm_current.tm_min) % 60)));
         switch_child();
     } else if (tm_current.tm_hour >= tm_end.tm_hour && tm_current.tm_min >= tm_end.tm_min) {
         status = 0;
+        alarm(60 * (60 * ((tm_current.tm_hour - tm_current.tm_hour) % 24) + ((tm_end.tm_min - tm_current.tm_min) % 60)));
         switch_child();
-    }
+    }*/
     return;
 }
 
@@ -63,7 +63,7 @@ void sighandler_int(int sig) {
     if (sig == SIGTERM) {
         flag_term = 1;
     }
-    if (sig == SIGALARM) {
+    if (sig == SIGALRM) {
         flag_alarm = 1;
     }
 }
@@ -84,17 +84,30 @@ int main(int argc, char* argv[]) {
 
     shellpid = get_shell_pid();
 
+    tm_start = *localtime(&(time_t){time(NULL)});
+    tm_end = *localtime(&(time_t){time(NULL)});
+
+    tm_start.tm_hour = 8;
+    tm_start.tm_min = 00;
+    tm_end.tm_hour = 9;
+    tm_end.tm_min = 00;
+
+    flag_alarm = 1;
+    children_pids[0] = -1;
+
     signal(SIGTERM, sighandler_int);
     signal(SIGUSR1, sighandler_int);
     signal(SIGUSR2, sighandler_int);
+    signal(SIGALRM, sighandler_int);
 
     while (1) {
         if (flag_usr1) {
             flag_usr1 = 0;
-            sprintf(tmp, "5|%d|%d|%d|%d|%d|%d|%d|<!|",
+            sprintf(tmp, "5|%d|%d|%d|%d|%d|%d|%d|%d|<!|",
                     pid, __index, status,
                     tm_start.tm_hour, tm_start.tm_min,
-                    tm_end.tm_hour, tm_end.tm_min);
+                    tm_end.tm_hour, tm_end.tm_min,
+                    children_pids[0] != -1);
             if (children_pids[0] != -1) {
                 char* raw_info = get_raw_device_info(children_pids[0]);
                 if (raw_info != NULL) {
@@ -129,6 +142,8 @@ int main(int argc, char* argv[]) {
                 tm_start.tm_min = atoi(vars[2]);
                 tm_end.tm_hour = atoi(vars[3]);
                 tm_end.tm_min = atoi(vars[4]);
+
+                flag_alarm = 1;
             } else if (mode == 1) {
                 char* shifted_tmp = malloc(MAX_BUF_SIZE * sizeof(shifted_tmp));
                 strcpy(shifted_tmp, tmp);
@@ -165,6 +180,7 @@ int main(int argc, char* argv[]) {
         if (flag_alarm) {
             check_time();
         }
+
         sleep(10);
     }
 

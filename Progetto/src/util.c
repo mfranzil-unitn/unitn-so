@@ -257,7 +257,8 @@ int controller_is_full(int pid, char *raw_info) {
         int count = atoi(vars[4]);
         return count >= MAX_CHILDREN;
     } else if (atoi(vars[0]) == TIMER) {
-        return 0;
+        int count = atoi(vars[8]);
+        return count != 0;
     } else {
         return 1;
     }
@@ -269,8 +270,8 @@ void hub_tree_print(char **vars) {
         printf("Hub (PID: %s, Indice: %s), Stato: %s, Collegati: %s",
                vars[1], vars[2], atoi(vars[3]) ? "Acceso" : "Spento", vars[4]);
     } else if (strcmp(vars[0], TIMER_S) == 0) {
-        printf("Timer (PID: %s, Indice: %s), Stato: %s, Collegati: %s",
-               vars[1], vars[2], atoi(vars[3]) ? "Acceso" : "Spento", vars[4]);
+        printf("Timer (PID: %s, Indice: %s), Stato: %s, Orari: %s:%s -> %s:%s\n, Collegati: %s",
+               vars[1], vars[2], atoi(vars[3]) ? "Acceso" : "Spento", vars[4], vars[5], vars[6], vars[7], vars[8]);
     } else {
         char device_name[MAX_BUF_SIZE];
         get_device_name(atoi(vars[0]), device_name);

@@ -189,7 +189,7 @@ void __info(int index, int *children_pids) {
         printf("Errore di connessione (PID %d)\n", pid);
     }
 
-    if (strncmp(info, HUB_S, 1) != 0) {
+    if (strncmp(info, HUB_S, 1) != 0 && strncmp(info, TIMER_S, 1) != 0) {
         info_p = split(info);
         __print(info_p);
     } else {
@@ -202,26 +202,25 @@ void __info(int index, int *children_pids) {
 void __print(char **vars) {
     if (strcmp(vars[0], BULB_S) == 0) {
         /* Lampadina - parametri: tipo, pid, indice, stato, tempo di accensione */
-        printf("Oggetto: Lampadina\nPID: %s\nIndice: %s\nStato: %s\nTempo di accensione: %s\n",
+        printf("Lampadina (PID %s, Indice %s)\nStato: %s\nTempo di accensione: %s\n",
                vars[1], vars[2], atoi(vars[3]) ? "ON" : "OFF", vars[4]);
     } else if (strcmp(vars[0], FRIDGE_S) == 0) {
         /* Frigo -  parametri: tipo, pid, indice, stato, tempo di apertura, delay */
         /* percentuale riempimento, temperatura interna */
-        printf("Oggetto: Frigorifero\nMessaggio di log: <%s>\n", vars[8]);
-        printf("PID: %s\nIndice: %s\nStato: %s\nTempo di apertura: %s sec\n",
-               vars[1], vars[2], atoi(vars[3]) ? "Aperto" : "Chiuso", vars[4]);
+        printf("Frigorifero (PID %s, Indice %s)\nMessaggio di log: <%s>\n", vars[1], vars[2], vars[8]);
+        printf("Stato: %s\nTempo di apertura: %s sec\n", atoi(vars[3]) ? "Aperto" : "Chiuso", vars[4]);
         printf("Delay richiusura: %s sec\nPercentuale riempimento: %s\nTemperatura: %s°C\n",
                vars[5], vars[6], vars[7]);
     } else if (strcmp(vars[0], WINDOW_S) == 0) {
         /* Finestra - parametri: tipo, pid, indice, stato, tempo di accensione */
-        printf("Oggetto: Finestra\nPID: %s\nIndice: %s\nStato: %s\nTempo di apertura: %s sec\n",
+        printf("Finestra (PID %s, Indice %s)\nStato: %s\nTempo di apertura: %s sec\n",
                vars[1], vars[2], atoi(vars[3]) ? "Aperto" : "Chiuso", vars[4]);
     } else if (strcmp(vars[0], HUB_S) == 0) {
-        printf("Oggetto: Hub\nPID: %s\nIndice: %s\nStato: %s\nDispositivi collegati: %s\n",
+        printf("Hub (PID %s, Indice %s)\nStato: %s\nDispositivi collegati: %s\n",
                vars[1], vars[2], atoi(vars[3]) ? "Acceso" : "Spento", vars[4]);
     } else if (strcmp(vars[0], TIMER_S) == 0) {
-        printf("Oggetto: Timer\nPID: %s\nIndice: %s\nStato: %s\nFascia oraria: %s:%s -> %s:%s\nDispositivi collegati: -\n",
-               vars[1], vars[2], atoi(vars[3]) ? "Acceso" : "Spento", vars[4], vars[5], vars[6], vars[7]);
+        printf("Timer (PID %s, Indice %s)\nStato: %s\nFascia oraria: %s:%s -> %s:%s\nDispositivi collegati: %s\n",
+               vars[1], vars[2], atoi(vars[3]) ? "Acceso" : "Spento", vars[4], vars[5], vars[6], vars[7], vars[8]);
     } else {
         printf("Dispositivo non supportato.\n");
     }
@@ -288,7 +287,7 @@ void __list(int *children_pids) {
             if (tmp == NULL) {
                 printf("Errore di comunicazione (PID %d)\n", children_pid);
             } else {
-                if (strncmp(tmp, HUB_S, 1) == 0) {
+                if (strncmp(tmp, HUB_S, 1) == 0 || strncmp(tmp, TIMER_S, 1) == 0) {
                     hub_tree_parser(tmp);
                 } else {
                     vars = split(tmp);
@@ -374,7 +373,7 @@ void __link(int index, int controller, int *children_pids) {
         printf("Errore! Non puoi collegarti a te stesso.\n");
         return;
     }
-       
+
     if (is_controller(controller_pid, raw_controller_info)) {
         if (!controller_is_full(controller_pid, raw_controller_info)) {
             sprintf(buf, "1|");
@@ -388,17 +387,13 @@ void __link(int index, int controller, int *children_pids) {
             get_pipe_name(controller_pid, controller_pipe_name);
 
             fd = open(controller_pipe_name, O_RDWR);
-
-            printf(buf);
-            fflush(stdout);
-
             write(fd, buf, MAX_BUF_SIZE);
             kill(controller_pid, SIGUSR2);
 
             printf("Spostato l'oggetto %d sotto l'oggetto %d\n", index, controller);
             close(fd);
         } else {
-            printf("Operazione non permessa. Il dispositivo %d è già pieno. Eliminare qualche dispositivo.\n", controller);
+            printf("Operazione non permessa. Il dispositivo %d è già pieno. Eliminare qualche figlio.\n", controller);
         }
     } else {
         printf("Configurazione dei dispositvi non valida. Sintassi: link <device> to <hub/timer>\n");
