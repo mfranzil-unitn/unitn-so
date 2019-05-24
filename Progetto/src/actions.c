@@ -342,10 +342,6 @@ void __del(int index, int *children_pids, char *__out_buf, int flag) {
     }
     kill(pid, SIGTERM);
     remove(pipe_str); /* RIP pipe */
-    int f=0;
-    for(f=0; f<MAX_CHILDREN; f++){
-        printf("Children[%d]: %d\n", f, children_pids[f]);
-    }
     /*if(flag){
         int q = 0;
         int n_devices;
