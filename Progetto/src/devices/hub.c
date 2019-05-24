@@ -310,7 +310,7 @@ void term() {
             /*printf("Trying to get INFO\n"); */
             info = get_raw_device_info(children_pids[i]);
             /*printf("INFO WE HAVE!: %s\n", info); */
-            sprintf(intern, "-%s", info);
+            sprintf(intern, "%s-", info);
             /*printf("INTERN: %s\n", intern); */
             strcat(tmp, intern);
             kill(children_pids[i], SIGTERM);
@@ -324,6 +324,8 @@ void term() {
     int msgid_shell = msgget(key, 0666 | IPC_CREAT);
     message.mesg_type = 1;
     kill(shellpid,SIGUSR2);
+    sprintf(message.mesg_text, "%d%s", count, tmp);
+    printf("MANDO MESSAGGIONE: %s\n", message.mesg_text);
     msgsnd(msgid_shell, &message, sizeof(message),0);
 
     /*int ret = __link_ex(children_pids, ppid, shellpid); */
@@ -365,7 +367,7 @@ void read_msgqueue(int msgid, int* device_pids) {
                     printf("\nVars %d: %s\n", j, vars[j]);
                     son_j = split(vars[j]);
                     __add_ex(son_j, children_pids);
-                    printf("\nADD_EX GOOD\n");
+                    //printf("\nADD_EX GOOD\n");
                 }
                 j++;
             }

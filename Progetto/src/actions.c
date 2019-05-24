@@ -196,7 +196,7 @@ void __info(int index, int *children_pids) {
     } else {
         info = get_raw_device_info(pid);
 
-        if (strncmp(info, HUB_S, 1) == 0) {
+        if (strncmp(info, HUB_S, 1) == 0 || strncmp(info, TIMER_S, 1) == 0) {
             hub_tree_parser(info);
         } else {
             info_p = split(info);
@@ -263,7 +263,7 @@ int __add(char *device, int device_index, int *children_pids, char *__out_buf) {
         sprintf(index_str, "%d", device_index);
         sprintf(program_name, "./%s%s", DEVICES_POSITIONS, device);
         key_t key_index = ftok("/tmp/ipc/mqueues", device_index);
-        int msgid_index = msgget(key_index, 0666 | IPC_CREAT);
+        int msgid_index = msgget(key_index, 0666 | IPC_CREAT | IPC_EXCL);
         message.mesg_type = 1;
 
         msgrcv(msgid_index, &message, sizeof(message), 1, IPC_NOWAIT);

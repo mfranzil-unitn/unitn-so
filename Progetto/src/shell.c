@@ -217,6 +217,7 @@ void stop_sig(int sig) {
 }
 
 void link_child(int signal) {
+    printf("ARRRIVATO SIGUSR2 FLAG: %d\n",flag);
     if(flag){
     int n_devices;
     int ret;

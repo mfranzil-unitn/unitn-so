@@ -16,7 +16,7 @@ int main(int argc, char *argv[]) {
     int cmd_n;                     /* numero di comandi disponibili */
     int device_pids[MAX_CHILDREN]; /* array contenenti i PID dei figli */
     char *name;
-    int j, i;
+    int j;
 
     key_t key;
     int msgid;
@@ -24,8 +24,8 @@ int main(int argc, char *argv[]) {
     key_t key_sh;
     int msgid_sh;
 
-    key_t key_pid;
-    int msgid_pid;
+  /*  key_t key_pid;
+    int msgid_pid;*/
 
     char c;
     name = get_shell_text();
@@ -50,7 +50,7 @@ int main(int argc, char *argv[]) {
     /*Creo message queue per comunicare shellpid */
     key_sh = ftok("/tmp", 200000);
     msgid_sh = msgget(key_sh, 0666 | IPC_CREAT);
-    //message.mesg_type = 1;
+    /*message.mesg_type = 1;*/
     emergencyid2 = msgid_sh;
 
 
@@ -168,9 +168,6 @@ void handle_sig(int signal) {
 }
 
 void handle_sigint(int signal) {
-    key_t key;
-    int msgid;
-
     msgctl(emergencyid, IPC_RMID, NULL);
     msgctl(emergencyid2, IPC_RMID, NULL);
     int j;
