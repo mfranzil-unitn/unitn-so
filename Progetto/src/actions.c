@@ -180,7 +180,7 @@ void __info(int index, int *children_pids) {
     char **info_p = NULL;
 
     pid = get_device_pid(index, children_pids, &info);
-
+       
     if (pid == -1) {
         printf("Errore! Non esiste questo dispositivo.\n");
         return;
@@ -194,7 +194,14 @@ void __info(int index, int *children_pids) {
         info_p = split(info);
         __print(info_p);
     } else {
-        hub_tree_parser(info);
+        info = get_raw_device_info(pid);
+
+        if (strncmp(info, HUB_S, 1) == 0) {
+            hub_tree_parser(info);
+        } else {
+            info_p = split(info);
+            __print(info_p);
+        }
     }
 
     free(info);
@@ -337,7 +344,6 @@ void __del(int index, int *children_pids, char *__out_buf, int flag) {
         key_t key = ftok("/tmp/ipc/mqueues", pid);
         int msgid = msgget(key, 0666 | IPC_CREAT);
         message.mesg_type = 1;
-        sprintf(message.mesg_text, "SENDPID");
         msgsnd(msgid, &message, sizeof(message), 0);
     }
     kill(pid, SIGTERM);
