@@ -1,23 +1,16 @@
-#include <fcntl.h>
-#include <signal.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <time.h>
 #include "../util.h"
 
 /* Frigo = 2 */
 
 int shellpid;
 
-
-int fd;                         /* file descriptor della pipe verso il padre */
+int fd;                              /* file descriptor della pipe verso il padre */
 int pid, __index, delay, perc, temp; /* variabili di stato */
-char log_buf[MAX_BUF_SIZE / 4]; /* buffer della pipe // SE CI SONO PROBLEMI; GUARDA QUI */
-int status = 0; /* interruttore accensione */
+char log_buf[MAX_BUF_SIZE / 4];      /* buffer della pipe SE CI SONO PROBLEMI; GUARDA QUI */
+int status = 0;                      /* interruttore accensione */
 time_t start, time_on;
-key_t key; 
+key_t key;
 int msgid;
-
 
 volatile int flag_usr1 = 0;
 volatile int flag_usr2 = 0;
@@ -38,11 +31,11 @@ void sighandler_int(int sig) {
 int main(int argc, char* argv[]) {
     /* argv = [./fridge, indice, /tmp/indice]; */
     char tmp[MAX_BUF_SIZE];
-    char ppid_pipe[MAX_BUF_SIZE];
+    /*char ppid_pipe[MAX_BUF_SIZE];*/
     char* this_pipe = NULL; /* nome della pipe */
 
     char** vars = NULL;
-    int ppid, ppid_pipe_fd;
+    /*int ppid, ppid_pipe_fd; */
 
     this_pipe = argv[2];
     pid = getpid();
@@ -50,7 +43,7 @@ int main(int argc, char* argv[]) {
     fd = open(this_pipe, O_RDWR);
 
     key = ftok("/tmp/ipc/mqueues", pid);
-    msgid = msgget(key, 0666 |IPC_CREAT);
+    msgid = msgget(key, 0666 | IPC_CREAT);
 
     delay = 15;
     perc = 50;
@@ -77,11 +70,9 @@ int main(int argc, char* argv[]) {
                     pid, __index, status, (int)time_on, delay, perc, temp, log_buf);
             message.mesg_type = 1;
             sprintf(message.mesg_text, "%s", tmp);
-            int rc = msgsnd(msgid, &message, sizeof(message),0);
-
-           // write(fd, tmp, MAX_BUF_SIZE);
-
-
+            /*int rc = */
+            msgsnd(msgid, &message, sizeof(message), 0);
+            /* write(fd, tmp, MAX_BUF_SIZE); */
 
             /* Resetto il contenuto del buffer */
             sprintf(log_buf, "-");

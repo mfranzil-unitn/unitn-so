@@ -1,100 +1,189 @@
-#include <fcntl.h>
-#include <signal.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <time.h>
+#include "../actions.h"
 #include "../util.h"
 
-/* BULB = 1 */
+/* TIMER = 5 */
 
 int shellpid;
-int fd;               /* file descriptor della pipe verso il padre */
-char* pipe_fd = NULL; /* nome della pipe */
 
+/* Registri del timer */
+int fd;           /* file descriptor della pipe verso il padre */
 int pid, __index; /* variabili di stato */
+int status = 0;   /* interruttore accensione */
 
-int status = 0; /* interruttore accensione */
-time_t start;
+/* Registri per il figlio - array usato per intercompatibilità */
+int children_pids[1];
+int children_index = -1; /* usato in cache*/
+int device_type = -1;
+
+key_t key;
+int msgid;
 
 struct tm tm_start;
 struct tm tm_end;
 struct tm tm_current;
 
-void sighandle_sigterm(int signal) {
-    /*if ((int)getppid() != shellpid) {
-        int ppid = (int)getppid();
-        kill(ppid, SIGUSR2);
-        char pipe_str[MAX_BUF_SIZE];
-        get_pipe_name(ppid, pipe_str);   Nome della pipe 
-        int fd = open(pipe_str, O_RDWR);
-        char tmp[MAX_BUF_SIZE];
-        sprintf(tmp, "2|%d", (int)getpid());
-        write(fd, tmp, sizeof(tmp));
-    }*/
-    exit(0);
-}
+volatile int flag_usr1 = 0;
+volatile int flag_usr2 = 0;
+volatile int flag_term = 0;
+volatile int flag_alarm = 0;
 
-void sighandle_usr1(int sig) {
-    char buffer[MAX_BUF_SIZE];
+void switch_child() {
+    char switch_names[5][MAX_BUF_SIZE];
 
-    sprintf(buffer, "5|%d|%d|%d|%d|%d|%d|%d",
-            pid, __index, status,
-            tm_start.tm_hour, tm_start.tm_min,
-            tm_end.tm_hour, tm_end.tm_min);
-    write(fd, buffer, MAX_BUF_SIZE);
-}
-
-void sighandle_usr2(int sig) {
-    /* Al ricevimento del segnale, la finestra apre la pipe in lettura e ottiene cosa deve fare.
-     0|ORA|MINUTI|ORAFINE|MINUTIFINE -> imposta timer*/
-    char tmp[MAX_BUF_SIZE];
-    char** vars;
-    int mode;
-
-    read(fd, tmp, MAX_BUF_SIZE);
-
-    mode = tmp[0] - '0';
-
-    lprintf("Entering user2\n");
-
-    if (mode == 0) {
-        vars = split_fixed(tmp, 5);
-
-        tm_start = *localtime(&(time_t){time(NULL)});
-        tm_end = *localtime(&(time_t){time(NULL)});
-
-        tm_start.tm_hour = atoi(vars[1]);
-        tm_start.tm_min = atoi(vars[2]);
-        tm_end.tm_hour = atoi(vars[3]);
-        tm_end.tm_min = atoi(vars[4]);
+    if (children_pids[0] == -1) {
+        return;
     }
+    sprintf(switch_names[0], "-");          /* Per shiftare gli indici così che corrispondano */
+    sprintf(switch_names[1], "accensione"); /* Bulb */
+    sprintf(switch_names[2], "apertura");   /* Fridge */
+    sprintf(switch_names[3], "apertura");   /* Window */
+    sprintf(switch_names[4], "accensione"); /* Hub */
+
+    __switch(children_index, switch_names[device_type], status ? "on" : "off", children_pids);
 }
 
 void check_time() {
-    tm_current = *localtime(&(time_t){time(NULL)});
-    if (tm_current.tm_hour == tm_start.tm_hour && tm_current.tm_min == tm_start.tm_min) {
-        /* Accendo il dispositivo sotto... */
+    tm_current = *localtime(&(time_t){time(NULL)}); /*
+    if (tm_current.tm_hour >= tm_start.tm_hour && tm_current.tm_min >= tm_start.tm_min) {
         status = 1;
-    } else if (tm_current.tm_hour == tm_end.tm_hour && tm_current.tm_min == tm_end.tm_min) {
+        alarm(difftime(mktime(&tm_end), mktime(&tm_current)));
+        switch_child();
+    } else if (tm_current.tm_hour >= tm_end.tm_hour && tm_current.tm_min >= tm_end.tm_min) {
         status = 0;
-    }
+        alarm(difftime(mktime(&tm_start), mktime(&tm_current)));
+        switch_child();
+    }*/
     return;
 }
 
+void sighandler_int(int sig) {
+    if (sig == SIGUSR1) {
+        flag_usr1 = 1;
+    }
+    if (sig == SIGUSR2) {
+        flag_usr2 = 1;
+    }
+    if (sig == SIGTERM) {
+        flag_term = 1;
+    }
+    if (sig == SIGALRM) {
+        flag_alarm = 1;
+    }
+}
+
 int main(int argc, char* argv[]) {
-    /* argv = [./timer, indice, /tmp/pid]; */
-    pipe_fd = argv[2];
+    /* argv = [./timer, indice, /tmp/indice]; */
+    char tmp[MAX_BUF_SIZE]; /* Buffer per le pipe*/
+    /*har ppid_pipe[MAX_BUF_SIZE]; Pipe per il padre*/
+    char* this_pipe = NULL; /* Pipe di questo dispositivo */
+
+    char** vars = NULL;
+    int mode;
+
+    this_pipe = argv[2];
     pid = getpid();
     __index = atoi(argv[1]);
-    fd = open(pipe_fd, O_RDWR);
+    fd = open(this_pipe, O_RDWR);
 
     shellpid = get_shell_pid();
-    signal(SIGTERM, sighandle_sigterm);
-    signal(SIGUSR1, sighandle_usr1);
-    signal(SIGUSR2, sighandle_usr2);
+
+    tm_start = *localtime(&(time_t){time(NULL)});
+    tm_end = *localtime(&(time_t){time(NULL)});
+
+    tm_start.tm_hour = 8;
+    tm_start.tm_min = 0;
+    tm_end.tm_hour = 9;
+    tm_end.tm_min = 0;
+
+    flag_alarm = 1;
+    children_pids[0] = -1;
+
+    signal(SIGTERM, sighandler_int);
+    signal(SIGUSR1, sighandler_int);
+    signal(SIGUSR2, sighandler_int);
+    signal(SIGALRM, sighandler_int);
+
+    key = ftok("/tmp/ipc/mqueues", pid);
+    msgid = msgget(key, 0666 | IPC_CREAT);
 
     while (1) {
-        check_time();
+        if (flag_usr1) {
+            flag_usr1 = 0;
+            sprintf(tmp, "5|%d|%d|%d|%d|%d|%d|%d|%d|<!|",
+                    pid, __index, status,
+                    tm_start.tm_hour, tm_start.tm_min,
+                    tm_end.tm_hour, tm_end.tm_min,
+                    children_pids[0] != -1);
+            if (children_pids[0] != -1) {
+                char* raw_info = get_raw_device_info(children_pids[0]);
+                if (raw_info != NULL) {
+                    strcat(tmp, raw_info);
+                    strcat(tmp, "|!|");
+                    free(raw_info);
+                }
+            }
+            strcat(tmp, "!>"); /*
+            write(fd, tmp, MAX_BUF_SIZE);
+*/
+
+            message.mesg_type = 1;
+            sprintf(message.mesg_text, "%s", tmp);
+            msgsnd(msgid, &message, sizeof(message), 0);
+        }
+
+        if (flag_usr2) {
+            flag_usr2 = 0;
+            /* 
+                Al ricevimento del segnale, la finestra apre la pipe in lettura e ottiene cosa deve fare.
+                0|ORA|MINUTI|ORAFINE|MINUTIFINE -> imposta timer
+                1|FIGLIO -> Aggiungi figlio
+                2|PID -> Rimuovi figlio
+            */
+            read(fd, tmp, MAX_BUF_SIZE);
+            mode = tmp[0] - '0';
+
+            /* lprintf("Entering user2\n");*/
+            if (mode == 0) {
+                vars = split_fixed(tmp, 5);
+
+                tm_start = *localtime(&(time_t){time(NULL)});
+                tm_end = *localtime(&(time_t){time(NULL)});
+
+                tm_start.tm_hour = atoi(vars[1]);
+                tm_start.tm_min = atoi(vars[2]);
+                tm_end.tm_hour = atoi(vars[3]);
+                tm_end.tm_min = atoi(vars[4]);
+
+                flag_alarm = 1;
+            } else if (mode == 1) {
+                char* shifted_tmp = malloc(MAX_BUF_SIZE * sizeof(shifted_tmp));
+                strcpy(shifted_tmp, tmp);
+                shifted_tmp = shifted_tmp + 2;
+                vars = split(shifted_tmp);
+                __add_ex(vars, children_pids);
+                device_type = atoi(vars[0]);
+                children_index = atoi(vars[2]);
+                free(vars);
+                free(shifted_tmp - 2);
+            } else if (mode == 2) {
+                vars = split(tmp);
+                if (children_pids[0] == atoi(vars[1])) {
+                    children_pids[0] = -1;
+                    children_index = -1;
+                    device_type = -1;
+                }
+            }
+        }
+
+        if (flag_term) {
+            msgctl(msgid, IPC_RMID, NULL);
+            exit(0);
+        }
+
+        if (flag_alarm) {
+            check_time();
+        }
+
         sleep(10);
     }
 

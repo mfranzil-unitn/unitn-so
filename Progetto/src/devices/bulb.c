@@ -1,8 +1,3 @@
-#include <fcntl.h>
-#include <signal.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <time.h>
 #include "../util.h"
 
 /* BULB = 1 */
@@ -14,8 +9,9 @@ int fd;           /* file descriptor della pipe verso il padre */
 int pid, __index; /* variabili di stato */
 int status = 0;   /* interruttore accensione */
 time_t start, time_on;
-int changed  =1;
-key_t key; 
+int changed = 1;
+
+key_t key;
 int msgid;
 
 volatile int flag_usr1 = 0;
@@ -36,12 +32,12 @@ void sighandler_int(int sig) {
 
 int main(int argc, char* argv[]) {
     /* argv = [./bulb, indice, /tmp/indice]; */
-    char tmp[MAX_BUF_SIZE];       /* Buffer per le pipe*/
-    char ppid_pipe[MAX_BUF_SIZE]; /* Pipe per il padre*/
-    char* this_pipe = NULL;       /* Pipe di questo dispositivo */
+    char tmp[MAX_BUF_SIZE]; /* Buffer per le pipe*/
+    /*char ppid_pipe[MAX_BUF_SIZE];*/
+    char* this_pipe = NULL; /* nome della pipe */
 
     char** vars = NULL;
-    int ppid, ppid_pipe_fd;
+    /*int ppid, ppid_pipe_fd; */
 
     this_pipe = argv[2];
     pid = getpid();
@@ -49,44 +45,41 @@ int main(int argc, char* argv[]) {
     fd = open(this_pipe, O_RDWR);
 
     shellpid = get_shell_pid();
-    
+
     signal(SIGTERM, sighandler_int);
     signal(SIGUSR1, sighandler_int);
     signal(SIGUSR2, sighandler_int);
 
     key = ftok("/tmp/ipc/mqueues", pid);
-    msgid = msgget(key, 0666 |IPC_CREAT);
-    
+    msgid = msgget(key, 0666 | IPC_CREAT);
 
     while (1) {
-       __index = atoi(argv[1]);
-        
         if (flag_usr1) {
             flag_usr1 = 0;
-            printf("bulb usr1: %d - %d\n", pid, flag_usr1); 
+            /*printf("bulb usr1: %d - %d\n", pid, flag_usr1);*/
             if (status) {
                 time_on = (time(NULL) - start);
             } else {
                 time_on = 0;
             }
 
-             sprintf(tmp, "1|%d|%d|%d|%d",
+            sprintf(tmp, "1|%d|%d|%d|%d",
                     pid, __index, status, (int)time_on);
             message.mesg_type = 1;
             sprintf(message.mesg_text, "%s", tmp);
-            //printf("Sending Message...\n");
-            int rc = msgsnd(msgid, &message, sizeof(message),0);
-            //printf("Message Sent: %s\n", message.mesg_text);
-            
-            //write(fd, tmp, MAX_BUF_SIZE);
+            /*printf("Sending Message...\n");*/
+            /*int rc = */
+            msgsnd(msgid, &message, sizeof(message), 0);
+            /*printf("Message Sent: %s\n", message.mesg_text);*/
 
+            /*write(fd, tmp, MAX_BUF_SIZE);*/
         }
         if (flag_usr2) {
             flag_usr2 = 0;
             /* La finestra apre la pipe in lettura e ottiene cosa deve fare. */
             /* 0|... -> accendi/spegni lampadina */
 
-            //printf("ho ricevuto un messaggio pid: %d\n", pid); 
+            /*printf("ho ricevuto un messaggio pid: %d\n", pid); */
 
             read(fd, tmp, MAX_BUF_SIZE);
             vars = split_fixed(tmp, 2);

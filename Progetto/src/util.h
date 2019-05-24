@@ -25,19 +25,36 @@
 #define HUB 4
 #define TIMER 5
 
+#define INVALID_OUTPUT "-"
+
+#define CONTROLLER_S "0"
 #define BULB_S "1"
 #define FRIDGE_S "2"
 #define WINDOW_S "3"
 #define HUB_S "4"
-#define TIMER_S "S"
+#define TIMER_S "5"
+
+#define CONTROLLER_ENG "controller"
+#define BULB_ENG "bulb"
+#define FRIDGE_ENG "fridge"
+#define WINDOW_ENG "window"
+#define HUB_ENG "hub"
+#define TIMER_ENG "timer"
+
+#define CONTROLLER_IT "centralina"
+#define BULB_IT "lampadina"
+#define FRIDGE_IT "frigo"
+#define WINDOW_IT "finestra"
+#define HUB_IT "hub"
+#define TIMER_IT "timer"
+
+#define MAX_CHILDREN 20
 
 #define BULB_PARAMETERS 5
 #define FRIDGE_PARAMETERS 9
 #define WINDOW_PARAMETERS 5
-#define HUB_PARAMETERS 5000
-#define TIMER_PARAMETERS 7
-
-#define MAX_CHILDREN 20
+#define HUB_PARAMETERS 400
+#define TIMER_PARAMETERS 25
 
 #define SHELL_POSITION "bin/shell"
 #define DEVICES_POSITIONS "bin/devices/"
@@ -46,7 +63,7 @@
 
 #define SWITCH_STRING \
     "Sintassi: switch <id> <label> <pos>\n\
-    Interruttori disponibili:\n        bulb: accensione\n        fridge: temperatura/apertura/delay/riempimento\n        window: apertura\n"
+    Interruttori disponibili:\n        bulb: accensione\n        fridge: temperatura, apertura, delay, riempimento\n        window: apertura\n        hub: accensione\n        timer: orario\n"
 
 #define ADD_STRING \
     "Sintassi: add <device>\nDispositivi disponibili: bulb, window, fridge, hub, timer\n"
@@ -63,12 +80,14 @@
 #define LINK_STRING \
     "Sintassi: link <id> to <controller>\n"
 
+#define UNKNOWN_COMMAND \
+    "Comando non riconosciuto. Usa \"help\" per visualizzare i comandi disponibili\n"
+
 /* structure for message queue */
- struct mesg_buffer {
+struct mesg_buffer {
     long mesg_type;
     char mesg_text[MAX_BUF_SIZE];
 } message;
-
 
 void lprintf(const char *__restrict__ __format, ...);
 
@@ -89,7 +108,7 @@ char *get_raw_device_info(int pid);
 /*char **get_device_info(int pid);*/
 
 int is_controller(int pid, char *raw_info);
-int hub_is_full(int pid, char *raw_info);
+int controller_is_full(int pid, char *raw_info);
 
 void hub_tree_print(char **vars);
 void hub_tree_spaces(int level);

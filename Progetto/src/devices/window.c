@@ -1,8 +1,3 @@
-#include <fcntl.h>
-#include <signal.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <time.h>
 #include "../util.h"
 
 /* Window = 3 */
@@ -44,12 +39,11 @@ void sighandler_int(int sig) {
 
 int main(int argc, char* argv[]) {
     char tmp[MAX_BUF_SIZE];
-    char ppid_pipe[MAX_BUF_SIZE];
+    /*char ppid_pipe[MAX_BUF_SIZE];*/
     char* this_pipe = NULL; /* nome della pipe */
 
     char** vars = NULL;
-    int ppid, ppid_pipe_fd;
-
+    /*int ppid, ppid_pipe_fd; */
     /* argv = [./window, indice, /tmp/indice]; */
     this_pipe = argv[2];
     pid = getpid();
@@ -79,9 +73,10 @@ int main(int argc, char* argv[]) {
                     pid, __index, status, (int)time_on);
             message.mesg_type = 1;
             sprintf(message.mesg_text, "%s", tmp);
-            int rc = msgsnd(msgid, &message, sizeof(message),0);
+            /*int rc = */
+            msgsnd(msgid, &message, sizeof(message), 0);
 
-            //write(fd, tmp, MAX_BUF_SIZE);
+            /*write(fd, tmp, MAX_BUF_SIZE); */
         }
         if (flag_usr2) {
             flag_usr2 = 0;
@@ -110,7 +105,7 @@ int main(int argc, char* argv[]) {
                 write(ppid_pipe_fd, tmp, sizeof(tmp));
                 close(ppid_pipe_fd);
             }*/
-             msgctl(msgid, IPC_RMID, NULL);
+            msgctl(msgid, IPC_RMID, NULL);
             exit(0);
         }
         sleep(10);

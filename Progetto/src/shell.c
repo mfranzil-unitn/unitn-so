@@ -35,41 +35,41 @@ int main(int argc, char *argv[]) {
     signal(SIGUSR2, link_child);
     signal(SIGINT, SIG_IGN);
     signal(SIGCHLD, SIG_IGN);
-
-    get_pipe_name((int)getpid(), pipe);
-    mkfifo(pipe, 0666);
-    fd = open(pipe, O_RDWR);
+    signal(SIGHUP, handle_sig);
 
     /* Inizializzo l'array dei figli */
     for (j = 0; j < MAX_CHILDREN; j++) {
         children_pids[j] = -1; /* se è -1 non contiene nulla */
     }
 
-    /* PID del launcher. */
-    ppid = atoi(argv[1]);
+    if (argc != 2 || strcmp(argv[1], "--no-wrapper") != 0) {
+        get_pipe_name((int)getpid(), pipe);
+        mkfifo(pipe, 0666);
+        fd = open(pipe, O_RDWR);
 
-    signal(SIGHUP, handle_sig);
+        /* PID del launcher. */
+        ppid = atoi(argv[1]);
 
-    /* Credo message queue tra shell e launcher */
-    key = ftok("/tmp", 1000);
-    msgid = msgget(key, 0666 | IPC_CREAT);
-    message.mesg_type = 1;
+        /* Credo message queue tra shell e launcher */
+        key = ftok("/tmp", 1000);
+        msgid = msgget(key, 0666 | IPC_CREAT);
+        message.mesg_type = 1;
 
-    /*Creo message queue per comunicare shellpid */
-    key_sh = ftok("/tmp", 2000);
-    msgid_sh = msgget(key_sh, 0666 | IPC_CREAT);
-    message.mesg_type = 1;
+        /*Creo message queue per comunicare shellpid */
+        key_sh = ftok("/tmp", 2000);
+        msgid_sh = msgget(key_sh, 0666 | IPC_CREAT);
+        message.mesg_type = 1;
 
-    sprintf(message.mesg_text, "%d", (int)getpid());
-    msgsnd(msgid_sh, &message, MAX_BUF_SIZE, 0);
-
+        sprintf(message.mesg_text, "%d", (int)getpid());
+        msgsnd(msgid_sh, &message, MAX_BUF_SIZE, 0);
+    }
     /* Ready */
     system("clear");
 
     while (1) {
         if (stato) {
             /*Scrive numero devices e elenco dei pid a launcher. */
-            if (changed) {
+            if ((argc != 2 || strcmp(argv[1], "--no-wrapper") != 0) && changed) {
                 /*Ripulisco Forzatamente. */
                 msgrcv(msgid, &message, MAX_BUF_SIZE, 1, IPC_NOWAIT);
 
@@ -91,7 +91,7 @@ int main(int argc, char *argv[]) {
                 msgsnd(msgid, &message, MAX_BUF_SIZE, 0);
             }
 
-            printf("\e[92m%s\e[39m:\e[31mCentralina\033[0m$ ", name);
+            printf("\033[0;32m%s\033[0m:\033[0;31mCentralina\033[0m$ ", name);
             cmd_n = parse(buf, cmd_n);
 
             if (strcmp(buf[0], "help") == 0) { /* guida */
@@ -130,7 +130,7 @@ int main(int argc, char *argv[]) {
                     __del(atoi(buf[1]), children_pids, __out_buf);
                     printf("%s", __out_buf);
                 }
-            } else if (strcmp(buf[0], "link") == 0) {
+            } else if (strcmp(buf[0], "link") == 0 && strcmp(buf[2], "to") == 0) {
                 if (cmd_n != 3) {
                     printf(LINK_STRING);
                 } else {
@@ -142,7 +142,7 @@ int main(int argc, char *argv[]) {
             } else if (strcmp(buf[0], "\0") == 0) { /* a capo a vuoto */
                 continue;
             } else { /*tutto il resto */
-                printf("Comando non riconosciuto. Usa help per visualizzare i comandi disponibili\n");
+                printf(UNKNOWN_COMMAND);
             }
         } else {
             /*Ripulisco forzatamente. */
@@ -161,6 +161,7 @@ int add_shell(char buf[][MAX_BUF_SIZE], int *device_i, int *children_pids, char 
     if (strcmp(buf[1], "bulb") == 0 || strcmp(buf[1], "fridge") == 0 || strcmp(buf[1], "window") == 0 || strcmp(buf[1], "hub") == 0 || strcmp(buf[1], "timer") == 0) {
         (*device_i)++;
         if (__add(buf[1], *device_i, children_pids, __out_buf) == 0) {
+            /* Non c'è spazio, ci rinuncio */
             (*device_i)--;
             return 0;
         } else {
@@ -185,11 +186,11 @@ void handle_sig(int sig) {
 void stop_sig(int sig) {
     if (stato) {
         stato = 0;
-        printf("La centralina è stata spenta. Nessun comando sarà accettato\n");
+        printf("La centralina è stata spenta. Nessun comando sarà accettato.\n");
     } else {
         stato = 1;
         system("clear");
-        printf("\nLa centralina è accessa. Premi Invio per proseguire.\n");
+        printf("\nLa centralina è accesa. Premi Invio per proseguire.\n");
     }
 }
 
@@ -198,11 +199,11 @@ void link_child(int signal) {
     int code;
     char **vars;
 
-    printf("Link_Child\n");
+    /*printf("Link_Child\n");*/
     /*Analogamente ad Hub */
     tmp = malloc(MAX_BUF_SIZE * sizeof(tmp));
     read(fd, tmp, MAX_BUF_SIZE);
-    lprintf("End Read: %s\n\n", tmp);
+    /*lprintf("End Read: %s\n\n", tmp);*/
     code = tmp[0] - '0';
     if (code == 1) {
         tmp = tmp + 2;
