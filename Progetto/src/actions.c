@@ -20,6 +20,7 @@ void __switch(int index, char *action, char *position, int *children_pids) {
         return;
     }
 
+    printf("DEVICE INFO DELLO SWITCH: %s\n", device_info);
     vars = split(device_info);
     get_pipe_name(pid, pipe_str); /* Nome della pipe */
 
@@ -303,7 +304,7 @@ void __list(int *children_pids) {
     }
 }
 
-void __del(int index, int *children_pids, char *__out_buf) {
+void __del(int index, int *children_pids, char *__out_buf, int flag) {
     char *raw_device_info = NULL;
     char **vars;
     int pid;
@@ -330,8 +331,59 @@ void __del(int index, int *children_pids, char *__out_buf) {
 
     free(vars);
 
+    printf("STRING: %s\n", raw_device_info);
+    printf("THE PID IS: %d\n", pid);
+    if(flag){
+        key_t key = ftok("/tmp/ipc/mqueues", pid);
+        int msgid = msgget(key, 0666 | IPC_CREAT);
+        message.mesg_type = 1;
+        sprintf(message.mesg_text, "SENDPID");
+        msgsnd(msgid, &message, sizeof(message), 0);
+    }
     kill(pid, SIGTERM);
     remove(pipe_str); /* RIP pipe */
+    int f=0;
+    for(f=0; f<MAX_CHILDREN; f++){
+        printf("Children[%d]: %d\n", f, children_pids[f]);
+    }
+    /*if(flag){
+        int q = 0;
+        int n_devices;
+        int __count;
+        int j;
+        char tmp_buf[MAX_BUF_SIZE];
+        char** son_j;
+        char** vars_int;
+        key_t key = ftok("/tmp/ipc/mqueues", index);
+        int msgid = msgget(key, 0666 | IPC_CREAT);
+        int ret = msgrcv(msgid, &message, sizeof(message), 1 , IPC_NOWAIT);
+
+        if(ret!=-1){
+        char n_dev_str[MAX_BUF_SIZE];
+        while (!(message.mesg_text[q] == '-')) {
+            n_dev_str[q] = message.mesg_text[q];
+            q++;
+        }
+        n_dev_str[q] = '\0';
+        n_devices = atoi(n_dev_str);
+        if (n_devices > 0) {
+            __count = n_devices;
+            sprintf(tmp_buf, "%s", message.mesg_text);
+            vars_int = NULL;
+            vars_int = split_sons(tmp_buf, __count);
+            j = 0;
+            while (j <= __count) {
+                if (j >= 1) {
+                    printf("\nVars %d: %s\n", j, vars_int[j]);
+                    son_j = split(vars_int[j]);
+                    __add_ex(son_j, children_pids);
+                    printf("\nADD_EX GOOD\n");
+                }
+                j++;
+            }
+        }
+        }
+    }*/
 
     for (i = 0; i < MAX_CHILDREN; i++) {
         if (children_pids[i] == pid) {
@@ -383,7 +435,7 @@ void __link(int index, int controller, int *children_pids) {
             free(raw_device_info);
             free(raw_controller_info);
 
-            __del(index, children_pids, __out_buf);
+            __del(index, children_pids, __out_buf,0);
 
             /*get_pipe_name(controller_pid, controller_pipe_name);
 

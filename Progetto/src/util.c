@@ -162,11 +162,11 @@ int get_device_pid(int device_identifier, int *children_pids, char **raw_info) {
                     strcpy(buf_info, tmp);
                     /*printf("BUF INFO %s\n", buf_info); */
                     vars = split(buf_info);
-                    if (vars != NULL && atoi(vars[2]) == device_identifier) {
-                        /*printf("SONO ENTRATO PER PID: %d\n", children_pid); */
+                    /*if (vars != NULL && atoi(vars[2]) == device_identifier) {
+                        printf("SONO ENTRATO PER PID: %d\n", children_pid); 
                         free(vars);
                         return children_pid;
-                    }
+                    }*/
                     possible_pid = hub_tree_pid_finder(var_buffer, device_identifier);
                     /*printf("Possible PID found: %d\n", possible_pid); */
                     if (possible_pid != -1) {

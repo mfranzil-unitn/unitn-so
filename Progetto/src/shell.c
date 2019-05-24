@@ -51,12 +51,12 @@ int main(int argc, char *argv[]) {
         ppid = atoi(argv[1]);
 
         /* Credo message queue tra shell e launcher */
-        key = ftok("/tmp", 1000);
+        key = ftok("/tmp", 100000);
         msgid = msgget(key, 0666 | IPC_CREAT);
         message.mesg_type = 1;
 
         /*Creo message queue per comunicare shellpid */
-        key_sh = ftok("/tmp", 2000);
+        key_sh = ftok("/tmp", 200000);
         msgid_sh = msgget(key_sh, 0666 | IPC_CREAT);
         message.mesg_type = 1;
 
@@ -71,7 +71,7 @@ int main(int argc, char *argv[]) {
             /*Scrive numero devices e elenco dei pid a launcher. */
             if ((argc != 2 || strcmp(argv[1], "--no-wrapper") != 0) && changed) {
                 /*Ripulisco Forzatamente. */
-                msgrcv(msgid, &message, MAX_BUF_SIZE, 1, IPC_NOWAIT);
+                msgrcv(msgid, &message, sizeof(message), 1, IPC_NOWAIT);
 
                 sprintf(tmp_c, "%d|", device_i);
                 i = 0;
@@ -80,15 +80,17 @@ int main(int argc, char *argv[]) {
                     strcat(tmp_c, child);
                     i++;
                 }
+                message.mesg_type = 1;
                 sprintf(message.mesg_text, "%s", tmp_c);
                 sprintf(current_msg, "%s", message.mesg_text);
-                msgsnd(msgid, &message, MAX_BUF_SIZE, 0);
+                msgsnd(msgid, &message, sizeof(message), 0);
                 changed = 0;
             } else {
                 /*Ripulisco forzatamente. */
-                msgrcv(msgid, &message, MAX_BUF_SIZE, 1, IPC_NOWAIT);
+                msgrcv(msgid, &message, sizeof(message), 1, IPC_NOWAIT);
+                message.mesg_type = 1;
                 sprintf(message.mesg_text, "%s", current_msg);
-                msgsnd(msgid, &message, MAX_BUF_SIZE, 0);
+                msgsnd(msgid, &message, sizeof(message), 0);
             }
 
             printf("\033[0;32m%s\033[0m:\033[0;31mCentralina\033[0m$ ", name);
@@ -127,7 +129,7 @@ int main(int argc, char *argv[]) {
                 if (cmd_n != 1) {
                     printf(DEL_STRING);
                 } else {
-                    __del(atoi(buf[1]), children_pids, __out_buf);
+                    __del(atoi(buf[1]), children_pids, __out_buf, 1);
                     printf("%s", __out_buf);
                 }
             } else if (strcmp(buf[0], "link") == 0 && strcmp(buf[2], "to") == 0) {

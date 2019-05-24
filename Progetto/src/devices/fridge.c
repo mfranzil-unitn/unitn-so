@@ -105,15 +105,21 @@ int main(int argc, char* argv[]) {
             }
         }
         if (flag_term) {
-            /*if ((int)getppid() != shellpid) {
-                ppid = (int)getppid();
-                kill(ppid, SIGUSR2);
-                get_pipe_name(ppid, ppid_pipe); 
-                ppid_pipe_fd = open(ppid_pipe, O_RDWR);
-                sprintf(tmp, "2|%d", (int)getpid());
-                write(ppid_pipe_fd, tmp, sizeof(tmp));
-                close(ppid_pipe_fd);
-            }*/
+            
+          int ret = msgrcv(msgid, &message, sizeof(message), 1, IPC_NOWAIT);
+            if(ret !=-1 ){
+                if(strcmp(message.mesg_text, "SENDPID")==0){
+                    int ppid = (int)getppid();
+                    if(ppid != shellpid){
+                        int key_ppid = ftok("/tmp/ipc/mqueues", ppid);
+                        int msgid_ppid = msgget(key_ppid, 0666 | IPC_CREAT);
+                        message.mesg_type = 1;
+                        sprintf(message.mesg_text, "%d", pid);
+                        msgsnd(msgid_ppid, &message, sizeof(message), 0);
+                        kill(ppid, SIGCONT);
+                    }
+                }
+            }
             msgctl(msgid, IPC_RMID, NULL);
             exit(0);
         }

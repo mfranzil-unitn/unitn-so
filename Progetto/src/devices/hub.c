@@ -21,6 +21,8 @@ int msgid_pid;
 volatile int flag_usr1 = 0;
 volatile int flag_usr2 = 0;
 volatile int flag_term = 0;
+volatile int flag_cont = 0;
+
 
 void term();
 void read_msgqueue(int msgid, int* device_pids);
@@ -35,6 +37,9 @@ void sighandler_int(int sig) {
     }
     if (sig == SIGTERM) {
         flag_term = 1;
+    }
+    if(sig == SIGCONT){
+        flag_cont = 1;
     }
 }
 /*Itera sui figli, in realtà fino a MAX_CHILDREN, e controlla che gli stati siano congruenti. */
@@ -109,6 +114,7 @@ int main(int argc, char* argv[]) {
     signal(SIGTERM, sighandler_int);
     signal(SIGUSR1, sighandler_int);
     signal(SIGUSR2, sighandler_int);
+    signal(SIGCONT, sighandler_int);
 
     while (1) {
         __index = atoi(argv[1]);
@@ -241,6 +247,25 @@ int main(int argc, char* argv[]) {
         }
         if (flag_term) {
             term();
+        }
+        if(flag_cont){
+            printf("SIGCONT\n");
+            int ret = msgrcv(msgid_pid, &message, sizeof(message), 1, IPC_NOWAIT);
+            printf("Messaggio: %s\n", message.mesg_text);
+            if(ret!=-1){
+                int pid = atoi(message.mesg_text);
+                int k=0;
+                for(k = 0; k < MAX_CHILDREN; k++){
+                    if(children_pids[k]== pid){
+                        printf("FIGLIO ELIMINATO\n");
+                        children_pids[k] = -1;
+                    }
+                }
+            }
+            else{
+                lprintf("Messaggio dummy\n");
+            }
+            flag_cont = 0;
         }
         sleep(10);
     }
