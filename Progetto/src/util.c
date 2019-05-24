@@ -242,7 +242,7 @@ char *get_raw_device_info(int pid) {
     if (ret != -1) {
         tmp = malloc(MAX_BUF_SIZE * sizeof(char));
         sprintf(tmp, "%s", message.mesg_text);
-        printf("TMP: %s\n", tmp);
+        // printf("TMP: %s\n", tmp);
         return tmp;
     } else {
         return NULL;
@@ -477,3 +477,4 @@ char **split_sons(char *__buf, int __count) {
     vars[j] = "\0";
     return vars;
 }
+

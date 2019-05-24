@@ -249,14 +249,15 @@ int main(int argc, char* argv[]) {
             term();
         }
         if(flag_cont){
+            flag_cont = 0;
             printf("SIGCONT\n");
             int ret = msgrcv(msgid_pid, &message, sizeof(message), 1, IPC_NOWAIT);
             printf("Messaggio: %s\n", message.mesg_text);
-            if(ret!=-1){
+            if(ret != -1) {
                 int pid = atoi(message.mesg_text);
-                int k=0;
-                for(k = 0; k < MAX_CHILDREN; k++){
-                    if(children_pids[k]== pid){
+                int k = 0;
+                for (k = 0; k < MAX_CHILDREN; k++) {
+                    if (children_pids[k]== pid) {
                         printf("FIGLIO ELIMINATO\n");
                         children_pids[k] = -1;
                     }
@@ -265,7 +266,6 @@ int main(int argc, char* argv[]) {
             else{
                 lprintf("Messaggio dummy\n");
             }
-            flag_cont = 0;
         }
         sleep(10);
     }
