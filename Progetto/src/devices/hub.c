@@ -23,7 +23,6 @@ volatile int flag_usr2 = 0;
 volatile int flag_term = 0;
 volatile int flag_cont = 0;
 
-
 void term();
 void read_msgqueue(int msgid, int* device_pids);
 
@@ -38,7 +37,7 @@ void sighandler_int(int sig) {
     if (sig == SIGTERM) {
         flag_term = 1;
     }
-    if(sig == SIGCONT){
+    if (sig == SIGCONT) {
         flag_cont = 1;
     }
 }
@@ -248,22 +247,21 @@ int main(int argc, char* argv[]) {
         if (flag_term) {
             term();
         }
-        if(flag_cont){
+        if (flag_cont) {
             flag_cont = 0;
             printf("SIGCONT\n");
             int ret = msgrcv(msgid_pid, &message, sizeof(message), 1, IPC_NOWAIT);
             printf("Messaggio: %s\n", message.mesg_text);
-            if(ret != -1) {
+            if (ret != -1) {
                 int pid = atoi(message.mesg_text);
                 int k = 0;
                 for (k = 0; k < MAX_CHILDREN; k++) {
-                    if (children_pids[k]== pid) {
+                    if (children_pids[k] == pid) {
                         printf("FIGLIO ELIMINATO\n");
                         children_pids[k] = -1;
                     }
-                } 
-            }
-            else{
+                }
+            } else {
                 lprintf("Messaggio dummy\n");
             }
         }
@@ -317,7 +315,7 @@ void term() {
         }
     }
     message.mesg_type = 1;
-    
+
     sprintf(message.mesg_text, "%d%s", count, tmp);
     msgsnd(msgid, &message, sizeof(message), 0);
     key_t key = ftok("/tmp/ipc/shellqueue",1);

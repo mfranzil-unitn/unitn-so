@@ -1,0 +1,55 @@
+src/util.c: In function ‘get_shell_text’:
+src/util.c:88:5: warning: implicit declaration of function ‘cuserid’; did you mean ‘ctermid’? [-Wimplicit-function-declaration]
+     cuserid(user);
+     ^~~~~~~
+     ctermid
+src/util.c: In function ‘get_raw_device_info’:
+src/util.c:245:9: warning: C++ style comments are not allowed in ISO C90
+         // printf("TMP: %s\n", tmp);
+         ^
+src/util.c:245:9: warning: (this will be reported only once per input file)
+src/launcher.c: In function ‘main’:
+src/launcher.c:15:5: warning: ISO C90 forbids mixed declarations and code [-Wdeclaration-after-statement]
+     char(*buf)[MAX_BUF_SIZE];
+     ^~~~
+src/launcher.c:53:5: warning: C++ style comments are not allowed in ISO C90
+     //message.mesg_type = 1;
+     ^
+src/launcher.c:53:5: warning: (this will be reported only once per input file)
+src/launcher.c:111:13: warning: string length ‘567’ is greater than the length ‘509’ ISO C90 compilers are required to support [-Woverlength-strings]
+             printf(HELP_STRING_LAUNCHER);
+             ^~~~~~
+src/launcher.c:28:9: warning: unused variable ‘msgid_pid’ [-Wunused-variable]
+     int msgid_pid;
+         ^~~~~~~~~
+src/launcher.c:27:11: warning: unused variable ‘key_pid’ [-Wunused-variable]
+     key_t key_pid;
+           ^~~~~~~
+src/launcher.c:19:12: warning: unused variable ‘i’ [-Wunused-variable]
+     int j, i;
+            ^
+src/launcher.c: In function ‘handle_sigint’:
+src/launcher.c:176:5: warning: ISO C90 forbids mixed declarations and code [-Wdeclaration-after-statement]
+     int j;
+     ^~~
+src/launcher.c:172:9: warning: unused variable ‘msgid’ [-Wunused-variable]
+     int msgid;
+         ^~~~~
+src/launcher.c:171:11: warning: unused variable ‘key’ [-Wunused-variable]
+     key_t key;
+           ^~~
+src/shell.c: In function ‘main’:
+src/shell.c:101:17: warning: string length ‘1174’ is greater than the length ‘509’ ISO C90 compilers are required to support [-Woverlength-strings]
+                 printf(HELP_STRING);
+                 ^~~~~~
+src/shell.c: In function ‘cleanup_sig’:
+src/shell.c:182:5: warning: ISO C90 forbids mixed declarations and code [-Wdeclaration-after-statement]
+     int i=1;
+     ^~~
+src/shell.c:184:16: error: ‘msgid’ undeclared (first use in this function); did you mean ‘msgsnd’?
+         msgctl(msgid, IPC_RMID, NULL);
+                ^~~~~
+                msgsnd
+src/shell.c:184:16: note: each undeclared identifier is reported only once for each function it appears in
+make[1]: *** [bin/shell] Error 1
+make: *** [build] Error 2
