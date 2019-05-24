@@ -261,7 +261,7 @@ int main(int argc, char* argv[]) {
                         printf("FIGLIO ELIMINATO\n");
                         children_pids[k] = -1;
                     }
-                }
+                } 
             }
             else{
                 lprintf("Messaggio dummy\n");

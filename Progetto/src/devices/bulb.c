@@ -98,6 +98,7 @@ int main(int argc, char* argv[]) {
             int ret = msgrcv(msgid, &message, sizeof(message), 1, IPC_NOWAIT);
             if(ret !=-1 ){
                 if(strcmp(message.mesg_text, "SENDPID")==0){
+                    printf("MANDO MESSAGGIO\n");
                     int ppid = (int)getppid();
                     if(ppid != shellpid){
                         int key_ppid = ftok("/tmp/ipc/mqueues", ppid);

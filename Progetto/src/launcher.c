@@ -6,6 +6,7 @@ int emergencyid;
 int emergencyid2;
 int shell_on = 0;
 
+
 int main(int argc, char *argv[]) {
     signal(SIGTERM, handle_sig);
     signal(SIGHUP, handle_sighup);
@@ -52,13 +53,16 @@ int main(int argc, char *argv[]) {
     //message.mesg_type = 1;
     emergencyid2 = msgid_sh;
 
+
     /*Aggiungo message_queue per indice*/
+    /*
     for (i = 0; i < MAX_CHILDREN; i++) {
         key_pid = ftok("/tmp/ipc/mqueues", i);
         msgid_pid = msgget(key, 0666 | IPC_CREAT);
         message.mesg_type = 1;
         msgrcv(msgid, &message, sizeof(message), 1, IPC_NOWAIT);
-    }
+    }*/
+    
 
     while (1) {
         /*Leggo il numero di devices presenti e i rispettivi id, solo se centralina creata (Ma anche se momentaneamente spenta). */
@@ -171,7 +175,6 @@ void handle_sigint(int signal) {
     msgctl(emergencyid2, IPC_RMID, NULL);
     int j;
     for(j=0; j < MAX_CHILDREN; j++){
-        msgctl(msgid, IPC_RMID, NULL);
     }
 
     if (shell_pid != -1) {

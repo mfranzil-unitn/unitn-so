@@ -203,7 +203,6 @@ void __info(int index, int *children_pids) {
             __print(info_p);
         }
     }
-
     free(info);
 }
 
@@ -263,6 +262,11 @@ int __add(char *device, int device_index, int *children_pids, char *__out_buf) {
         /* Conversione a stringa dell'indice */
         sprintf(index_str, "%d", device_index);
         sprintf(program_name, "./%s%s", DEVICES_POSITIONS, device);
+        key_t key_index = ftok("/tmp/ipc/mqueues", device_index);
+        key_t msgid_index = msgget(key, 0666 | IPC_CREAT);
+        message.mesg_type = 1;
+
+        msgrcv(msgid, &message, sizeof(message), 1, IPC_NOWAIT);
         execlp(program_name, program_name, index_str, pipe_str, NULL);
         exit(0);
     } else { /* Padre */
@@ -344,6 +348,7 @@ void __del(int index, int *children_pids, char *__out_buf, int flag) {
         key_t key = ftok("/tmp/ipc/mqueues", pid);
         int msgid = msgget(key, 0666 | IPC_CREAT);
         message.mesg_type = 1;
+        sprintf(message.mesg_text, "SENDPID");
         msgsnd(msgid, &message, sizeof(message), 0);
     }
     kill(pid, SIGTERM);

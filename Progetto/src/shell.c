@@ -5,6 +5,7 @@ int stato = 1;                   /*Stato della centralina. */
 int changed = 0;                 /* Modifiche alla message queue? */
 int children_pids[MAX_CHILDREN]; /* array contenenti i PID dei figli */
 int fd;
+int max_index = 1;
 
 int main(int argc, char *argv[]) {
     char(*buf)[MAX_BUF_SIZE] = malloc(MAX_BUF_SIZE * sizeof(char *)); /* array che conterrà i comandi da eseguire */
@@ -124,6 +125,7 @@ int main(int argc, char *argv[]) {
                 } else {
                     changed = add_shell(buf, &device_i, children_pids, __out_buf);
                     printf("%s", __out_buf);
+                    max_index++;
                 }
             } else if (strcmp(buf[0], "del") == 0) {
                 if (cmd_n != 1) {
@@ -177,6 +179,10 @@ int add_shell(char buf[][MAX_BUF_SIZE], int *device_i, int *children_pids, char 
 
 void cleanup_sig(int sig) {
     printf("Chiusura della centralina in corso...\n");
+    int i=1;
+    for(i=1; i< max_index;i++ ){
+        msgctl(msgid, IPC_RMID, NULL);
+    }
     kill(ppid, SIGTERM);
     kill(0, SIGKILL);
 }
