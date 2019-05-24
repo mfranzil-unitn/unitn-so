@@ -17,8 +17,6 @@ int device_type = -1;
 
 key_t key;
 int msgid;
-key_t key_pid;
-int msgid_pid;
 
 struct tm tm_start;
 struct tm tm_end;
@@ -28,7 +26,6 @@ volatile int flag_usr1 = 0;
 volatile int flag_usr2 = 0;
 volatile int flag_term = 0;
 volatile int flag_alarm = 0;
-volatile int flag_cont = 0;
 
 void switch_child() {
     char switch_names[5][MAX_BUF_SIZE];
@@ -72,9 +69,6 @@ void sighandler_int(int sig) {
     if (sig == SIGALRM) {
         flag_alarm = 1;
     }
-    if (sig == SIGCONT) {
-        flag_cont = 1;
-    }
 }
 
 int main(int argc, char* argv[]) {
@@ -85,11 +79,6 @@ int main(int argc, char* argv[]) {
 
     char** vars = NULL;
     int mode;
-
-    char* raw_info;
-    char* shifted_tmp;
-
-    int ret;
 
     this_pipe = argv[2];
     pid = getpid();
@@ -126,14 +115,17 @@ int main(int argc, char* argv[]) {
                     tm_end.tm_hour, tm_end.tm_min,
                     children_pids[0] != -1);
             if (children_pids[0] != -1) {
-                raw_info = get_raw_device_info(children_pids[0]);
+                char* raw_info = get_raw_device_info(children_pids[0]);
                 if (raw_info != NULL) {
                     strcat(tmp, raw_info);
                     strcat(tmp, "|!|");
                     free(raw_info);
                 }
             }
-            strcat(tmp, "!>");
+            strcat(tmp, "!>"); /*
+            write(fd, tmp, MAX_BUF_SIZE);
+*/
+
             message.mesg_type = 1;
             sprintf(message.mesg_text, "%s", tmp);
             msgsnd(msgid, &message, sizeof(message), 0);
@@ -164,7 +156,7 @@ int main(int argc, char* argv[]) {
 
                 flag_alarm = 1;
             } else if (mode == 1) {
-                shifted_tmp = malloc(MAX_BUF_SIZE * sizeof(shifted_tmp));
+                char* shifted_tmp = malloc(MAX_BUF_SIZE * sizeof(shifted_tmp));
                 strcpy(shifted_tmp, tmp);
                 shifted_tmp = shifted_tmp + 2;
                 vars = split(shifted_tmp);
@@ -184,92 +176,16 @@ int main(int argc, char* argv[]) {
         }
 
         if (flag_term) {
-            term();
-        }
-
-        if (flag_cont) {
-            flag_cont = 0;
-            ret = msgrcv(msgid_pid, &message, sizeof(message), 1, IPC_NOWAIT);
-            if (ret != -1) {
-                if (children_pids[0] == atoi(message.mesg_text)) {
-                    children_pids[0] = -1;
-                }
-            }
+            msgctl(msgid, IPC_RMID, NULL);
+            exit(0);
         }
 
         if (flag_alarm) {
             check_time();
         }
 
-        sleep(10);
+        //sleep(10);
     }
 
     return 0;
-}
-
-void term() {
-    int done = 1;
-    int i;
-    char tmp[MAX_BUF_SIZE - sizeof(int)]; /* POI VA CONCATENATO */
-
-    int count = 0;
-    char intern[MAX_BUF_SIZE];
-    char* info;
-
-    sprintf(tmp, "-");
-    if (children_pids[0] != -1) {
-        count++;
-        info = get_raw_device_info(children_pids[0]);
-        sprintf(intern, "-%s", info);
-        strcat(tmp, intern);
-        kill(children_pids[0], SIGTERM);
-    }
-    message.mesg_type = 1;
-
-    sprintf(message.mesg_text, "%d%s", count, tmp);
-    msgsnd(msgid, &message, sizeof(message), 0);
-
-    if (done) {
-        exit(0);
-    } else {
-        printf("Errore nell'eliminazione\n");
-    }
-}
-
-void read_msgqueue(int msgid, int* device_pids) {
-    int n_devices;
-    int ret;
-    int q, j;
-    char n_dev_str[100];
-    int __count;
-    char tmp_buf[MAX_BUF_SIZE];
-    char** vars;
-    char** son_j;
-
-    ret = msgrcv(msgid, &message, sizeof(message), 1, IPC_NOWAIT);
-    if (ret != -1) {
-        q = 0;
-        while (!(message.mesg_text[q] == '-')) {
-            n_dev_str[q] = message.mesg_text[q];
-            q++;
-        }
-        n_dev_str[q] = '\0';
-        n_devices = atoi(n_dev_str);
-        if (n_devices > 0) {
-            __count = n_devices;
-            sprintf(tmp_buf, "%s", message.mesg_text);
-            vars = NULL;
-            vars = split_sons(tmp_buf, __count);
-            j = 0;
-            while (j <= __count) {
-                if (j >= 1) {
-                    printf("\nVars %d: %s\n", j, vars[j]);
-                    son_j = split(vars[j]);
-                    __add_ex(son_j, children_pids);
-                    printf("\nADD_EX GOOD\n");
-                }
-                j++;
-            }
-        }
-    }
 }

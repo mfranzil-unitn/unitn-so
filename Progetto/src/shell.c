@@ -5,8 +5,6 @@ int stato = 1;                   /*Stato della centralina. */
 int changed = 0;                 /* Modifiche alla message queue? */
 int children_pids[MAX_CHILDREN]; /* array contenenti i PID dei figli */
 int fd;
-int max_index = 1;
-int flag = 0;
 
 int main(int argc, char *argv[]) {
     char(*buf)[MAX_BUF_SIZE] = malloc(MAX_BUF_SIZE * sizeof(char *)); /* array che conterrà i comandi da eseguire */
@@ -23,8 +21,6 @@ int main(int argc, char *argv[]) {
     int msgid;
     key_t key_sh;
     int msgid_sh;
-    key_t key_shell;
-    int msgid_shell;
 
     char current_msg[MAX_BUF_SIZE] = "0|";
 
@@ -46,39 +42,36 @@ int main(int argc, char *argv[]) {
         children_pids[j] = -1; /* se è -1 non contiene nulla */
     }
 
-    get_pipe_name((int)getpid(), pipe);
-    mkfifo(pipe, 0666);
-    fd = open(pipe, O_RDWR);
+    if (argc != 2 || strcmp(argv[1], "--no-wrapper") != 0) {
+        get_pipe_name((int)getpid(), pipe);
+        mkfifo(pipe, 0666);
+        fd = open(pipe, O_RDWR);
 
-    /* PID del launcher. */
-    ppid = atoi(argv[1]);
+        /* PID del launcher. */
+        ppid = atoi(argv[1]);
 
-    /* Credo message queue tra shell e launcher */
-    key = ftok("/tmp", 100000);
-    msgid = msgget(key, 0666 | IPC_CREAT);
-    message.mesg_type = 1;
+        /* Credo message queue tra shell e launcher */
+        key = ftok("/tmp", 1000);
+        msgid = msgget(key, 0666 | IPC_CREAT);
+        message.mesg_type = 1;
 
-    /*Creo message queue per comunicare shellpid */
-    key_sh = ftok("/tmp", 200000);
-    msgid_sh = msgget(key_sh, 0666 | IPC_CREAT);
-    message.mesg_type = 1;
+        /*Creo message queue per comunicare shellpid */
+        key_sh = ftok("/tmp", 2000);
+        msgid_sh = msgget(key_sh, 0666 | IPC_CREAT);
+        message.mesg_type = 1;
 
-    key_shell = ftok("/tmp/ipc/shellqueue", 1);
-    msgid_shell = msgget(key_shell, 0666 | IPC_CREAT);
-    message.mesg_type = 1;
-
-    sprintf(message.mesg_text, "%d", (int)getpid());
-    msgsnd(msgid_sh, &message, MAX_BUF_SIZE, 0);
-    
+        sprintf(message.mesg_text, "%d", (int)getpid());
+        msgsnd(msgid_sh, &message, MAX_BUF_SIZE, 0);
+    }
     /* Ready */
     system("clear");
 
     while (1) {
         if (stato) {
             /*Scrive numero devices e elenco dei pid a launcher. */
-            if (changed) {
+            if ((argc != 2 || strcmp(argv[1], "--no-wrapper") != 0) && changed) {
                 /*Ripulisco Forzatamente. */
-                msgrcv(msgid, &message, sizeof(message), 1, IPC_NOWAIT);
+                msgrcv(msgid, &message, MAX_BUF_SIZE, 1, IPC_NOWAIT);
 
                 sprintf(tmp_c, "%d|", device_i);
                 i = 0;
@@ -87,17 +80,15 @@ int main(int argc, char *argv[]) {
                     strcat(tmp_c, child);
                     i++;
                 }
-                message.mesg_type = 1;
                 sprintf(message.mesg_text, "%s", tmp_c);
                 sprintf(current_msg, "%s", message.mesg_text);
-                msgsnd(msgid, &message, sizeof(message), 0);
+                msgsnd(msgid, &message, MAX_BUF_SIZE, 0);
                 changed = 0;
             } else {
                 /*Ripulisco forzatamente. */
-                msgrcv(msgid, &message, sizeof(message), 1, IPC_NOWAIT);
-                message.mesg_type = 1;
+                msgrcv(msgid, &message, MAX_BUF_SIZE, 1, IPC_NOWAIT);
                 sprintf(message.mesg_text, "%s", current_msg);
-                msgsnd(msgid, &message, sizeof(message), 0);
+                msgsnd(msgid, &message, MAX_BUF_SIZE, 0);
             }
 
             printf("\033[0;32m%s\033[0m:\033[0;31mCentralina\033[0m$ ", name);
@@ -131,14 +122,12 @@ int main(int argc, char *argv[]) {
                 } else {
                     changed = add_shell(buf, &device_i, children_pids, __out_buf);
                     printf("%s", __out_buf);
-                    max_index++;
                 }
             } else if (strcmp(buf[0], "del") == 0) {
                 if (cmd_n != 1) {
                     printf(DEL_STRING);
                 } else {
-                    flag = 1;
-                    __del(atoi(buf[1]), children_pids, __out_buf, flag);
+                    __del(atoi(buf[1]), children_pids, __out_buf);
                     printf("%s", __out_buf);
                 }
             } else if (strcmp(buf[0], "link") == 0 && strcmp(buf[2], "to") == 0) {
@@ -186,16 +175,6 @@ int add_shell(char buf[][MAX_BUF_SIZE], int *device_i, int *children_pids, char 
 
 void cleanup_sig(int sig) {
     printf("Chiusura della centralina in corso...\n");
-    int i = 0;
-    for (i = 1; i < max_index; i++) {
-        key_t key = ftok("/tmp/ipc/mqueues", i);
-        int msgid = msgget(key, 0666 | IPC_CREAT);
-        msgctl(msgid, IPC_RMID, NULL);
-    }
-    key_t key_shell = ftok("/tmp/ipc/shellqueue", 1);
-    int msgid_shell = msgget(key_shell, 0666 | IPC_CREAT);
-    message.mesg_type = 1;
-    msgctl(msgid_shell, IPC_RMID, NULL);
     kill(ppid, SIGTERM);
     kill(0, SIGKILL);
 }
@@ -216,46 +195,22 @@ void stop_sig(int sig) {
 }
 
 void link_child(int signal) {
-    if (flag) {
-        int n_devices;
-        int ret;
-        int q, j;
-        char n_dev_str[100];
-        int __count;
-        char tmp_buf[MAX_BUF_SIZE];
-        char **vars;
-        char **son_j;
+    char *tmp;
+    int code;
+    char **vars;
 
-        key_t key_shell = ftok("/tmp/ipc/shellqueue", 1);
-        int msgid_shell = msgget(key_shell, 0666 | IPC_CREAT);
-        message.mesg_type = 1;
-
-        ret = msgrcv(msgid_shell, &message, sizeof(message), 1, IPC_NOWAIT);
-        if (ret != -1) {
-            q = 0;
-            while (!(message.mesg_text[q] == '-')) {
-                n_dev_str[q] = message.mesg_text[q];
-                q++;
-            }
-            n_dev_str[q] = '\0';
-            n_devices = atoi(n_dev_str);
-            if (n_devices > 0) {
-                __count = n_devices;
-                sprintf(tmp_buf, "%s", message.mesg_text);
-                vars = NULL;
-                vars = split_sons(tmp_buf, __count);
-                j = 0;
-                while (j <= __count) {
-                    if (j >= 1) {
-                        printf("\nVars %d: %s\n", j, vars[j]);
-                        son_j = split(vars[j]);
-                        __add_ex(son_j, children_pids);
-                        printf("\nADD_EX GOOD\n");
-                    }
-                    j++;
-                }
-            }
-        }
-        flag = 0;
+    /*printf("Link_Child\n");*/
+    /*Analogamente ad Hub */
+    tmp = malloc(MAX_BUF_SIZE * sizeof(tmp));
+    read(fd, tmp, MAX_BUF_SIZE);
+    /*lprintf("End Read: %s\n\n", tmp);*/
+    code = tmp[0] - '0';
+    if (code == 1) {
+        tmp = tmp + 2;
+        vars = split(tmp);
+        __add_ex(vars, children_pids);
+        free(vars);
+        free(tmp - 2);
     }
+    /*close(fd); */
 }

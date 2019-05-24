@@ -161,9 +161,8 @@ int get_device_pid(int device_identifier, int *children_pids, char **raw_info) {
                     /* Evito fastidiose modifiche a TMP da strtok */
                     strcpy(buf_info, tmp);
                     /*printf("BUF INFO %s\n", buf_info); */
-                    vars = split(buf_info);
+                    /*vars = split(buf_info);*/
                     /*if (vars != NULL && atoi(vars[2]) == device_identifier) {
-                        printf("SONO ENTRATO PER PID: %d\n", children_pid); 
                         free(vars);
                         return children_pid;
                     }*/
@@ -242,7 +241,7 @@ char *get_raw_device_info(int pid) {
     if (ret != -1) {
         tmp = malloc(MAX_BUF_SIZE * sizeof(char));
         sprintf(tmp, "%s", message.mesg_text);
-        // printf("TMP: %s\n", tmp);
+        printf("TMP: %s\n", tmp);
         return tmp;
     } else {
         return NULL;
@@ -477,4 +476,3 @@ char **split_sons(char *__buf, int __count) {
     vars[j] = "\0";
     return vars;
 }
-

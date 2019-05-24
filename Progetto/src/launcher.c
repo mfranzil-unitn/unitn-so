@@ -6,7 +6,6 @@ int emergencyid;
 int emergencyid2;
 int shell_on = 0;
 
-
 int main(int argc, char *argv[]) {
     signal(SIGTERM, handle_sig);
     signal(SIGHUP, handle_sighup);
@@ -24,9 +23,6 @@ int main(int argc, char *argv[]) {
     key_t key_sh;
     int msgid_sh;
 
-    key_t key_pid;
-    int msgid_pid;
-
     char c;
     name = get_shell_text();
     buf = malloc(MAX_BUF_SIZE * sizeof(char *)); /* array che conterrà i comandi da eseguire */
@@ -41,28 +37,18 @@ int main(int argc, char *argv[]) {
         system("clear");
     }
     /* Creo message queue tra shell e launcher. */
-    key = ftok("/tmp", 100000);
+    key = ftok("/tmp", 1000);
     msgid = msgget(key, 0666 | IPC_CREAT);
     /* Ripulisco inizialmente per evitare errori. */
     msgrcv(msgid, &message, sizeof(message), 1, IPC_NOWAIT);
+    printf("Message launcher: %s\n", message.mesg_text);
     emergencyid = msgid;
 
     /*Creo message queue per comunicare shellpid */
-    key_sh = ftok("/tmp", 200000);
+    key_sh = ftok("/tmp", 2000);
     msgid_sh = msgget(key_sh, 0666 | IPC_CREAT);
-    //message.mesg_type = 1;
+    message.mesg_type = 1;
     emergencyid2 = msgid_sh;
-
-
-    /*Aggiungo message_queue per indice*/
-    /*
-    for (i = 0; i < MAX_CHILDREN; i++) {
-        key_pid = ftok("/tmp/ipc/mqueues", i);
-        msgid_pid = msgget(key, 0666 | IPC_CREAT);
-        message.mesg_type = 1;
-        msgrcv(msgid, &message, sizeof(message), 1, IPC_NOWAIT);
-    }*/
-    
 
     while (1) {
         /*Leggo il numero di devices presenti e i rispettivi id, solo se centralina creata (Ma anche se momentaneamente spenta). */
@@ -173,9 +159,6 @@ void handle_sigint(int signal) {
 
     msgctl(emergencyid, IPC_RMID, NULL);
     msgctl(emergencyid2, IPC_RMID, NULL);
-    int j;
-    for(j=0; j < MAX_CHILDREN; j++){
-    }
 
     if (shell_pid != -1) {
         kill(shell_pid, SIGTERM);
@@ -268,7 +251,7 @@ void user_launcher(char buf[][MAX_BUF_SIZE], int msgid, int *device_pids, int ms
             strcat(tmp, stringpid);
             if (execl("/usr/bin/gnome-terminal", "gnome-terminal", "-e", tmp, NULL) == -1) {
                 sprintf(message.mesg_text, "%s", "Errore");
-                msgsnd(msgid_sh, &message, sizeof(message), 0);
+                msgsnd(msgid_sh, &message, MAX_BUF_SIZE, 0);
             }
         } else if (pid > 0) {
             /*Legge il contenuto della pipe => Se = "Errore" la finestra è stata aperta. */
@@ -278,7 +261,7 @@ void user_launcher(char buf[][MAX_BUF_SIZE], int msgid, int *device_pids, int ms
             } else {
                 shell_pid = atoi(message.mesg_text);
                 shell_on = 1;
-                msgsnd(msgid_sh, &message, sizeof(message), 0);
+                msgsnd(msgid_sh, &message, MAX_BUF_SIZE, 0);
             }
             system("clear");
             printf("Centralina aperta.\n");
