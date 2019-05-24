@@ -83,7 +83,7 @@ int main(int argc, char* argv[]) {
 
             //read(fd, tmp, MAX_BUF_SIZE);
             int ret = msgrcv(msgid, &message, sizeof(message), 1, IPC_NOWAIT);
-            if (ret == -1) {
+            if(ret == -1){
                 printf("Errore lettura messaggio\n");
             }
             sprintf(tmp, "%s", message.mesg_text);

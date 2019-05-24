@@ -86,11 +86,10 @@ int main(int argc, char* argv[]) {
             /* 3|PERCENT -> setta contenuto */
 
             int ret = msgrcv(msgid, &message, sizeof(message), 1, IPC_NOWAIT);
-            if (ret == -1) {
+            if(ret == -1){
                 printf("Errore lettura messaggio\n");
             }
-            sprintf(tmp, "%s", message.mesg_text);
-            vars = split_fixed(tmp, 2);
+            sprintf(tmp, "%s", message.mesg_text);            vars = split_fixed(tmp, 2);
 
             if (atoi(vars[0]) == 0) {
                 if (!status) {
