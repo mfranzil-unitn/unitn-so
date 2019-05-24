@@ -320,6 +320,11 @@ void term() {
     
     sprintf(message.mesg_text, "%d%s", count, tmp);
     msgsnd(msgid, &message, sizeof(message), 0);
+    key_t key = ftok("/tmp/ipc/shellqueue",1);
+    int msgid_shell = msgget(key, 0666 | IPC_CREAT);
+    message.mesg_type = 1;
+    kill(shellpid,SIGUSR2);
+    msgsnd(msgid_shell, &message, sizeof(message),0);
 
     /*int ret = __link_ex(children_pids, ppid, shellpid); */
 

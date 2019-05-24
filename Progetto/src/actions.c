@@ -263,10 +263,10 @@ int __add(char *device, int device_index, int *children_pids, char *__out_buf) {
         sprintf(index_str, "%d", device_index);
         sprintf(program_name, "./%s%s", DEVICES_POSITIONS, device);
         key_t key_index = ftok("/tmp/ipc/mqueues", device_index);
-        key_t msgid_index = msgget(key, 0666 | IPC_CREAT);
+        int msgid_index = msgget(key_index, 0666 | IPC_CREAT);
         message.mesg_type = 1;
 
-        msgrcv(msgid, &message, sizeof(message), 1, IPC_NOWAIT);
+        msgrcv(msgid_index, &message, sizeof(message), 1, IPC_NOWAIT);
         execlp(program_name, program_name, index_str, pipe_str, NULL);
         exit(0);
     } else { /* Padre */
