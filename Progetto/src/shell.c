@@ -216,7 +216,6 @@ void stop_sig(int sig) {
 }
 
 void link_child(int signal) {
-<<<<<<< HEAD
     printf("ARRRIVATO SIGUSR2 FLAG: %d\n",flag);
     if(flag){
     int n_devices;
@@ -227,17 +226,6 @@ void link_child(int signal) {
     char tmp_buf[MAX_BUF_SIZE];
     char** vars;
     char** son_j;
-=======
-    if (flag) {
-        int n_devices;
-        int ret;
-        int q, j;
-        char n_dev_str[100];
-        int __count;
-        char tmp_buf[MAX_BUF_SIZE];
-        char **vars;
-        char **son_j;
->>>>>>> b6abd4485d6edac12a751501ade6164089bc2f0f
 
         key_t key_shell = ftok("/tmp/ipc/shellqueue", 1);
         int msgid_shell = msgget(key_shell, 0666 | IPC_CREAT);
