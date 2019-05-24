@@ -55,6 +55,7 @@ clean:
 build:
 	@make clean
 	@mkdir /tmp/ipc
+	@mkdir /tmp/ipc/mqueues
 	@mkdir bin
 	@mkdir bin/devices
 	@make targets

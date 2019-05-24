@@ -56,7 +56,6 @@
 #define HUB_PARAMETERS 400
 #define TIMER_PARAMETERS 25
 
-
 #define SHELL_POSITION "bin/shell"
 #define DEVICES_POSITIONS "bin/devices/"
 #define PIPES_POSITIONS "/tmp/ipc/"

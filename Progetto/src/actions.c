@@ -3,7 +3,7 @@
 void __switch(int index, char *action, char *position, int *children_pids) {
     /* Prova a impostare un interruttore ACTION su POSITION di un certo DEVICE */
     char *device_info;
-    int pid, fd, status, prova;
+    int pid, fd, status;
     char **vars;
     char pipe_str[MAX_BUF_SIZE];
     char pipe_message[MAX_BUF_SIZE]; /* buffer per la pipe */
@@ -174,9 +174,9 @@ void __switch(int index, char *action, char *position, int *children_pids) {
 
 void __info(int index, int *children_pids) {
     char *info = NULL;
-    char **info_p = NULL;
-
     int pid;
+    /*printf("PID info: %d\n", pid);*/
+    char **info_p = NULL;
 
     pid = get_device_pid(index, children_pids, &info);
 
@@ -331,7 +331,6 @@ void __del(int index, int *children_pids, char *__out_buf) {
     free(vars);
 
     kill(pid, SIGTERM);
-    /*kill(pid, 9);      // da modificare con un comando opportuno... */
     remove(pipe_str); /* RIP pipe */
 
     for (i = 0; i < MAX_CHILDREN; i++) {
@@ -345,10 +344,13 @@ void __del(int index, int *children_pids, char *__out_buf) {
 void __link(int index, int controller, int *children_pids) {
     char *raw_device_info = NULL;
     char *raw_controller_info = NULL;
-    int device_pid, controller_pid, fd;
+    int device_pid, controller_pid;/*, fd;*/
     char buf[MAX_BUF_SIZE];
     char __out_buf[MAX_BUF_SIZE];
-    char controller_pipe_name[MAX_BUF_SIZE];
+   /* char controller_pipe_name[MAX_BUF_SIZE];*/
+
+    key_t key;
+    int msgid;
 
     device_pid = get_device_pid(index, children_pids, &raw_device_info);
 
@@ -378,20 +380,25 @@ void __link(int index, int controller, int *children_pids) {
         if (!controller_is_full(controller_pid, raw_controller_info)) {
             sprintf(buf, "1|");
             strcat(buf, raw_device_info);
-
             free(raw_device_info);
             free(raw_controller_info);
 
             __del(index, children_pids, __out_buf);
 
-            get_pipe_name(controller_pid, controller_pipe_name);
+            /*get_pipe_name(controller_pid, controller_pipe_name);
 
             fd = open(controller_pipe_name, O_RDWR);
-            write(fd, buf, MAX_BUF_SIZE);
+            write(fd, buf, MAX_BUF_SIZE);*/
+
+            key = ftok("/tmp/ipc/mqueues", controller_pid);
+            msgid = msgget(key, 0666 | IPC_CREAT);
+            message.mesg_type = 1;
+            sprintf(message.mesg_text, "%s", buf);
+            msgsnd(msgid, &message, sizeof(message), 0);
             kill(controller_pid, SIGUSR2);
 
             printf("Spostato l'oggetto %d sotto l'oggetto %d\n", index, controller);
-            close(fd);
+            /*close(fd);*/
         } else {
             printf("Operazione non permessa. Il dispositivo %d è già pieno. Eliminare qualche figlio.\n", controller);
         }
@@ -428,10 +435,11 @@ int hub_tree_constructor(char *__buf, int *children_pids) {
 
     /* DISPOSITIVO; PID; ID */
 
-    char **vars = malloc((FRIDGE_PARAMETERS + 4) * sizeof(*vars));
+    char **vars;
     int i = 0;
     int to_be_added = 1;
 
+    vars = malloc((FRIDGE_PARAMETERS + 4) * sizeof(*vars));
     while (tokenizer != NULL) {
         if (strcmp(tokenizer, "<!") == 0) {
             to_be_added += atoi(old) - 1;
@@ -439,14 +447,14 @@ int hub_tree_constructor(char *__buf, int *children_pids) {
             __add_ex(vars, children_pids);
             /* segnarsi chi è il padre e poi fare link */
         } else if (strcmp(tokenizer, "!>") == 0) {
-            if (strcmp(old, "<!") == 0 && to_be_added > 0) {
+            if (strcmp(old, "<!") != 0 && strcmp(old, "!") != 0 && to_be_added > 0) {
                 i = 0;
 
                 __add_ex(vars, children_pids);
                 to_be_added--;
             }
         } else if (strcmp(tokenizer, "!") == 0) {
-            if (to_be_added > 0) {
+            if (strcmp(old, "!>") != 0 && to_be_added > 0) {
                 i = 0;
 
                 __add_ex(vars, children_pids);
@@ -515,7 +523,7 @@ int __link_ex(int son_pid, int parent_pid, int shellpid) {
     write(fd, buf, MAX_BUF_SIZE);
 
     printf("Spostato l'oggetto %d sotto l'oggetto %d\n", index, controller);
-    /*close(fd); */
+    close(fd);
 
     free(son_info);
 

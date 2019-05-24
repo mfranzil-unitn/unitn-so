@@ -23,8 +23,8 @@ void handle_sighup(int signal);
 
 void switch_launcher(char buf[][MAX_BUF_SIZE], int msgid, int* device_pids);
 void info_launcher(char buf[][MAX_BUF_SIZE], int msgid, int* device_pids);
-void user_launcher(char buf[][MAX_BUF_SIZE], int msgid, int *device_pids, int msgid_sh);
+void user_launcher(char buf[][MAX_BUF_SIZE], int msgid, int* device_pids, int msgid_sh);
 
-void read_msgqueue(int msgid, int*device_pids);
+void read_msgqueue(int msgid, int* device_pids);
 
 #endif

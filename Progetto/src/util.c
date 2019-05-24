@@ -138,13 +138,17 @@ void get_device_name_str(char *device_type, char *buf) {
 }
 
 int get_device_pid(int device_identifier, int *children_pids, char **raw_info) {
-    int i;
+    int i, children_pid, possible_pid;
     char var_buffer[MAX_BUF_SIZE];
+    char *tmp, **vars;
+    char buf_info[MAX_BUF_SIZE];
 
     for (i = 0; i < MAX_CHILDREN; i++) { /* l'indice i è logicamente indipendente dal nome/indice del dispositivo */
-        int children_pid = children_pids[i];
+        children_pid = children_pids[i];
         if (children_pid != -1) {
-            char *tmp = get_raw_device_info(children_pid);
+            /*printf("GET_ DEVICE_PID: %d\n", children_pid); */
+            tmp = get_raw_device_info(children_pid);
+            /*printf("TMP: %s\n", tmp); */
             if (tmp != NULL) {
                 if (raw_info != NULL) {
                     *raw_info = tmp;
@@ -154,18 +158,29 @@ int get_device_pid(int device_identifier, int *children_pids, char **raw_info) {
                 strcpy(var_buffer, tmp);
 
                 if (strncmp(tmp, HUB_S, 1) == 0 || strncmp(tmp, TIMER_S, 1) == 0) {
-                    int possible_pid = hub_tree_pid_finder(var_buffer, device_identifier);
-                    /*printf("Possible PID found: %d\n", possible_pid);*/
+                    /* Evito fastidiose modifiche a TMP da strtok */
+                    strcpy(buf_info, tmp);
+                    /*printf("BUF INFO %s\n", buf_info); */
+                    vars = split(buf_info);
+                    if (vars != NULL && atoi(vars[2]) == device_identifier) {
+                        /*printf("SONO ENTRATO PER PID: %d\n", children_pid); */
+                        free(vars);
+                        return children_pid;
+                    }
+                    possible_pid = hub_tree_pid_finder(var_buffer, device_identifier);
+                    /*printf("Possible PID found: %d\n", possible_pid); */
                     if (possible_pid != -1) {
                         return possible_pid;
                     }
                 } else {
-                    char **vars = split(var_buffer);
+                    vars = split(var_buffer);
                     if (vars != NULL && atoi(vars[2]) == device_identifier) {
                         free(vars);
                         return children_pid;
                     }
                 }
+            } else {
+                printf("TMP IS FCKN NULLL\n");
             }
         }
     }
@@ -200,48 +215,89 @@ char *get_raw_device_info(int pid) {
     /*  int i; */
     /*   for (i = 0; i < MAX_ATTEMPTS; i++) { */
     /*    lprintf("\b%d", i + 1); */
+
+    int enter = 0;
+    key_t key;
+    int msgid;
+    int ret;
+    char *tmp;
+
     char pipe_str[MAX_BUF_SIZE];
     int fd, _read;
-    char *tmp;
     fd_set set;
     struct timeval timeout;
 
-    int kill_o = kill(pid, SIGUSR1);
-    if (kill_o != 0) {
-        return NULL; /*continue; */
-    }
+    int kill_o;
+    /*printf("GET_RAW_DEVICE: %d\n", pid);
+    fflush(stdout);*/
 
-    tmp = malloc(MAX_BUF_SIZE * sizeof(tmp));
-    get_pipe_name(pid, pipe_str);
-    fd = open(pipe_str, O_RDONLY);
+    kill(pid, SIGUSR1);
+    key = ftok("/tmp/ipc/mqueues", pid);
+    msgid = msgget(key, 0666 | IPC_CREAT);
+    /*printf("KEY: %d PID: %d MESSAGE ID: %d MESSAGE TYPE: %d\n",key, pid, msgid,  message.mesg_type); */
 
-    /* Initialize the file descriptor set. */
-    FD_ZERO(&set);
-    FD_SET(fd, &set);
-
-    /* Initialize the timeout data structure. */
-    timeout.tv_sec = 2;
-    timeout.tv_usec = 0;
-
-    /* select returns 0 if timeout, 1 if input available, -1 if error. */
-    if (fd > 0 && select(FD_SETSIZE, &set, NULL, NULL, &timeout)) {
-        /* lprintf("DEBUG: In read for PID: %d and pipe %s\n", pid, pipe_str);*/
-        _read = read(fd, tmp, MAX_BUF_SIZE);
-        /*lprintf("End read, TMP: %s\n", tmp);*/
-        /* Pulizia */
-        close(fd);
-        if (_read != 0) {
-            /*  lprintf("\n"); */
-            return tmp;
-        } else {
-            /* lprintf("Errore durante la read.\n");*/
-        }
+    ret = msgrcv(msgid, &message, sizeof(message), 1, 0);
+    /*printf("HERE RET: %d\n", ret); */
+    /*printf("Message: %s\n", message.mesg_text); */
+    if (ret != -1) {
+        tmp = malloc(MAX_BUF_SIZE * sizeof(char));
+        sprintf(tmp, "%s", message.mesg_text);
+        printf("TMP: %s\n", tmp);
+        return tmp;
     } else {
-        return NULL; /*continue; */
+        return NULL;
     }
-    /*} */
-    /* lprintf("\n"); */
-    return NULL;
+    if (enter) {
+        kill_o = kill(pid, SIGUSR1);
+        if (kill_o != 0) {
+            return NULL; /*continue; */
+        }
+
+        tmp = malloc(MAX_BUF_SIZE * sizeof(tmp));
+        get_pipe_name(pid, pipe_str);
+        printf("%s\n", pipe_str);
+        fd = open(pipe_str, O_RDONLY);
+        if (!(fd > 0)) {
+            printf("FD_ERROR: %d", fd);
+        } else {
+            printf("FD: %d\n", fd);
+        }
+
+        /* Initialize the file descriptor set. */
+        FD_ZERO(&set);
+        FD_SET(fd, &set);
+
+        /* Initialize the timeout data structure. */
+        timeout.tv_sec = 3;
+        timeout.tv_usec = 0;
+
+        /* select returns 0 if timeout, 1 if input available, -1 if error. */
+        if (fd > 0 && select(FD_SETSIZE, &set, NULL, NULL, &timeout) == 1) {
+            lprintf("DEBUG: In read for PID: %d and pipe %s\n", pid, pipe_str);
+            _read = read(fd, tmp, MAX_BUF_SIZE);
+            /*lprintf("End read, TMP: %s\n", tmp);*/
+            /* Pulizia */
+            close(fd);
+            if (_read != 0) {
+                /*  lprintf("\n"); */
+                /*printf("TMP: %s\n", tmp); */
+                return tmp;
+            } else {
+                /* lprintf("Errore durante la read.\n");*/
+            }
+        } else {
+            if (fd < 0) {
+                printf("ERRORE FD\n");
+            } else {
+                printf("Timed out\n");
+            }
+            close(fd);
+            return NULL; /*continue; */
+        }
+        /*} */
+        /* lprintf("\n"); */
+        return NULL;
+    }
 }
 
 int is_controller(int pid, char *raw_info) {
@@ -252,12 +308,15 @@ int is_controller(int pid, char *raw_info) {
 }
 
 int controller_is_full(int pid, char *raw_info) {
-    char **vars = split(raw_info);
+    char **vars;
+    int count;
+
+    vars = split(raw_info);
     if (atoi(vars[0]) == HUB) {
-        int count = atoi(vars[4]);
+        count = atoi(vars[4]);
         return count >= MAX_CHILDREN;
     } else if (atoi(vars[0]) == TIMER) {
-        int count = atoi(vars[8]);
+        count = atoi(vars[8]);
         return count != 0;
     } else {
         return 1;
@@ -266,6 +325,8 @@ int controller_is_full(int pid, char *raw_info) {
 }
 
 void hub_tree_print(char **vars) {
+    char device_name[MAX_BUF_SIZE];
+
     if (strcmp(vars[0], HUB_S) == 0) {
         printf("Hub (PID: %s, Indice: %s), Stato: %s, Collegati: %s",
                vars[1], vars[2], atoi(vars[3]) ? "Acceso" : "Spento", vars[4]);
@@ -273,7 +334,6 @@ void hub_tree_print(char **vars) {
         printf("Timer (PID: %s, Indice: %s), Stato: %s, Orari: %s:%s -> %s:%s\n, Collegati: %s",
                vars[1], vars[2], atoi(vars[3]) ? "Acceso" : "Spento", vars[4], vars[5], vars[6], vars[7], vars[8]);
     } else {
-        char device_name[MAX_BUF_SIZE];
         get_device_name(atoi(vars[0]), device_name);
         device_name[0] += 'A' - 'a';
 
@@ -315,14 +375,14 @@ void hub_tree_parser(char *__buf) {
             hub_tree_print(vars);
         } else if (strcmp(tokenizer, "!>") == 0) {
             --level; /*  printf("\nLevel_c %d\n", level); */
-            if (!strcmp(old, "<!") == 0 && to_be_printed > 0) {
+            if (strcmp(old, "<!") != 0 && strcmp(old, "!") != 0 && to_be_printed > 0) {
                 i = 0;
                 hub_tree_spaces(level);
                 hub_tree_print(vars);
                 to_be_printed--;
             }
         } else if (strcmp(tokenizer, "!") == 0) {
-            if (!strcmp(old, "!>") == 0 && to_be_printed > 0) {
+            if (strcmp(old, "!>") != 0 && to_be_printed > 0) {
                 i = 0;
                 hub_tree_spaces(level);
                 hub_tree_print(vars);
@@ -359,7 +419,7 @@ int hub_tree_pid_finder(char *__buf, int id) {
                 return atoi(vars[1]);
             }
         } else if (strcmp(tokenizer, "!>") == 0) {
-            if (strcmp(old, "<!") == 0 && to_be_printed > 0) {
+            if (strcmp(old, "<!") != 0 && strcmp(old, "!") != 0 && to_be_printed > 0) {
                 i = 0;
 
                 if (atoi(vars[2]) == id) {
@@ -368,7 +428,7 @@ int hub_tree_pid_finder(char *__buf, int id) {
                 to_be_printed--;
             }
         } else if (strcmp(tokenizer, "!") == 0) {
-            if (to_be_printed > 0) {
+            if (strcmp(old, "!>") != 0 && to_be_printed > 0) {
                 i = 0;
 
                 if (atoi(vars[2]) == id) {
@@ -392,13 +452,14 @@ int get_shell_pid() {
     int msgid_sh, shellpid;
     key_t key_sh;
 
-    key_sh = ftok("/tmp", 20);
+    key_sh = ftok("/tmp/ipc", 2000);
     msgid_sh = msgget(key_sh, 0666 | IPC_CREAT);
     message.mesg_type = 1;
     msgrcv(msgid_sh, &message, sizeof(message), 1, IPC_NOWAIT);
     shellpid = atoi(message.mesg_text);
     sprintf(message.mesg_text, "%d", shellpid);
     msgsnd(msgid_sh, &message, MAX_BUF_SIZE, 1);
+    /*printf("SHELLPID FUORI\n"); */
     return shellpid;
 }
 

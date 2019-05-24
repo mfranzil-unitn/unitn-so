@@ -15,7 +15,7 @@ int main(int argc, char *argv[]) {
     int cmd_n;                     /* numero di comandi disponibili */
     int device_pids[MAX_CHILDREN]; /* array contenenti i PID dei figli */
     char *name;
-    int j;
+    int j, i;
 
     key_t key;
     int msgid;
@@ -24,7 +24,6 @@ int main(int argc, char *argv[]) {
     int msgid_sh;
 
     char c;
-
     name = get_shell_text();
     buf = malloc(MAX_BUF_SIZE * sizeof(char *)); /* array che conterrà i comandi da eseguire */
 
@@ -38,17 +37,26 @@ int main(int argc, char *argv[]) {
         system("clear");
     }
     /* Creo message queue tra shell e launcher. */
-    key = ftok("/tmp", 10);
+    key = ftok("/tmp", 1000);
     msgid = msgget(key, 0666 | IPC_CREAT);
     /* Ripulisco inizialmente per evitare errori. */
     msgrcv(msgid, &message, sizeof(message), 1, IPC_NOWAIT);
+    printf("Message launcher: %s\n", message.mesg_text);
     emergencyid = msgid;
 
     /*Creo message queue per comunicare shellpid */
-    key_sh = ftok("/tmp", 20);
+    key_sh = ftok("/tmp", 2000);
     msgid_sh = msgget(key_sh, 0666 | IPC_CREAT);
     message.mesg_type = 1;
     emergencyid2 = msgid_sh;
+
+    /*Aggiungo message_queue per indice*/
+    for (i = 0; i < MAX_CHILDREN; i++) {
+        key = ftok("/tmp/ipc/mqueues", i);
+        msgid = msgget(key, 0666 | IPC_CREAT);
+        message.mesg_type = 1;
+        msgrcv(msgid, &message, sizeof(message), 1, IPC_NOWAIT);
+    }
 
     while (1) {
         /*Leggo il numero di devices presenti e i rispettivi id, solo se centralina creata (Ma anche se momentaneamente spenta). */
@@ -59,7 +67,7 @@ int main(int argc, char *argv[]) {
         }
 
         /* Stampa del nome utente */
-        printf("\e[92m%s\e[39m:\e[34mLauncher\033[0m$ ", name);
+        printf("\033[0;32m%s\033[0m:\033[0;34mLauncher\033[0m$ ", name);
         cmd_n = parse(buf, cmd_n);
 
         if (strcmp(buf[0], "exit") == 0) {
@@ -113,7 +121,7 @@ int main(int argc, char *argv[]) {
             } else {
                 user_launcher(buf, msgid, device_pids, msgid_sh);
             }
-       /* } else if (strcmp(buf[0], "restart") == 0) {
+            /* } else if (strcmp(buf[0], "restart") == 0) {
             printf("Riavvio sta dando problemi, non usarmi\n");
            
             if (shell_pid != -1) {
@@ -154,8 +162,15 @@ void handle_sig(int signal) {
 }
 
 void handle_sigint(int signal) {
+    key_t key;
+    int msgid;
+
     msgctl(emergencyid, IPC_RMID, NULL);
     msgctl(emergencyid2, IPC_RMID, NULL);
+    key = 42;
+    msgid = msgget(key, 0666 | IPC_CREAT);
+    msgctl(msgid, IPC_RMID, NULL);
+
     if (shell_pid != -1) {
         kill(shell_pid, SIGTERM);
     }
@@ -247,11 +262,11 @@ void user_launcher(char buf[][MAX_BUF_SIZE], int msgid, int *device_pids, int ms
             strcat(tmp, stringpid);
             if (execl("/usr/bin/gnome-terminal", "gnome-terminal", "-e", tmp, NULL) == -1) {
                 sprintf(message.mesg_text, "%s", "Errore");
-                msgsnd(msgid, &message, MAX_BUF_SIZE, 0);
+                msgsnd(msgid_sh, &message, MAX_BUF_SIZE, 0);
             }
         } else if (pid > 0) {
             /*Legge il contenuto della pipe => Se = "Errore" la finestra è stata aperta. */
-            msgrcv(msgid, &message, sizeof(message), 1, 0);
+            msgrcv(msgid_sh, &message, sizeof(message), 1, 0);
             if (strcmp(message.mesg_text, "Errore") == 0) {
                 printf("Errore nell'apertura della shell. Codice di errore: %d\n", errno);
             } else {

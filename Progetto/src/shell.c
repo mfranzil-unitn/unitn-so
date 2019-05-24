@@ -51,17 +51,17 @@ int main(int argc, char *argv[]) {
         ppid = atoi(argv[1]);
 
         /* Credo message queue tra shell e launcher */
-        key = ftok("/tmp", 10);
+        key = ftok("/tmp", 1000);
         msgid = msgget(key, 0666 | IPC_CREAT);
         message.mesg_type = 1;
 
         /*Creo message queue per comunicare shellpid */
-        key_sh = ftok("/tmp", 20);
+        key_sh = ftok("/tmp", 2000);
         msgid_sh = msgget(key_sh, 0666 | IPC_CREAT);
         message.mesg_type = 1;
 
         sprintf(message.mesg_text, "%d", (int)getpid());
-        msgsnd(msgid, &message, MAX_BUF_SIZE, 0);
+        msgsnd(msgid_sh, &message, MAX_BUF_SIZE, 0);
     }
     /* Ready */
     system("clear");
@@ -91,7 +91,7 @@ int main(int argc, char *argv[]) {
                 msgsnd(msgid, &message, MAX_BUF_SIZE, 0);
             }
 
-            printf("\e[92m%s\e[39m:\e[31mCentralina\033[0m$ ", name);
+            printf("\033[0;32m%s\033[0m:\033[0;31mCentralina\033[0m$ ", name);
             cmd_n = parse(buf, cmd_n);
 
             if (strcmp(buf[0], "help") == 0) { /* guida */
@@ -130,7 +130,7 @@ int main(int argc, char *argv[]) {
                     __del(atoi(buf[1]), children_pids, __out_buf);
                     printf("%s", __out_buf);
                 }
-            } else if (strcmp(buf[0], "link") == 0) {
+            } else if (strcmp(buf[0], "link") == 0 && strcmp(buf[2], "to") == 0) {
                 if (cmd_n != 3) {
                     printf(LINK_STRING);
                 } else {
