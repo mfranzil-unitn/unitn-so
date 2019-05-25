@@ -21,6 +21,8 @@ int msgid_pid;
 volatile int flag_usr1 = 0;
 volatile int flag_usr2 = 0;
 volatile int flag_term = 0;
+volatile int flag_urg = 0;
+volatile int flag_int = 0;
 
 void term();
 void read_msgqueue(int msgid);
@@ -36,6 +38,22 @@ void sighandler_int(int sig) {
     if (sig == SIGTERM) {
         flag_term = 1;
     }
+    if(sig == SIGURG){
+        flag_urg = 1;
+    }
+    if(sig == SIGINT){
+        flag_int = 1;
+    }
+}
+
+void switch_child(int children_index, int device_type) {
+    char switch_names[6][MAX_BUF_SIZE] = {"-", "accensione", "apertura", "apertura", "accensione", "accensione"};
+
+    if (children_pids[0] == -1) {
+        return;
+    }
+
+    __switch_index(children_index, switch_names[device_type], status ? "on" : "off", children_pids);
 }
 
 /*Itera sui figli, in realtà fino a MAX_CHILDREN, e controlla che gli stati siano congruenti. */
@@ -110,6 +128,8 @@ int main(int argc, char* argv[]) {
     signal(SIGTERM, sighandler_int);
     signal(SIGUSR1, sighandler_int);
     signal(SIGUSR2, sighandler_int);
+    signal(SIGURG, sighandler_int);
+    signal(SIGINT, sighandler_int);
 
     while (1) {
         __index = atoi(argv[1]);
@@ -231,7 +251,9 @@ int main(int argc, char* argv[]) {
                     if (children_pids[i] != -1 /*&& !over_index[i]*/) {
                         printf("Switching children[%d]; %d\n", i, children_pids[i]);
                         char* raw_info = get_raw_device_info(children_pids[i]);
-                        __switch(children_pids[i], "accensione", status ? "on" : "off", raw_info);
+                        char** split_info = split(raw_info);
+                        switch_child(atoi(split_info[2]),atoi(split_info[0]));
+                        //__switch(children_pids[i], "accensione", status ? "on" : "off", raw_info);
                     }
                 }
             }
@@ -242,8 +264,9 @@ int main(int argc, char* argv[]) {
                 shifted_tmp = shifted_tmp + 2;
                 vars = split(shifted_tmp);
                 __add_ex(vars, children_pids, MAX_CHILDREN);
-                sleep(2);
-                __switch_index(atoi(vars[2]), "accensione", status ? "on" : "off", children_pids);
+                sleep(1);
+                 switch_child(atoi(vars[2]),atoi(vars[0]));
+                //__switch_index(atoi(vars[2]), "accensione", status ? "on" : "off", children_pids);
                 free(vars);
                 free(shifted_tmp - 2);
             }
@@ -261,7 +284,52 @@ int main(int argc, char* argv[]) {
         if (flag_term) {
             term();
         }
-        sleep(10);
+        if(flag_urg){
+            flag_urg = 0;
+            printf("hub urg: %d\n", pid);
+            /*read(fd, mall_tmp, MAX_BUF_SIZE);
+            printf("End Read: %s\n\n", mall_tmp);*/
+            msgrcv(msgid_pid, &message, sizeof(message), 1, 0);
+            sprintf(tmp, "%s", message.mesg_text);
+            printf("End Read: %s\n\n", tmp);
+            vars = split(tmp);
+                for (i = 0; i < MAX_CHILDREN; i++) {
+                    if (children_pids[i] == atoi(vars[1])) {
+                        /*printf("BECCATO: childern_Pids: %d, atoi: %d\n", children_pids[i], atoi(vars[1])); */
+                        children_pids[i] = -1;
+                    }
+                }
+        }
+        if(flag_int){
+            int ppid = (int)getppid();
+            if(ppid != shellpid){
+                key_t key_ppid = ftok("/tmp/ipc/mqueues", ppid);
+                int msgid_ppid = msgget(key_ppid, 0666 | IPC_CREAT);
+                sprintf(message.mesg_text, "2|%d", pid);
+                message.mesg_type = 1;
+                msgsnd(msgid_ppid, &message, sizeof(message), 0);
+                kill(ppid, SIGURG);
+                } 
+        int i=0; 
+        int count = 0;
+        char* info;
+        char* intern;
+        for(i=0; i < MAX_CHILDREN; i++){
+            if(children_pids[i] != -1){
+                    count++;
+                     info = get_raw_device_info(children_pids[i]);
+                    /*printf("INFO WE HAVE!: %s\n", info); */
+                    sprintf(intern, "-%s", info);
+                    /*printf("INTERN: %s\n", intern); */
+                    strcat(tmp, intern);
+                    kill(children_pids[i], SIGTERM);
+                    }
+        }        
+        
+        msgctl(msgid_pid, IPC_RMID, NULL);
+        exit(0);
+        }
+        //sleep(10);
     }
 
     return 0;
@@ -314,6 +382,16 @@ void term() {
 
     sprintf(message.mesg_text, "%d%s", count, tmp);
     msgsnd(msgid, &message, sizeof(message), 0);
+    /*kill(shellpid, SIGUSR2);
+    int ppid = (int)getppid();
+    if(ppid != shellpid){
+        key_t key_ppid = ftok("/tmp/ipc/mqueues", ppid);
+        int msgid_ppid = msgget(key_ppid, 0666 | IPC_CREAT);
+        sprintf(message.mesg_text, "2|%d", pid);
+        message.mesg_type = 1;
+        msgsnd(msgid_ppid, &message, sizeof(message), 0);
+        kill(ppid, SIGURG);
+    }
 
     /*int ret = __link_ex(children_pids, ppid, shellpid); */
 

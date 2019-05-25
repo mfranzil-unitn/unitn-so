@@ -249,7 +249,7 @@ int main(int argc, char* argv[]) {
         if (flag_alarm) {
             check_time();
         }
-        sleep(10);
+        //sleep(10);
     }
 
     return 0;

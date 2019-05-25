@@ -27,6 +27,6 @@ int add_shell(char buf[][MAX_BUF_SIZE], int *device_i, int *children_pids, char 
 void cleanup_sig(int sig);
 void handle_sig(int sig);
 void stop_sig(int sig);
-void link_child(int signal);
+void link_child(int param);
 
 #endif

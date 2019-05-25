@@ -5,6 +5,8 @@ int stato = 1;                   /*Stato della centralina. */
 int changed = 0;                 /* Modifiche alla message queue? */
 int children_pids[MAX_CHILDREN]; /* array contenenti i PID dei figli */
 int fd;
+int del_index = -1;
+int max_index = 1;
 
 int main(int argc, char *argv[]) {
     char(*buf)[MAX_BUF_SIZE] = malloc(MAX_BUF_SIZE * sizeof(char *)); /* array che conterrà i comandi da eseguire */
@@ -122,13 +124,15 @@ int main(int argc, char *argv[]) {
                 } else {
                     changed = add_shell(buf, &device_i, children_pids, __out_buf);
                     printf("%s", __out_buf);
+                    max_index ++;
                 }
             } else if (strcmp(buf[0], "del") == 0) {
                 if (cmd_n != 1) {
                     printf(DEL_STRING);
                 } else {
-                    __del(atoi(buf[1]), children_pids, __out_buf);
+                    del_direct(atoi(buf[1]), children_pids, __out_buf);
                     printf("%s", __out_buf);
+                    del_index = atoi(buf[1]);
                 }
             } else if (strcmp(buf[0], "link") == 0 && strcmp(buf[2], "to") == 0) {
                 if (cmd_n != 3) {
@@ -175,6 +179,12 @@ int add_shell(char buf[][MAX_BUF_SIZE], int *device_i, int *children_pids, char 
 
 void cleanup_sig(int sig) {
     printf("Chiusura della centralina in corso...\n");
+    int i=0; 
+    for(i=0; i < MAX_CHILDREN; i++){
+        key_t key = ftok("/tmp/ipc/mqueues", i);
+        int msgid = msgget(key, 0666 | IPC_CREAT);
+        msgrcv(msgid, &message, sizeof(message), 1, IPC_NOWAIT);
+    }
     kill(ppid, SIGTERM);
     kill(0, SIGKILL);
 }
@@ -198,19 +208,43 @@ void link_child(int signal) {
     char *tmp;
     int code;
     char **vars;
+    int q,j;
+    int n_devices, __count;
+    char** son_j;
+    char n_dev_str[MAX_BUF_SIZE];
+    char tmp_buf[MAX_BUF_SIZE];
+    if(del_index != -1){
+    key_t key_del = ftok("/tmp/ipc/mqueues", del_index);
+    int msgid_del = msgget(key_del, 0666 | IPC_CREAT);
+    
 
-    /*printf("Link_Child\n");*/
-    /*Analogamente ad Hub */
-    tmp = malloc(MAX_BUF_SIZE * sizeof(tmp));
-    read(fd, tmp, MAX_BUF_SIZE);
-    /*lprintf("End Read: %s\n\n", tmp);*/
-    code = tmp[0] - '0';
-    if (code == 1) {
-        tmp = tmp + 2;
-        vars = split(tmp);
-        __add_ex(vars, children_pids, MAX_CHILDREN);
-        free(vars);
-        free(tmp - 2);
+   int ret = msgrcv(msgid_del, &message, sizeof(message), 1, IPC_NOWAIT);
+   if(ret != -1){
+        q = 0;
+        while (!(message.mesg_text[q] == '-')) {
+            n_dev_str[q] = message.mesg_text[q];
+            q++;
+        }
+        n_dev_str[q] = '\0';
+        n_devices = atoi(n_dev_str);
+        if (n_devices > 0) {
+            __count = n_devices;
+            sprintf(tmp_buf, "%s", message.mesg_text);
+            vars = NULL;
+            vars = split_sons(tmp_buf, __count);
+            j = 0;
+            while (j <= __count) {
+                if (j >= 1) {
+                    printf("\nVars %d: %s\n", j, vars[j]);
+                    son_j = split(vars[j]);
+                    __add_ex(son_j, children_pids, MAX_CHILDREN);
+                    printf("\nSon added to shell\n");
+                }
+                j++;
+            }
+        }
+   }
+    del_index  = -1;
     }
     /*close(fd); */
 }

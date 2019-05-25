@@ -24,6 +24,7 @@ int msgid;
 volatile int flag_usr1 = 0;
 volatile int flag_usr2 = 0;
 volatile int flag_term = 0;
+volatile int flag_int = 0;
 
 void sighandler_int(int sig) {
     if (sig == SIGUSR1) {
@@ -34,6 +35,9 @@ void sighandler_int(int sig) {
     }
     if (sig == SIGTERM) {
         flag_term = 1;
+    }
+    if(sig == SIGINT){
+        flag_int = 1;
     }
 }
 
@@ -109,6 +113,22 @@ int main(int argc, char* argv[]) {
                 write(ppid_pipe_fd, tmp, sizeof(tmp));
                 close(ppid_pipe_fd);
             }*/
+            msgctl(msgid, IPC_RMID, NULL);
+            exit(0);
+        }
+         if(flag_int){
+            printf("Signal GOT\n");
+            flag_int =0;
+             int ppid = (int)getppid();
+            if(ppid != shellpid){
+                 key_t key_ppid = ftok("/tmp/ipc/mqueues", ppid);
+                int msgid_ppid = msgget(key_ppid, 0666 | IPC_CREAT);
+                 sprintf(message.mesg_text, "2|%d", pid);
+                 message.mesg_type = 1;
+                msgsnd(msgid_ppid, &message, sizeof(message), 0);
+                printf("Killing Father to say i love him\n");
+                kill(ppid, SIGURG);
+            }
             msgctl(msgid, IPC_RMID, NULL);
             exit(0);
         }

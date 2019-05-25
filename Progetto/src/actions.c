@@ -5,6 +5,7 @@ void __switch_index(int index, char *action, char *position, int *children_pids)
     char *device_info;
 
     pid = get_device_pid(index, children_pids, &device_info);
+    //device_info = get_raw_device_info(pid);
 
     __switch(pid, action, position, device_info);
 }
@@ -366,6 +367,7 @@ void __del(int index, int *children_pids, char *__out_buf) {
     int i;
 
     pid = get_device_pid(index, children_pids, &raw_device_info);
+    //raw_device_info = get_raw_device_info(pid);
 
     if (pid == -1) {
         sprintf(__out_buf, "Errore! Non esiste questo dispositivo.\n");
@@ -409,7 +411,6 @@ void __link(int index, int controller, int *children_pids) {
     printf("Getting Device PID\n");
     device_pid = get_device_pid(index, children_pids, &raw_device_info);
     printf("Got It\n");
-    
     if (device_pid == -1) {
         printf("Errore! Non esiste il dispositivo %d.\n", index);
         return;
@@ -432,8 +433,6 @@ void __link(int index, int controller, int *children_pids) {
         printf("Errore! Non puoi collegarti a te stesso.\n");
         return;
     }
-
-    printf("Dati: %s, %d, %s, %d",raw_device_info,device_pid, raw_controller_info,controller_pid);
 
     if (is_controller(controller_pid, raw_controller_info)) {
         if (!controller_is_full(controller_pid, raw_controller_info)) {
@@ -587,6 +586,40 @@ int __link_ex(int son_pid, int parent_pid, int shellpid) {
     free(son_info);
 
     return 1;
+}
+
+
+void del_direct(int index, int* children_pids, char* __out_buf){
+    printf("ENTRATO\n");
+    getchar();
+    char* device_info; 
+    int pid = get_device_pid(index, children_pids, &device_info);
+    printf("PID TROVATO\n");
+    device_info = get_raw_device_info(pid);
+    printf("RAW DEVICE INFO: %s\n", device_info);
+    getchar();
+    char device_name[MAX_BUF_SIZE];  
+    char** vars = split(device_info);
+    printf("SPLITTED\n");
+    getchar();
+    printf("Getting Device Name\n");
+    //get_device_name(atoi(vars[0]), &device_name);
+    sprintf(device_name, "%s", vars[0]);
+     printf("Device Name: %s\n", device_name);
+    getchar();
+
+     sprintf(__out_buf, "Dispositivo di tipo %s con PID %s e indice %s rimosso.\n",
+            device_name, vars[1], vars[2]);
+    printf("About to kill\n");
+    getchar();
+    kill(pid, SIGINT);
+    int i;
+    for(i=0; i < MAX_CHILDREN; i++){
+        if(children_pids[i] == pid){
+                children_pids[i] = -1;
+        }
+    }
+    printf("FINITOOOOOO\n");
 }
 
 /* int __link_ex(int *son_pids, int parent_pid, int shellpid) {
