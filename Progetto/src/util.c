@@ -166,9 +166,11 @@ int get_device_pid(int device_identifier, int *children_pids, char **raw_info) {
                         free(vars);
                         return children_pid;
                     }*/
-                    possible_pid = hub_tree_pid_finder(var_buffer, device_identifier, raw_info);
+                  //  char* second_raw_info = NULL;
+                    possible_pid = hub_tree_pid_finder(var_buffer, device_identifier);//, &second_raw_info);
                     /*printf("Possible PID found: %d\n", possible_pid); */
                     if (possible_pid != -1) {
+                        //*raw_info = second_raw_info;
                         return possible_pid;
                     }
                 } else {
@@ -398,7 +400,57 @@ void hub_tree_parser(char *__buf) {
     free(vars);
 }
 
-int hub_tree_pid_finder(char *__buf, int id, char **raw_info) {
+
+int hub_tree_pid_finder(char *__buf, int id) {
+    char *tokenizer = strtok(__buf, "|");
+    char *old = NULL;
+    char **vars;
+    int i = 0;
+    int to_be_printed = 1;
+    /*printf("Level %d\n", level); */
+
+    /* DISPOSITIVO; PID; ID */
+
+    vars = malloc((FRIDGE_PARAMETERS + 4) * sizeof(*vars));
+
+    while (tokenizer != NULL) {
+        if (strcmp(tokenizer, "<!") == 0) {
+            to_be_printed += atoi(old) - 1;
+            i = 0;
+            if (atoi(vars[2]) == id) {
+                return atoi(vars[1]);
+            }
+        } else if (strcmp(tokenizer, "!>") == 0) {
+            if (strcmp(old, "<!") != 0 && strcmp(old, "!") != 0 && to_be_printed > 0) {
+                i = 0;
+
+                if (atoi(vars[2]) == id) {
+                    return atoi(vars[1]);
+                }
+                to_be_printed--;
+            }
+        } else if (strcmp(tokenizer, "!") == 0) {
+            if (strcmp(old, "!>") != 0 && to_be_printed > 0) {
+                i = 0;
+
+                if (atoi(vars[2]) == id) {
+                    return atoi(vars[1]);
+                }
+                to_be_printed--;
+            }
+        } else {
+            vars[i++] = tokenizer;
+            /*printf("%s, ", tokenizer); */
+        }
+        old = tokenizer;
+        tokenizer = strtok(NULL, "|");
+    }
+    free(vars);
+    return -1;
+}
+
+
+int __hub_tree_pid_finder(char *__buf, int id, char **raw_info) {
     char *tokenizer = strtok(__buf, "|");
     char *old = NULL;
     char **vars;
