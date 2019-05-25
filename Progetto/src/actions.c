@@ -409,6 +409,7 @@ void __link(int index, int controller, int *children_pids) {
     printf("Getting Device PID\n");
     device_pid = get_device_pid(index, children_pids, &raw_device_info);
     printf("Got It\n");
+    
     if (device_pid == -1) {
         printf("Errore! Non esiste il dispositivo %d.\n", index);
         return;
@@ -431,6 +432,8 @@ void __link(int index, int controller, int *children_pids) {
         printf("Errore! Non puoi collegarti a te stesso.\n");
         return;
     }
+
+    printf("Dati: %s, %d, %s, %d",raw_device_info,device_pid, raw_controller_info,controller_pid);
 
     if (is_controller(controller_pid, raw_controller_info)) {
         if (!controller_is_full(controller_pid, raw_controller_info)) {
