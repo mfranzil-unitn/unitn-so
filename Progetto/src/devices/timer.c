@@ -81,20 +81,22 @@ void check_time() {
     tm_current.hour = tmp.tm_hour;
     tm_current.min = tmp.tm_min;
 
-    int tm_current_seconds = 60 * 60 * tm_current.hour + 60 * tm_current.min;
+    int tm_current_seconds = 60 * 60 * tm_current.hour + 60 * tm_current.min + tmp.tm_sec;
     int tm_end_seconds = 60 * 60 * tm_end.hour + 60 * tm_end.min;
     int tm_start_seconds = 60 * 60 * tm_start.hour + 60 * tm_start.min;
 
-    if (tm_current_seconds >= tm_start_seconds && tm_current_seconds <= tm_end_seconds) {
+    printf("Current: %d, Start %d, End %d\n", tm_current_seconds, tm_start_seconds, tm_end_seconds);
+    if (tm_current_seconds >= tm_start_seconds && tm_current_seconds < tm_end_seconds) {
         /* Sono nella "fascia oraria" */
         status = 1;
         alarm((tm_end_seconds - tm_current_seconds) % SECONDS_IN_A_DAY);
         switch_child();
     } else {
         status = 0;
-        alarm((tm_current_seconds - tm_start_seconds) % SECONDS_IN_A_DAY);
+        alarm((tm_start_seconds - tm_current_seconds) % SECONDS_IN_A_DAY);
         switch_child();
     }
+    flag_alarm = 0;
     return;
 }
 

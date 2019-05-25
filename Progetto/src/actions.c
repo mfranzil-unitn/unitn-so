@@ -26,6 +26,7 @@ void __switch(int pid, char* action, char* position, char* device_info) {
     }
 
     vars = split(device_info);
+    int __index = atoi(vars[2]);
     /*get_pipe_name(pid, pipe_str);
 
     fd = open(pipe_str, O_RDWR);*/
@@ -44,12 +45,12 @@ void __switch(int pid, char* action, char* position, char* device_info) {
                 sprintf(message.mesg_text, "%s", buffer);
                 msgsnd(msgid, &message, sizeof(message), 0);
                 kill(pid, SIGUSR2);
-                printf("Lampadina accesa.\n");
+                printf("Lampadina %d accesa.\n", __index);
             } else if (strcmp(position, "off") == 0 && status == 1) {
                 sprintf(message.mesg_text, "%s", buffer);
                 msgsnd(msgid, &message, sizeof(message), 0);
                 kill(pid, SIGUSR2); /* sleep(1) */
-                printf("Lampadina spenta.\n");
+                printf("Lampadina %d spenta.\n", __index);
             } else if (strcmp(position, "off") == 0 && status == 0) { /* Spengo una lampadina spenta */
                 printf("Stai provando a spegnere una lampadina spenta!\n");
             } else if (strcmp(position, "on") == 0 && status == 1) { /* Accendo una lampadina accesa */
@@ -69,12 +70,12 @@ void __switch(int pid, char* action, char* position, char* device_info) {
                 sprintf(message.mesg_text, "%s", buffer);
                 msgsnd(msgid, &message, sizeof(message), 0);
                 kill(pid, SIGUSR2); /* sleep(1) */
-                printf("Frigorifero aperto.\n");
+                printf("Frigorifero %d aperto.\n", __index);
             } else if (strcmp(position, "off") == 0 && status == 1) {
                 sprintf(message.mesg_text, "%s", buffer);
                 msgsnd(msgid, &message, sizeof(message), 0);
                 kill(pid, SIGUSR2); /* sleep(1) */
-                printf("Frigorifero chiuso.\n");
+                printf("Frigorifero %d chiuso.\n", __index);
             } else if (strcmp(position, "off") == 0 && status == 0) { /* Chiudo frigo già chiuso */
                 printf("Stai provando a chiudere un frigorifero già chiuso.\n");
             } else if (strcmp(position, "on") == 0 && status == 1) { /* Apro frigo già aperto */
@@ -132,12 +133,12 @@ void __switch(int pid, char* action, char* position, char* device_info) {
                 sprintf(message.mesg_text, "%s", buffer);
                 msgsnd(msgid, &message, sizeof(message), 0);
                 kill(pid, SIGUSR2); /* sleep(1) */
-                printf("Finestra aperta.\n");
+                printf("Finestra %d aperta.\n", __index);
             } else if (strcmp(action, "chiusura") == 0 && status == 1) {
                 sprintf(message.mesg_text, "%s", buffer);
                 msgsnd(msgid, &message, sizeof(message), 0);
                 kill(pid, SIGUSR2); /* sleep(1) */
-                printf("Finestra chiusa.\n");
+                printf("Finestra %d chiusa.\n", __index);
             } else {
                 printf("Operazione non permessa: pulsante già premuto.\n");
             }
@@ -153,12 +154,12 @@ void __switch(int pid, char* action, char* position, char* device_info) {
                 sprintf(message.mesg_text, "%s", buffer);
                 msgsnd(msgid, &message, sizeof(message), 0);
                 kill(pid, SIGUSR2); /* sleep(1) */
-                printf("Hub acceso.\n");
+                printf("Hub %d acceso.\n", __index);
             } else if (strcmp(position, "off") == 0 && status == 1) {
                 sprintf(message.mesg_text, "%s", buffer);
                 msgsnd(msgid, &message, sizeof(message), 0);
                 kill(pid, SIGUSR2); /* sleep(1) */
-                printf("Hub spento.\n");
+                printf("Hub %d spento.\n", __index);
             } else if (strcmp(position, "off") == 0 && status == 0) { /* Spengo un hub spento */
                 printf("Stai provando a spegnere un hub spenta!\n");
             } else if (strcmp(position, "on") == 0 && status == 1) { /* Accendo un hub acceso */
@@ -178,12 +179,12 @@ void __switch(int pid, char* action, char* position, char* device_info) {
                 sprintf(message.mesg_text, "%s", buffer);
                 msgsnd(msgid, &message, sizeof(message), 0);
                 kill(pid, SIGUSR2); /* sleep(1) */
-                printf("Timer acceso.\n");
+                printf("Timer %d acceso.\n", __index);
             } else if (strcmp(position, "off") == 0 && status == 1) {
                 sprintf(message.mesg_text, "%s", buffer);
                 msgsnd(msgid, &message, sizeof(message), 0);
                 kill(pid, SIGUSR2); /* sleep(1) */
-                printf("Timer spento.\n");
+                printf("Timer %d spento.\n", __index);
             } else if (strcmp(position, "off") == 0 && status == 0) { /* Spengo un timer spento */
                 printf("Stai provando a spegnere un timer spenta!\n");
             } else if (strcmp(position, "on") == 0 && status == 1) { /* Accendo un timer acceso */
