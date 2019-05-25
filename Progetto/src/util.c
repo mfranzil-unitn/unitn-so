@@ -166,7 +166,7 @@ int get_device_pid(int device_identifier, int *children_pids, char **raw_info) {
                         free(vars);
                         return children_pid;
                     }*/
-                    possible_pid = hub_tree_pid_finder(var_buffer, device_identifier);
+                    possible_pid = hub_tree_pid_finder(var_buffer, device_identifier, raw_info);
                     /*printf("Possible PID found: %d\n", possible_pid); */
                     if (possible_pid != -1) {
                         return possible_pid;
@@ -336,7 +336,7 @@ void hub_tree_print(char **vars) {
         get_device_name(atoi(vars[0]), device_name);
         device_name[0] += 'A' - 'a';
 
-        printf("%s, (PID %s, Indice %s)", device_name, vars[1], vars[2]);
+        printf("%s (PID %s, Indice %s)", device_name, vars[1], vars[2]);
     }
 }
 
@@ -398,7 +398,7 @@ void hub_tree_parser(char *__buf) {
     free(vars);
 }
 
-int hub_tree_pid_finder(char *__buf, int id) {
+int hub_tree_pid_finder(char *__buf, int id, char** raw_info) {
     char *tokenizer = strtok(__buf, "|");
     char *old = NULL;
     char **vars;

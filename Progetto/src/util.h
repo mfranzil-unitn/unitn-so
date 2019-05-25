@@ -113,7 +113,7 @@ int controller_is_full(int pid, char *raw_info);
 void hub_tree_print(char **vars);
 void hub_tree_spaces(int level);
 void hub_tree_parser(char *__buf);
-int hub_tree_pid_finder(char *__buf, int id);
+int hub_tree_pid_finder(char *__buf, int id, char** raw_info);
 char **split_sons(char *__buf, int __count);
 
 void change_ext_pid(int newpid);
