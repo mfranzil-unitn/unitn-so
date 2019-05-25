@@ -100,6 +100,7 @@ void hub_tree_parser(char *__buf) {
     printf("\n");
     free(vars);
 }
+
 int hub_tree_pid_finder(char *__buf, int id, char **raw_info) {
     char *tokenizer = strtok(__buf, "|");
     char *old = NULL;
@@ -114,30 +115,35 @@ int hub_tree_pid_finder(char *__buf, int id, char **raw_info) {
 
     int found_flag = -1;
 
+    char *target;
     vars = malloc((FRIDGE_PARAMETERS + 4) * sizeof(*vars));
 
     while (tokenizer != NULL) {
         if (strcmp(tokenizer, "<!") == 0) {
             if (found_flag >= 0) {
-                printf("|<!");
+                target += sprintf(target, "|<!");
             }
             children += atoi(old) - 1;
             level++;
             if (atoi(vars[2]) == id) {
                 found_flag = level - 1;
+
+                *raw_info = malloc(MAX_BUF_SIZE * sizeof(raw_info));
+                target = *raw_info;
+
                 pid_to_be_returned = atoi(vars[2]);
-                printf("%s", vars[0]);
+                target += sprintf(target, "%s", vars[0]);
                 for (j = 1; j < i; j++) {
-                    printf("|%s", vars[j]);
+                    target += sprintf(target, "|%s", vars[j]);
                 }
-                printf("|<!");
+                target += sprintf(target, "|<!");
             }
             i = 0;
         } else if (strcmp(tokenizer, "!>") == 0) {
             level--;
 
             if (found_flag >= 0) {
-                printf("|!>");
+                target += sprintf(target, "|!>");
             }
 
             if (found_flag == level) {
@@ -153,7 +159,7 @@ int hub_tree_pid_finder(char *__buf, int id, char **raw_info) {
             }
         } else if (strcmp(tokenizer, "!") == 0) {
             if (found_flag >= 0) {
-                printf("|!");
+                target += sprintf(target, "|!");
             }
 
             if (strcmp(old, "!>") != 0 && children > 0) {
@@ -167,7 +173,7 @@ int hub_tree_pid_finder(char *__buf, int id, char **raw_info) {
         } else {
             vars[i++] = tokenizer;
             if (found_flag >= 0) {
-                printf("|%s", tokenizer);
+                target += sprintf(target, "|%s", tokenizer);
             }
             /*printf("%s, ", tokenizer); */
         }
@@ -244,7 +250,9 @@ int main() {
         hub_tree_parser(buf);
         printf("Index > ");
         scanf(" %d", &d);
-        int out = hub_tree_pid_finder(buf2, d, NULL);
-        printf("%d\n", out);
+
+        char* raw_info = NULL;
+        int out = hub_tree_pid_finder(buf2, d, &raw_info);
+        printf("PID %d, STRING %s\n", out, raw_info);
     }
 }

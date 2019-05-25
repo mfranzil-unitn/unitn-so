@@ -398,45 +398,80 @@ void hub_tree_parser(char *__buf) {
     free(vars);
 }
 
-int hub_tree_pid_finder(char *__buf, int id, char** raw_info) {
+int hub_tree_pid_finder(char *__buf, int id, char **raw_info) {
     char *tokenizer = strtok(__buf, "|");
     char *old = NULL;
     char **vars;
-    int i = 0;
-    int to_be_printed = 1;
+    int i = 0, j;
+    int children = 1;
+    int level = 0;
+    int pid_to_be_returned = -1;
     /*printf("Level %d\n", level); */
 
     /* DISPOSITIVO; PID; ID */
 
+    int found_flag = -1;
+
+    char *target;
     vars = malloc((FRIDGE_PARAMETERS + 4) * sizeof(*vars));
 
     while (tokenizer != NULL) {
         if (strcmp(tokenizer, "<!") == 0) {
-            to_be_printed += atoi(old) - 1;
-            i = 0;
-            if (atoi(vars[2]) == id) {
-                return atoi(vars[1]);
+            if (found_flag >= 0) {
+                target += sprintf(target, "|<!");
             }
-        } else if (strcmp(tokenizer, "!>") == 0) {
-            if (strcmp(old, "<!") != 0 && strcmp(old, "!") != 0 && to_be_printed > 0) {
-                i = 0;
+            children += atoi(old) - 1;
+            level++;
+            if (atoi(vars[2]) == id) {
+                found_flag = level - 1;
 
+                *raw_info = malloc(MAX_BUF_SIZE * sizeof(raw_info));
+                target = *raw_info;
+
+                pid_to_be_returned = atoi(vars[2]);
+                target += sprintf(target, "%s", vars[0]);
+                for (j = 1; j < i; j++) {
+                    target += sprintf(target, "|%s", vars[j]);
+                }
+                target += sprintf(target, "|<!");
+            }
+            i = 0;
+        } else if (strcmp(tokenizer, "!>") == 0) {
+            level--;
+
+            if (found_flag >= 0) {
+                target += sprintf(target, "|!>");
+            }
+
+            if (found_flag == level) {
+                return pid_to_be_returned;
+            }
+
+            if (strcmp(old, "<!") != 0 && strcmp(old, "!") != 0 && children > 0) {
+                i = 0;
                 if (atoi(vars[2]) == id) {
                     return atoi(vars[1]);
                 }
-                to_be_printed--;
+                children--;
             }
         } else if (strcmp(tokenizer, "!") == 0) {
-            if (strcmp(old, "!>") != 0 && to_be_printed > 0) {
+            if (found_flag >= 0) {
+                target += sprintf(target, "|!");
+            }
+
+            if (strcmp(old, "!>") != 0 && children > 0) {
                 i = 0;
 
                 if (atoi(vars[2]) == id) {
                     return atoi(vars[1]);
                 }
-                to_be_printed--;
+                children--;
             }
         } else {
             vars[i++] = tokenizer;
+            if (found_flag >= 0) {
+                target += sprintf(target, "|%s", tokenizer);
+            }
             /*printf("%s, ", tokenizer); */
         }
         old = tokenizer;
