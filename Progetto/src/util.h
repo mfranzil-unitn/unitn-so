@@ -63,7 +63,7 @@
 
 #define SWITCH_STRING \
     "Sintassi: switch <id> <label> <pos>\n\
-    Interruttori disponibili:\n        bulb: accensione\n        fridge: temperatura, apertura, delay, riempimento\n        window: apertura\n        hub: accensione\n        timer: orario\n"
+    Interruttori disponibili:\n        bulb: accensione\n        fridge: temperatura, apertura, delay, riempimento\n        window: apertura\n        hub: accensione\n        timer: accensione, orario\n"
 
 #define ADD_STRING \
     "Sintassi: add <device>\nDispositivi disponibili: bulb, window, fridge, hub, timer\n"

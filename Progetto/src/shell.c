@@ -114,7 +114,7 @@ int main(int argc, char *argv[]) {
                 } else if (strcmp(buf[2], "riempimento") == 0) {
                     printf("Operazione permessa solo manualmente.\n");
                 } else {
-                    __switch(atoi(buf[1]), buf[2], buf[3], children_pids);
+                    __switch_index(atoi(buf[1]), buf[2], buf[3], children_pids);
                 }
             } else if (strcmp(buf[0], "add") == 0) {
                 if (cmd_n != 1) {
@@ -160,7 +160,7 @@ int main(int argc, char *argv[]) {
 int add_shell(char buf[][MAX_BUF_SIZE], int *device_i, int *children_pids, char *__out_buf) {
     if (strcmp(buf[1], "bulb") == 0 || strcmp(buf[1], "fridge") == 0 || strcmp(buf[1], "window") == 0 || strcmp(buf[1], "hub") == 0 || strcmp(buf[1], "timer") == 0) {
         (*device_i)++;
-        if (__add(buf[1], *device_i, children_pids, __out_buf) == 0) {
+        if (__add(buf[1], *device_i, children_pids, MAX_CHILDREN, __out_buf) == 0) {
             /* Non c'è spazio, ci rinuncio */
             (*device_i)--;
             return 0;
@@ -208,7 +208,7 @@ void link_child(int signal) {
     if (code == 1) {
         tmp = tmp + 2;
         vars = split(tmp);
-        __add_ex(vars, children_pids);
+        __add_ex(vars, children_pids, MAX_CHILDREN);
         free(vars);
         free(tmp - 2);
     }

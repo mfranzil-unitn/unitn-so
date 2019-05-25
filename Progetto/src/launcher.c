@@ -172,7 +172,7 @@ void switch_launcher(char buf[][MAX_BUF_SIZE], int msgid, int *device_pids) {
         read_msgqueue(msgid, device_pids);
         if (atoi(buf[1]) <= n_devices) {
             /* Chiamata a util.c */
-            __switch(atoi(buf[1]), buf[2], buf[3], device_pids);
+            __switch_index(atoi(buf[1]), buf[2], buf[3], device_pids);
         } else {
             printf("ID non presente\n");
         }
