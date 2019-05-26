@@ -19,6 +19,11 @@ void __switch(int pid, char *action, char *position, char *device_info) {
     int status;
     char **vars;
     char buffer[MAX_BUF_SIZE]; /* buffer per la pipe */
+    int __index;
+    char switch_names[6][MAX_BUF_SIZE] = {"-", "accensione", "apertura", "apertura", "accensione", "accensione"};
+
+    key_t key;
+    int msgid;
 
     if (pid == -1) {
         printf("Errore! Non esiste questo dispositivo.\n");
@@ -31,13 +36,14 @@ void __switch(int pid, char *action, char *position, char *device_info) {
     }
 
     vars = split(device_info);
-    int __index = atoi(vars[2]);
-    /*get_pipe_name(pid, pipe_str);
+    __index = atoi(vars[2]);
 
-    fd = open(pipe_str, O_RDWR);*/
+    if (strcmp(action, "generic_on_off") == 0) {
+         action = switch_names[atoi(vars[0])];
+    }
 
-    key_t key = ftok("/tmp/ipc/mqueues", pid);
-    int msgid = msgget(key, 0666 | IPC_CREAT);
+    key = ftok("/tmp/ipc/mqueues", pid);
+    msgid = msgget(key, 0666 | IPC_CREAT);
     message.mesg_type = 1;
 
     if (strcmp(vars[0], BULB_S) == 0) { /* Lampadina */
@@ -450,7 +456,7 @@ void __link(int index, int controller, int *children_pids) {
     }
 
     printf("Spostamento in corso...\n");
-    sleep(2);
+    sleep(1);
 
     if (is_controller(controller_pid, raw_controller_info)) {
         if (!controller_is_full(controller_pid, raw_controller_info)) {
@@ -473,7 +479,7 @@ void __link(int index, int controller, int *children_pids) {
 
             printf("Spostato l'oggetto %d sotto l'oggetto %d\n", index, controller);
             printf("Controllo dello stato dei dispositivi figli...\n");
-            // RIMETTIMI                    sleep(4);
+            sleep(2);
 
             free(raw_device_info);
             free(raw_controller_info);
@@ -610,28 +616,27 @@ int __link_ex(int son_pid, int parent_pid, int shellpid) {
 }
 
 void del_direct(int index, int *children_pids, char *__out_buf) {
-    printf("ENTRATO\n");
-    getchar();
+    ///printf("ENTRATO\n");
     char *device_info;
-    int pid = get_device_pid(index, children_pids, &device_info);
-    printf("PID TROVATO\n");
-    device_info = get_raw_device_info(pid);
-    printf("RAW DEVICE INFO: %s\n", device_info);
-    getchar();
+    int pid;
     char device_name[MAX_BUF_SIZE];
-    char **vars = split(device_info);
-    printf("SPLITTED\n");
-    getchar();
-    printf("Getting Device Name\n");
+    char **vars;
+
+    vars = split(device_info);
+    //printf("PID TROVATO\n");
+    //printf("RAW DEVICE INFO: %s\n", device_info);
+    //printf("SPLITTED\n");
+    //printf("Getting Device Name\n");
     //get_device_name(atoi(vars[0]), &device_name);
-    sprintf(device_name, "%s", vars[0]);
-    printf("Device Name: %s\n", device_name);
-    getchar();
+
+    pid = get_device_pid(index, children_pids, &device_info);
+    //device_info = get_raw_device_info(pid);
+    get_device_name(atoi(vars[0]), device_name);
+    //printf("Device Name: %s\n", device_name);
 
     sprintf(__out_buf, "Dispositivo di tipo %s con PID %s e indice %s rimosso.\n",
             device_name, vars[1], vars[2]);
-    printf("About to kill\n");
-    getchar();
+    //printf("About to kill\n");
     kill(pid, SIGINT);
     int i;
     for (i = 0; i < MAX_CHILDREN; i++) {
@@ -639,7 +644,7 @@ void del_direct(int index, int *children_pids, char *__out_buf) {
             children_pids[i] = -1;
         }
     }
-    printf("FINITOOOOOO\n");
+    //printf("FINITOOOOOO\n");
 }
 
 /* int __link_ex(int *son_pids, int parent_pid, int shellpid) {

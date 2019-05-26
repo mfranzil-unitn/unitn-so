@@ -11,18 +11,15 @@ struct rctm {
 int shellpid;
 
 /* Registri del timer */
-int fd;           /* file descriptor della pipe verso il padre */
-int pid, __index; /* variabili di stato */
-int status = 0;   /* interruttore accensione */
+int fd;                  /* file descriptor della pipe verso il padre */
+int pid, __index;        /* variabili di stato */
+int status = 0;          /* interruttore accensione */
 int status_override = 0; /* override 2 acceso - 3 spento*/
 
 /* Registri per il figlio - array usato per intercompatibilità */
 int children_pids[1];
 int override = 0;
 char info[MAX_BUF_SIZE];
-
-int children_index = -1; /* usato in cache */
-int device_type = -1;
 
 key_t key;
 int msgid;
@@ -67,13 +64,14 @@ int check_override() {
 }
 
 void switch_child() {
-    char switch_names[6][MAX_BUF_SIZE] = {"-", "accensione", "apertura", "apertura", "accensione", "accensione"};
-
+    char* raw_info;
     if (children_pids[0] == -1) {
         return;
     }
 
-    __switch_index(children_index, switch_names[device_type], status ? "on" : "off", children_pids);
+    raw_info = get_raw_device_info(children_pids[0]);
+
+    __switch(children_pids[0], "generic_on_off", status ? "on" : "off", raw_info);
 }
 
 void check_time() {
@@ -121,7 +119,7 @@ void sighandler_int(int sig) {
     if (sig == SIGINT) {
         flag_int = 1;
     }
-    if(sig == SIGURG){
+    if (sig == SIGURG) {
         flag_urg = 1;
     }
 }
@@ -143,11 +141,7 @@ int main(int argc, char* argv[]) {
     __index = atoi(argv[1]);
     fd = open(this_pipe, O_RDWR);
 
-    // -------------------------------------
     shellpid = get_shell_pid();
-    // -------------------------------------
-    printf("SHPID %d\n", shellpid);
-    getchar();
 
     tm_start.hour = 8;
     tm_start.min = 0;
@@ -190,20 +184,18 @@ int main(int argc, char* argv[]) {
                 char* raw_info = get_raw_device_info(children_pids[0]);
 
                 if (raw_info != NULL) {
+                    char raw_tmp[MAX_BUF_SIZE];
+                    sprintf(raw_tmp, "%s", raw_info);
+                    char** raw_split = split(raw_tmp);
 
-                char raw_tmp[MAX_BUF_SIZE];
-                sprintf(raw_tmp, "%s", raw_info);
-                char** raw_split = split(raw_tmp);
-
-                if (atoi(raw_split[3]) != status) {
-                    override = 1;
-                    if (status) {
-                         status_override = 2;
-                    } else {
-                        status_override = 3;
+                    if (atoi(raw_split[3]) != status) {
+                        override = 1;
+                        if (status) {
+                            status_override = 2;
+                        } else {
+                            status_override = 3;
+                        }
                     }
-                }
-
 
                     strcat(tmp, raw_info);
                     strcat(tmp, "|!|");
@@ -211,15 +203,15 @@ int main(int argc, char* argv[]) {
                 }
             }
             strcat(tmp, "!>");
-            
+
             int sep = 0;
-             for (i = 0; i < 20 && sep < 3 && (status_override == 2 || status_override == 3); i++) {
+            for (i = 0; i < 20 && sep < 3 && (status_override == 2 || status_override == 3); i++) {
                 if (tmp[i] == '|') {
                     sep++;
                 }
                 if (sep == 3) {
-                    char c = status_override+'0';
-                    tmp[i+1] = c;
+                    char c = status_override + '0';
+                    tmp[i + 1] = c;
                 }
             }
             message.mesg_type = 1;
@@ -260,9 +252,6 @@ int main(int argc, char* argv[]) {
                 vars = split(shifted_tmp);
                 __add_ex(vars, children_pids, 1);
 
-                device_type = atoi(vars[0]);
-                children_index = atoi(vars[2]);
-
                 sleep(2);
                 switch_child();
                 //__switch_index(children_index, "accensione", status ? "on" : "off", children_pids);
@@ -273,8 +262,6 @@ int main(int argc, char* argv[]) {
                 vars = split(tmp);
                 if (children_pids[0] == atoi(vars[1])) {
                     children_pids[0] = -1;
-                    children_index = -1;
-                    device_type = -1;
                 }
             }
             if (code == 3) {
@@ -319,10 +306,10 @@ int main(int argc, char* argv[]) {
             msgctl(msgid_pid, IPC_RMID, NULL);
             exit(0);
         }
-        if(flag_urg){
-            flag_urg = 0; 
+        if (flag_urg) {
+            flag_urg = 0;
             char** vars;
-             flag_urg = 0;
+            flag_urg = 0;
             //printf("hub urg: %d\n", pid);
             /*read(fd, mall_tmp, MAX_BUF_SIZE);
             printf("End Read: %s\n\n", mall_tmp);*/
@@ -330,11 +317,10 @@ int main(int argc, char* argv[]) {
             sprintf(tmp, "%s", message.mesg_text);
             //printf("End Read: %s\n\n", tmp);
             vars = split(tmp);
-                if (children_pids[0] == atoi(vars[1])) {
-                    /*printf("BECCATO: childern_Pids: %d, atoi: %d\n", children_pids[i], atoi(vars[1])); */
-                    children_pids[0] = -1;
-                }
-            
+            if (children_pids[0] == atoi(vars[1])) {
+                /*printf("BECCATO: childern_Pids: %d, atoi: %d\n", children_pids[i], atoi(vars[1])); */
+                children_pids[0] = -1;
+            }
         }
         //sleep(10);
     }
@@ -388,11 +374,10 @@ void read_msgqueue(int msgid) {
     char** vars;
     char** son_j;
 
-    printf("Lettura figlio da aggiungere...\n");
+    //printf("Lettura figlio da aggiungere...\n");
     ret = msgrcv(msgid, &message, sizeof(message), 1, IPC_NOWAIT);
-    printf("Dovrei aggiungere figli: %s\n", message.mesg_text);
+    //printf("Dovrei aggiungere figli: %s\n", message.mesg_text);
 
-    //getchar();
     if (ret != -1) {
         q = 0;
         while (!(message.mesg_text[q] == '-')) {

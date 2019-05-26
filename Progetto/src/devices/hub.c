@@ -5,9 +5,9 @@
 
 int shellpid;
 
-int fd;           /* file descriptor della pipe verso il padre */
-int pid, __index; /* variabili di stato */
-int status = 0;   /* interruttore accensione */
+int fd;                  /* file descriptor della pipe verso il padre */
+int pid, __index;        /* variabili di stato */
+int status = 0;          /* interruttore accensione */
 int status_override = 0; /* override 2 acceso - 3 spento*/
 
 int children_pids[MAX_CHILDREN];
@@ -199,7 +199,7 @@ int main(int argc, char* argv[]) {
                     if (atoi(raw_split[3]) != status) {
                         override = 1;
                         if (status) {
-                             status_override = 2;
+                            status_override = 2;
                         } else {
                             status_override = 3;
                         }
@@ -222,8 +222,8 @@ int main(int argc, char* argv[]) {
                     sep++;
                 }
                 if (sep == 3) {
-                    char c = status_override+'0';
-                    tmp[i+1] = c;
+                    char c = status_override + '0';
+                    tmp[i + 1] = c;
                 }
             }
             /*printf("TMP DI HUB %d: %s\n",pid,  tmp); */
@@ -427,9 +427,9 @@ void read_msgqueue(int msgid) {
     char** vars;
     char** son_j;
 
-    printf("Lettura figlio da aggiungere...\n");
+    // printf("Lettura figlio da aggiungere...\n");
     ret = msgrcv(msgid, &message, sizeof(message), 1, IPC_NOWAIT);
-    printf("Dovrei aggiungere figli: %s\n", message.mesg_text);
+    //printf("Dovrei aggiungere figli: %s\n", message.mesg_text);
     if (ret != -1) {
         q = 0;
         while (!(message.mesg_text[q] == '-')) {
