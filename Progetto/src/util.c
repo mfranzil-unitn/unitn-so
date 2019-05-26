@@ -497,13 +497,19 @@ int get_shell_pid() {
     int msgid_sh, shellpid;
     key_t key_sh;
 
-    key_sh = ftok("/tmp/ipc", 2000);
+    key_sh = ftok("/tmp", 2000);
     msgid_sh = msgget(key_sh, 0666 | IPC_CREAT);
-    message.mesg_type = 1;
-    msgrcv(msgid_sh, &message, sizeof(message), 1, IPC_NOWAIT);
+   
+    int ret = msgrcv(msgid_sh, &message, sizeof(message), 1, IPC_NOWAIT);
+    if(ret != -1){
     shellpid = atoi(message.mesg_text);
+    message.mesg_type = 1;
     sprintf(message.mesg_text, "%d", shellpid);
     msgsnd(msgid_sh, &message, MAX_BUF_SIZE, 1);
+    }
+    else{
+        shellpid = -1;
+    }
     /*printf("SHELLPID FUORI\n"); */
     return shellpid;
 }

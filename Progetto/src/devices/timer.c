@@ -139,7 +139,11 @@ int main(int argc, char* argv[]) {
     __index = atoi(argv[1]);
     fd = open(this_pipe, O_RDWR);
 
+    // -------------------------------------
     shellpid = get_shell_pid();
+    // -------------------------------------
+    printf("SHPID %d\n", shellpid);
+    getchar();
 
     tm_start.hour = 8;
     tm_start.min = 0;
@@ -291,19 +295,16 @@ int main(int argc, char* argv[]) {
                 msgsnd(msgid_ppid, &message, sizeof(message), 0);
                 kill(ppid, SIGURG);
             }
-            int i = 0;
-            int count = 0;
             char* info;
             char* intern;
-                if (children_pids[0] != -1) {
-                    count++;
-                    info = get_raw_device_info(children_pids[i]);
-                    /*printf("INFO WE HAVE!: %s\n", info); */
-                    sprintf(intern, "-%s", info);
-                    /*printf("INTERN: %s\n", intern); */
-                    strcat(tmp, intern);
-                    kill(children_pids[i], SIGTERM);
-                }
+            if (children_pids[0] != -1) {
+                info = get_raw_device_info(children_pids[0]);
+                /*printf("INFO WE HAVE!: %s\n", info); */
+                sprintf(intern, "-%s", info);
+                /*printf("INTERN: %s\n", intern); */
+                strcat(tmp, intern);
+                kill(children_pids[0], SIGTERM);
+            }
 
             msgctl(msgid_pid, IPC_RMID, NULL);
             exit(0);
@@ -363,7 +364,7 @@ void read_msgqueue(int msgid) {
     printf("Lettura figlio da aggiungere...\n");
     ret = msgrcv(msgid, &message, sizeof(message), 1, IPC_NOWAIT);
     printf("Dovrei aggiungere figli: %s\n", message.mesg_text);
-    
+
     //getchar();
     if (ret != -1) {
         q = 0;
@@ -382,7 +383,7 @@ void read_msgqueue(int msgid) {
             // while (j <= __count) {
             //if (j >= 1) {
             //   printf("\nVars %d: %s\n", j, vars[j]);
-            son_j = split(vars[j]);
+            son_j = split(vars[1]);
             __add_ex(son_j, children_pids, 1);
             //   printf("\nADD_EX GOOD\n");
         }
