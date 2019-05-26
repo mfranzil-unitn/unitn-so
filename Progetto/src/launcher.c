@@ -261,9 +261,11 @@ void user_launcher(char buf[][MAX_BUF_SIZE], int msgid, int *device_pids, int ms
                 printf("Errore nell'apertura della shell. Codice di errore: %d\n", errno);
             } else {
                 shell_pid = atoi(message.mesg_text);
+                sprintf(message.mesg_text, "%d", shell_pid);
                 shell_on = 1;
                 msgsnd(msgid_sh, &message, MAX_BUF_SIZE, 0);
             }
+            
             system("clear");
             printf("Centralina aperta.\n");
             return;

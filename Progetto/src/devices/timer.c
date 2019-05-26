@@ -183,10 +183,11 @@ int main(int argc, char* argv[]) {
                     children_pids[0] != -1);
             if (children_pids[0] != -1) {
                 char* raw_info = get_raw_device_info(children_pids[0]);
+
                 if (raw_info != NULL) {
 // MOdifica
-                printf("INFOO: %d\n", atoi(raw_info[3]));
-                    /*if (atoi(raw_info[3]) != status) {
+                //printf("INFO2: %d\n", atoi(raw_info[3]));
+                 /*   if (atoi(raw_info[3]) != status) {
                         override = 1;
                         if (status) {
                              status_override = 2;
@@ -201,7 +202,7 @@ int main(int argc, char* argv[]) {
                 }
             }
             strcat(tmp, "!>");
-            /*
+            
             int sep = 0;
              for (i = 0; i < 20 && sep < 3 && (status_override == 2 || status_override == 3); i++) {
                 if (tmp[i] == '|') {
@@ -211,7 +212,7 @@ int main(int argc, char* argv[]) {
                     char c = status_override+'0';
                     tmp[i+1] = c;
                 }
-            }*/
+            }
             message.mesg_type = 1;
             sprintf(message.mesg_text, "%s", tmp);
             msgsnd(msgid_pid, &message, sizeof(message), 0);
