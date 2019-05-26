@@ -48,6 +48,7 @@
 #define HUB_IT "hub"
 #define TIMER_IT "timer"
 
+/* numero massimo di figli per ogni hub e della centralina */
 #define MAX_CHILDREN 20
 
 #define BULB_PARAMETERS 5
@@ -105,7 +106,6 @@ void get_device_name_str(char *device_type, char *buf);
 int get_shell_pid();
 
 char *get_raw_device_info(int pid);
-/*char **get_device_info(int pid);*/
 
 int is_controller(int pid, char *raw_info);
 int controller_is_full(int pid, char *raw_info);

@@ -1,10 +1,10 @@
 #include "shell.h"
 
-int ppid;
-int stato = 1;                   /*Stato della centralina. */
-int changed = 0;                 /* Modifiche alla message queue? */
+int ppid;                        /* pid del padre */
+int stato = 1;                   /* stato della centralina. */
+int changed = 0;                 /* modifiche alla message queue? */
 int children_pids[MAX_CHILDREN]; /* array contenenti i PID dei figli */
-int fd;
+int fd;                          /* file descriptor */
 int del_index = -1;
 int max_index = 1;
 
@@ -16,7 +16,7 @@ int main(int argc, char *argv[]) {
     int cmd_n;        /* numero di comandi disponibili */
     int device_i = 0; /* indice progressivo dei dispositivi */
 
-    char pipe[MAX_BUF_SIZE];
+    char pipe[MAX_BUF_SIZE]; /* buffer messaggi della pipe */
 
     int j;
     key_t key;
@@ -70,9 +70,9 @@ int main(int argc, char *argv[]) {
 
     while (1) {
         if (stato) {
-            /*Scrive numero devices e elenco dei pid a launcher. */
+            /* Scrive numero devices e elenco dei pid a launcher. */
             if ((argc != 2 || strcmp(argv[1], "--no-wrapper") != 0) && changed) {
-                /*Ripulisco Forzatamente. */
+                /* Ripulisco Forzatamente. */
                 msgrcv(msgid, &message, MAX_BUF_SIZE, 1, IPC_NOWAIT);
 
                 sprintf(tmp_c, "%d|", device_i);
@@ -87,66 +87,67 @@ int main(int argc, char *argv[]) {
                 msgsnd(msgid, &message, MAX_BUF_SIZE, 0);
                 changed = 0;
             } else {
-                /*Ripulisco forzatamente. */
+                /* Ripulisco forzatamente. */
                 msgrcv(msgid, &message, MAX_BUF_SIZE, 1, IPC_NOWAIT);
                 sprintf(message.mesg_text, "%s", current_msg);
                 msgsnd(msgid, &message, MAX_BUF_SIZE, 0);
             }
-
+            
+            /* stringa Centralina colorata */
             printf("\033[0;32m%s\033[0m:\033[0;31mCentralina\033[0m$ ", name);
-            cmd_n = parse(buf, cmd_n);
+            cmd_n = parse(buf, cmd_n); /* prende comando */
 
-            if (strcmp(buf[0], "help") == 0) { /* guida */
+            if (strcmp(buf[0], "help") == 0) { /* guida ai comandi */
                 printf(HELP_STRING);
-            } else if (strcmp(buf[0], "list") == 0) {
+            } else if (strcmp(buf[0], "list") == 0) { /* lista dispositivi */
                 if (cmd_n != 0) {
-                    printf(LIST_STRING);
+                    printf(LIST_STRING); /* guida: list */
                 } else {
                     __list(children_pids);
                 }
-            } else if (strcmp(buf[0], "info") == 0) {
+            } else if (strcmp(buf[0], "info") == 0) { /* informazioni in base al pid */
                 if (cmd_n != 1) {
-                    printf(INFO_STRING);
+                    printf(INFO_STRING); /* guida: info */
                 } else {
                     __info(atoi(buf[1]), children_pids);
                 }
-            } else if (strcmp(buf[0], "switch") == 0) {
+            } else if (strcmp(buf[0], "switch") == 0) { /* modifica stato interruttori */
                 if (cmd_n != 3) {
-                    printf(SWITCH_STRING);
-                } else if (strcmp(buf[2], "riempimento") == 0) {
+                    printf(SWITCH_STRING); /* giuda: switch */
+                } else if (strcmp(buf[2], "riempimento") == 0) { /* possibile solo da launcher */
                     printf("Operazione permessa solo manualmente.\n");
                 } else {
                     __switch_index(atoi(buf[1]), buf[2], buf[3], children_pids);
                 }
-            } else if (strcmp(buf[0], "add") == 0) {
+            } else if (strcmp(buf[0], "add") == 0) { /* aggiunge device */
                 if (cmd_n != 1) {
-                    printf(ADD_STRING);
+                    printf(ADD_STRING); /* giuda: add */
                 } else {
                     changed = add_shell(buf, &device_i, children_pids, __out_buf);
                     printf("%s", __out_buf);
                     max_index ++;
                 }
-            } else if (strcmp(buf[0], "del") == 0) {
+            } else if (strcmp(buf[0], "del") == 0) { /* elimina dispositivo */
                 if (cmd_n != 1) {
-                    printf(DEL_STRING);
+                    printf(DEL_STRING); /* guida: del */
                 } else {
                     del_direct(atoi(buf[1]), children_pids, __out_buf);
                     printf("%s", __out_buf);
                     del_index = atoi(buf[1]);
                 }
-            } else if (strcmp(buf[0], "link") == 0 && strcmp(buf[2], "to") == 0) {
+            } else if (strcmp(buf[0], "link") == 0 && strcmp(buf[2], "to") == 0) { /* link tra dispositivi */
                 if (cmd_n != 3) {
-                    printf(LINK_STRING);
+                    printf(LINK_STRING); /* giuda link */
                 } else {
                     __link(atoi(buf[1]), atoi(buf[3]), children_pids);
                 }
             } else if (strcmp(buf[0], "exit") == 0) { /* supponiamo che l'utente scriva solo "exit" per uscire */
-                kill(ppid, SIGTERM);
+                kill(ppid, SIGTERM); /* dice al padre cha sta per morire */
                 break;
             } else if (strcmp(buf[0], "\0") == 0) { /* a capo a vuoto */
                 continue;
             } else { /*tutto il resto */
-                printf(UNKNOWN_COMMAND);
+                printf(UNKNOWN_COMMAND); /* comando non riconosciuto */
             }
         } else {
             /*Ripulisco forzatamente. */
@@ -161,11 +162,12 @@ int main(int argc, char *argv[]) {
     return 0;
 }
 
+/* aggiungo dispositivo sotto la shell */
 int add_shell(char buf[][MAX_BUF_SIZE], int *device_i, int *children_pids, char *__out_buf) {
     if (strcmp(buf[1], "bulb") == 0 || strcmp(buf[1], "fridge") == 0 || strcmp(buf[1], "window") == 0 || strcmp(buf[1], "hub") == 0 || strcmp(buf[1], "timer") == 0) {
         (*device_i)++;
         if (__add(buf[1], *device_i, children_pids, MAX_CHILDREN, __out_buf) == 0) {
-            /* Non c'è spazio, ci rinuncio */
+            /* Non c'è spazio */
             (*device_i)--;
             return 0;
         } else {
@@ -177,10 +179,11 @@ int add_shell(char buf[][MAX_BUF_SIZE], int *device_i, int *children_pids, char 
     }
 }
 
+/* quando arriva un segnale SIGTERM -> dice a tutti i figli che si sta spegnendo */
 void cleanup_sig(int sig) {
+    int i = 0;
     printf("Chiusura della centralina in corso...\n");
-    int i=0; 
-    for(i=0; i < MAX_CHILDREN; i++){
+    for(i = 0; i < MAX_CHILDREN; i++){
         key_t key = ftok("/tmp/ipc/mqueues", i);
         int msgid = msgget(key, 0666 | IPC_CREAT);
         msgrcv(msgid, &message, sizeof(message), 1, IPC_NOWAIT);
@@ -189,10 +192,12 @@ void cleanup_sig(int sig) {
     kill(0, SIGKILL);
 }
 
+/* quando arriva un segnale SIGHUP -> dice al Launcher che è stata spenta */
 void handle_sig(int sig) {
     kill(ppid, SIGTERM);
 }
 
+/* quando arriva un segnale SIGUSER1 -> cambia di stato la centralina */
 void stop_sig(int sig) {
     if (stato) {
         stato = 0;
@@ -204,22 +209,21 @@ void stop_sig(int sig) {
     }
 }
 
+/* quando arriva SIGUSR2 -> link di un dispositivo come figlio */
 void link_child(int signal) {
-    char *tmp;
-    int code;
     char **vars;
-    int q,j;
+    int q, j;
     int n_devices, __count;
     char** son_j;
     char n_dev_str[MAX_BUF_SIZE];
     char tmp_buf[MAX_BUF_SIZE];
-    if(del_index != -1){
+    if (del_index != -1) {
     key_t key_del = ftok("/tmp/ipc/mqueues", del_index);
     int msgid_del = msgget(key_del, 0666 | IPC_CREAT);
     
 
    int ret = msgrcv(msgid_del, &message, sizeof(message), 1, IPC_NOWAIT);
-   if(ret != -1){
+   if (ret != -1) {
         q = 0;
         while (!(message.mesg_text[q] == '-')) {
             n_dev_str[q] = message.mesg_text[q];
@@ -246,5 +250,4 @@ void link_child(int signal) {
    }
     del_index  = -1;
     }
-    /*close(fd); */
 }
