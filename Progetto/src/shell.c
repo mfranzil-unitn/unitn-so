@@ -172,7 +172,7 @@ int add_shell(char buf[][MAX_BUF_SIZE], int *device_i, int *children_pids, char 
             return 1;
         };
     } else {
-        sprintf(__out_buf, "Dispositivo non ancora supportato\n");
+        sprintf(__out_buf, "Dispositivi disponibili: <bulb/fridge/window/timer/hub>\n");
         return 0;
     }
 }

@@ -86,13 +86,15 @@ void check_time() {
     int tm_end_seconds = 60 * 60 * tm_end.hour + 60 * tm_end.min;
     int tm_start_seconds = 60 * 60 * tm_start.hour + 60 * tm_start.min;
 
-    printf("Current: %d, Start %d, End %d\n", tm_current_seconds, tm_start_seconds, tm_end_seconds);
+    //printf("Current: %d, Start %d, End %d\n", tm_current_seconds, tm_start_seconds, tm_end_seconds);
     if (tm_current_seconds >= tm_start_seconds && tm_current_seconds < tm_end_seconds) {
+        //printf("Fascia on\n");
         /* Sono nella "fascia oraria" */
         status = 1;
         alarm((tm_end_seconds - tm_current_seconds) % SECONDS_IN_A_DAY);
         switch_child();
     } else {
+        //printf("Fascia off\n");
         status = 0;
         alarm((tm_start_seconds - tm_current_seconds) % SECONDS_IN_A_DAY);
         switch_child();
@@ -114,7 +116,7 @@ void sighandler_int(int sig) {
     if (sig == SIGALRM) {
         flag_alarm = 1;
     }
-    if(sig == SIGINT){
+    if (sig == SIGINT) {
         flag_int = 1;
     }
 }
@@ -152,7 +154,6 @@ int main(int argc, char* argv[]) {
     signal(SIGUSR2, sighandler_int);
     signal(SIGALRM, sighandler_int);
     signal(SIGINT, sighandler_int);
-
 
     key = ftok("/tmp/ipc/mqueues", __index);
     msgid = msgget(key, 0666 | IPC_CREAT);
@@ -203,14 +204,14 @@ int main(int argc, char* argv[]) {
             sprintf(tmp, "%s", message.mesg_text);
 
             code = tmp[0] - '0';
-            /*printf("hub code: %d\n", code); */
 
             if (code == 0) {
                 override = check_override(over_index);
                 status = !status;
                 if (children_pids[0] != -1 /*&& !over_index[0]*/) {
-                    char* raw_info = get_raw_device_info(children_pids[0]);
-                    __switch(children_pids[0], "accensione", status ? "on" : "off", raw_info);
+                    switch_child();
+                    //char* raw_info = get_raw_device_info(children_pids[0]);
+                    //__switch(children_pids[0], "accensione", status ? "on" : "off", raw_info);
                 }
             }
             if (code == 1) {
@@ -218,13 +219,15 @@ int main(int argc, char* argv[]) {
                 char* shifted_tmp = malloc(MAX_BUF_SIZE * sizeof(shifted_tmp));
                 strcpy(shifted_tmp, tmp);
                 shifted_tmp = shifted_tmp + 2;
+
                 vars = split(shifted_tmp);
                 __add_ex(vars, children_pids, 1);
 
                 device_type = atoi(vars[0]);
                 children_index = atoi(vars[2]);
 
-                //sleep(2);
+                sleep(2);
+                switch_child();
                 //__switch_index(children_index, "accensione", status ? "on" : "off", children_pids);
                 free(vars);
                 free(shifted_tmp - 2);
@@ -255,34 +258,34 @@ int main(int argc, char* argv[]) {
         if (flag_alarm) {
             check_time();
         }
-         if(flag_int){
+        if (flag_int) {
             int ppid = (int)getppid();
-            if(ppid != shellpid){
+            if (ppid != shellpid) {
                 key_t key_ppid = ftok("/tmp/ipc/mqueues", ppid);
                 int msgid_ppid = msgget(key_ppid, 0666 | IPC_CREAT);
                 sprintf(message.mesg_text, "2|%d", pid);
                 message.mesg_type = 1;
                 msgsnd(msgid_ppid, &message, sizeof(message), 0);
                 kill(ppid, SIGURG);
-                } 
-        int i=0; 
-        int count = 0;
-        char* info;
-        char* intern;
-        for(i=0; i < MAX_CHILDREN; i++){
-            if(children_pids[i] != -1){
+            }
+            int i = 0;
+            int count = 0;
+            char* info;
+            char* intern;
+            for (i = 0; i < MAX_CHILDREN; i++) {
+                if (children_pids[i] != -1) {
                     count++;
-                     info = get_raw_device_info(children_pids[i]);
+                    info = get_raw_device_info(children_pids[i]);
                     /*printf("INFO WE HAVE!: %s\n", info); */
                     sprintf(intern, "-%s", info);
                     /*printf("INTERN: %s\n", intern); */
                     strcat(tmp, intern);
                     kill(children_pids[i], SIGTERM);
-                    }
-        }        
-        
-        msgctl(msgid_pid, IPC_RMID, NULL);
-        exit(0);
+                }
+            }
+
+            msgctl(msgid_pid, IPC_RMID, NULL);
+            exit(0);
         }
         //sleep(10);
     }
@@ -300,20 +303,18 @@ void term() {
     char* info;
 
     sprintf(tmp, "-");
-    if(children_pids[0!= -1]){
-    char* son_info = get_raw_device_info(children_pids[0]);
-    char intern[MAX_BUF_SIZE];
-    sprintf(intern, "%s", son_info);
-    strcat(tmp, son_info);
+    if (children_pids[0 != -1]) {
+        char* son_info = get_raw_device_info(children_pids[0]);
+        char intern[MAX_BUF_SIZE];
+        sprintf(intern, "%s", son_info);
+        strcat(tmp, son_info);
 
-    sprintf(message.mesg_text, "1%s", tmp);
-    }
-    else{
+        sprintf(message.mesg_text, "1%s", tmp);
+    } else {
         sprintf(message.mesg_text, "0%s", tmp);
     }
     message.mesg_type = 1;
     msgsnd(msgid, &message, sizeof(message), 0);
-
 
     /*int ret = __link_ex(children_pids, ppid, shellpid); */
 
@@ -321,7 +322,7 @@ void term() {
         msgctl(msgid_pid, IPC_RMID, NULL);
         exit(0);
     } else {
-        printf("Errore nell'eliminazione\n");
+        printf("Errore nell'eliminazione.\n");
     }
 }
 
@@ -338,8 +339,8 @@ void read_msgqueue(int msgid) {
     printf("Lettura figlio da aggiungere...\n");
     ret = msgrcv(msgid, &message, sizeof(message), 1, IPC_NOWAIT);
     printf("Dovrei aggiungere figli: %s\n", message.mesg_text);
-
-    getchar();
+    
+    //getchar();
     if (ret != -1) {
         q = 0;
         while (!(message.mesg_text[q] == '-')) {
@@ -354,14 +355,13 @@ void read_msgqueue(int msgid) {
             vars = NULL;
             vars = split_sons(tmp_buf, __count);
             //j = 0;
-           // while (j <= __count) {
-                //if (j >= 1) {
-                    printf("\nVars %d: %s\n", j, vars[j]);
-                    son_j = split(vars[j]);
-                    __add_ex(son_j, children_pids, 1);
-                    printf("\nADD_EX GOOD\n");
-                }
-                //j++;
-            }
+            // while (j <= __count) {
+            //if (j >= 1) {
+            //   printf("\nVars %d: %s\n", j, vars[j]);
+            son_j = split(vars[j]);
+            __add_ex(son_j, children_pids, 1);
+            //   printf("\nADD_EX GOOD\n");
         }
-    
+        //j++;
+    }
+}

@@ -143,43 +143,39 @@ int get_device_pid(int device_identifier, int *children_pids, char **raw_info) {
     char *tmp, **vars;
     char buf_info[MAX_BUF_SIZE];
 
+    //printf("\n----------------\n\nEntering get_device_pid(%d);\n", device_identifier);
+
     for (i = 0; i < MAX_CHILDREN; i++) { /* l'indice i è logicamente indipendente dal nome/indice del dispositivo */
         children_pid = children_pids[i];
         if (children_pid != -1) {
-            /*printf("GET_ DEVICE_PID: %d\n", children_pid); */
-            tmp = get_raw_device_info(children_pid);
-            /*printf("TMP: %s\n", tmp); */
-            if (tmp != NULL) {
-                if (raw_info != NULL) {
-                    *raw_info = tmp;
-                }
+            //printf("i: %d, children_pid: %d\n", i, children_pid);
 
+            tmp = get_raw_device_info(children_pid);
+            if (tmp != NULL) {
                 /* Evito fastidiose modifiche a TMP da strtok */
                 strcpy(var_buffer, tmp);
 
                 if (strncmp(tmp, HUB_S, 1) == 0 || strncmp(tmp, TIMER_S, 1) == 0) {
-                    /* Evito fastidiose modifiche a TMP da strtok */
-                    strcpy(buf_info, tmp);
-                    /*printf("BUF INFO %s\n", buf_info); */
-                    /*vars = split(buf_info);*/
-                    /*if (vars != NULL && atoi(vars[2]) == device_identifier) {
-                        free(vars);
-                        return children_pid;
-                    }*/
-                    possible_pid = hub_tree_pid_finder(var_buffer, device_identifier, &raw_info);
+                    char *second_raw_info = NULL;
+                    possible_pid = hub_tree_pid_finder(var_buffer, device_identifier, &second_raw_info);
+
+                    //printf("hub_tree_pid_finder(): I:%d, P:%d, %s\n", device_identifier, possible_pid, second_raw_info);
+
                     if (possible_pid != -1) {
-                        //*raw_info = second_raw_info;
+                        *raw_info = second_raw_info;
                         return possible_pid;
                     }
                 } else {
                     vars = split(var_buffer);
+                    //printf("split(): I: %d, P: %d, %s", device_identifier, children_pid, var_buffer);
                     if (vars != NULL && atoi(vars[2]) == device_identifier) {
+                        *raw_info = tmp;
                         free(vars);
                         return children_pid;
                     }
                 }
             } else {
-                printf("TMP IS FCKN NULLL\n");
+                //printf("TMP IS FCKN NULLL\n");
             }
         }
     }
@@ -241,7 +237,7 @@ char *get_raw_device_info(int pid) {
     if (ret != -1) {
         tmp = malloc(MAX_BUF_SIZE * sizeof(char));
         sprintf(tmp, "%s", message.mesg_text);
-        printf("TMP: %s\n", tmp);
+        //printf("TMP: %s\n", tmp);
         return tmp;
     } else {
         return NULL;
@@ -254,12 +250,12 @@ char *get_raw_device_info(int pid) {
 
         tmp = malloc(MAX_BUF_SIZE * sizeof(tmp));
         get_pipe_name(pid, pipe_str);
-        printf("%s\n", pipe_str);
+        //printf("%s\n", pipe_str);
         fd = open(pipe_str, O_RDONLY);
         if (!(fd > 0)) {
-            printf("FD_ERROR: %d", fd);
+            //(printf("FD_ERROR: %d", fd);
         } else {
-            printf("FD: %d\n", fd);
+           // printf("FD: %d\n", fd);
         }
 
         /* Initialize the file descriptor set. */
@@ -272,7 +268,7 @@ char *get_raw_device_info(int pid) {
 
         /* select returns 0 if timeout, 1 if input available, -1 if error. */
         if (fd > 0 && select(FD_SETSIZE, &set, NULL, NULL, &timeout) == 1) {
-            lprintf("DEBUG: In read for PID: %d and pipe %s\n", pid, pipe_str);
+            //printf("DEBUG: In read for PID: %d and pipe %s\n", pid, pipe_str);
             _read = read(fd, tmp, MAX_BUF_SIZE);
             /*lprintf("End read, TMP: %s\n", tmp);*/
             /* Pulizia */
@@ -286,9 +282,9 @@ char *get_raw_device_info(int pid) {
             }
         } else {
             if (fd < 0) {
-                printf("ERRORE FD\n");
+               // printf("ERRORE FD\n");
             } else {
-                printf("Timed out\n");
+               // printf("Timed out\n");
             }
             close(fd);
             return NULL; /*continue; */
@@ -330,8 +326,13 @@ void hub_tree_print(char **vars) {
         printf("Hub (PID: %s, Indice: %s), Stato: %s, Collegati: %s",
                vars[1], vars[2], atoi(vars[3]) ? "Acceso" : "Spento", vars[4]);
     } else if (strcmp(vars[0], TIMER_S) == 0) {
-        printf("Timer (PID: %s, Indice: %s), Stato: %s, Orari: %s:%s -> %s:%s\n, Collegati: %s",
-               vars[1], vars[2], atoi(vars[3]) ? "Acceso" : "Spento", vars[4], vars[5], vars[6], vars[7], vars[8]);
+        printf("Timer (PID: %s, Indice: %s), Stato: %s, Orari: %s%s:%s%s -> %s%s:%s%s, Collegati: %s",
+               vars[1], vars[2], atoi(vars[3]) ? "Acceso" : "Spento",
+               atoi(vars[4]) < 10 ? "0" : "", vars[4],
+               atoi(vars[5]) < 10 ? "0" : "", vars[5],               
+               atoi(vars[6]) < 10 ? "0" : "", vars[6],               
+               atoi(vars[7]) < 10 ? "0" : "", vars[7],
+               vars[8]);
     } else {
         get_device_name(atoi(vars[0]), device_name);
         device_name[0] += 'A' - 'a';
@@ -460,11 +461,19 @@ int hub_tree_pid_finder(char *__buf, int id, char **raw_info) {
             }
 
             if (strcmp(old, "!>") != 0 && children > 0) {
-                i = 0;
-
+                // CASO IN CUI E' FINITO UN FIGLIO SOLO
                 if (atoi(vars[2]) == id) {
+                    *raw_info = malloc(MAX_BUF_SIZE * sizeof(raw_info));
+                    target = *raw_info;
+
+                    target += sprintf(target, "%s", vars[0]);
+                    for (j = 1; j < i; j++) {
+                        target += sprintf(target, "|%s", vars[j]);
+                    }
                     return atoi(vars[1]);
                 }
+                i = 0;
+
                 children--;
             }
         } else {

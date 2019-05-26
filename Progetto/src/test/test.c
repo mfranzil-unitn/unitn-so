@@ -131,7 +131,7 @@ int hub_tree_pid_finder(char *__buf, int id, char **raw_info) {
                 *raw_info = malloc(MAX_BUF_SIZE * sizeof(raw_info));
                 target = *raw_info;
 
-                pid_to_be_returned = atoi(vars[2]);
+                pid_to_be_returned = atoi(vars[1]);
                 target += sprintf(target, "%s", vars[0]);
                 for (j = 1; j < i; j++) {
                     target += sprintf(target, "|%s", vars[j]);
@@ -147,6 +147,7 @@ int hub_tree_pid_finder(char *__buf, int id, char **raw_info) {
             }
 
             if (found_flag == level) {
+                printf("RETURN: %s\n", *raw_info);
                 return pid_to_be_returned;
             }
 
@@ -163,11 +164,20 @@ int hub_tree_pid_finder(char *__buf, int id, char **raw_info) {
             }
 
             if (strcmp(old, "!>") != 0 && children > 0) {
-                i = 0;
-
+                // CASO IN CUI E' FINITO UN FIGLIO SOLO
                 if (atoi(vars[2]) == id) {
+                    *raw_info = malloc(MAX_BUF_SIZE * sizeof(raw_info));
+                    target = *raw_info;
+
+                    target += sprintf(target, "%s", vars[0]);
+                    printf("%s", vars[0]);
+                    for (j = 1; j < i; j++) {
+                        target += sprintf(target, "|%s", vars[j]);
+                        printf("|%s", vars[j]);
+                    }
                     return atoi(vars[1]);
                 }
+                i = 0;
                 children--;
             }
         } else {
@@ -251,7 +261,7 @@ int main() {
         printf("Index > ");
         scanf(" %d", &d);
 
-        char* raw_info = NULL;
+        char *raw_info = NULL;
         int out = hub_tree_pid_finder(buf2, d, &raw_info);
         printf("PID %d, STRING %s\n", out, raw_info);
     }
