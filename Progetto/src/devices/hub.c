@@ -10,27 +10,37 @@ int pid, __index;        /* variabili di stato */
 int status = 0;          /* interruttore accensione */
 int status_override = 0; /* override 2 acceso - 3 spento*/
 
-int children_pids[MAX_CHILDREN];
-int override = 0;
+int children_pids[MAX_CHILDREN]; /* Array contente pids dei figli */
+int override = 0; /* Intero che segnala lo stato di override */
 char info[MAX_BUF_SIZE];
 
+/* Parametri della message queue e dela message id basate su indice */
 key_t key;
 int msgid;
+
+/* Parametri della message queue e dela message id basate su pid */
 key_t key_pid;
 int msgid_pid;
 
+/* Flag relativi al segnale appena ricevuto */
 volatile int flag_usr1 = 0;
 volatile int flag_usr2 = 0;
 volatile int flag_term = 0;
 volatile int flag_urg = 0;
 volatile int flag_int = 0;
 
+/* Funzione chiamata in chiusura
+ * che scrive sull messagequeue, basata su indice
+ * i figli attualmente presenti */
 void term();
+
+/* Legge la messagequeue dell'indice, in apertura, e aggiunge i figli presenti nella messagequeue
+ * (FONDAMENTALE PER RICOSTRUZIONE GERARCHIA) */
 void read_msgqueue(int msgid);
 
+/* handler che in funzione del segnale setta un flag */
 void sighandler_int(int sig) {
     if (sig == SIGUSR1) {
-        //printf("SIGUSR1 SONO HUB %d CON %d\n", __index, pid);
         flag_usr1 = 1;
     }
     if (sig == SIGUSR2) {
@@ -47,13 +57,17 @@ void sighandler_int(int sig) {
     }
 }
 
+/* Funzione chiamata in seguito al comando switch ed in aggiunta di qualsiasi figlio
+ * per modificarne l'interrutore */
 void switch_child(int children_index, int device_type) {
+    /* In funzione del device indica l'interruttore corretto */
     char switch_names[6][MAX_BUF_SIZE] = {"-", "accensione", "apertura", "apertura", "accensione", "accensione"};
 
     if (children_pids[0] == -1) {
         return;
     }
 
+    /*Chiamata alla funzione wrapper in action.c */
     __switch_index(children_index, switch_names[device_type], status ? "on" : "off", children_pids);
 }
 
@@ -66,23 +80,23 @@ int check_override(int* over_index) {
 
     for (i = 0; i < MAX_CHILDREN; i++) {
         if (children_pids[i] != -1) {
+            /* Funzione che ritorna le informazioni, ancora non splittate */
             char* raw_info = get_raw_device_info(children_pids[i]);
 
             if (raw_info == NULL) {
                 continue;
             }
 
+            /* Funzione che le splitta */
             vars = split(raw_info);
             if (atoi(vars[3]) != status) {
-                //printf("Incongruenti e Brutti: %d\n", i);
                 over_index[i] = 1;
                 ret = 1;
             }
         }
     }
 
-    //free(vars);
-
+    /* se = 1 => Override, se =0 => Non override */
     return ret;
 }
 
@@ -100,31 +114,34 @@ int main(int argc, char* argv[]) {
 
     int connected = 0;
 
+    /* Viene associata la pipe relativa (passata per argomento) */
     this_pipe = argv[2];
-    pid = getpid();
+    /* inizializza la variabile al proprio pid */
+    pid = (int)getpid();
+    /* inizializza indice*/
     __index = atoi(argv[1]);
+    /* apre pripe in RDWR */
     fd = open(this_pipe, O_RDWR);
 
+    /* Inizializza array dei figli */
     for (i = 0; i < MAX_CHILDREN; i++) {
         children_pids[i] = -1;
     }
 
+    /* Inizializza key in funzione dell'indice */
     key = ftok("/tmp/ipc/mqueues", __index);
     msgid = msgget(key, 0666 | IPC_CREAT);
 
     read_msgqueue(msgid);
-    /*printf("HI BRO I'M HUB %d\n", __index); */
-    for (i = 0; i < MAX_CHILDREN; i++) {
-        if (children_pids[i] != -1) {
-            /*printf("Dispositivo %d: %d\n", i, children_pids[i]); */
-        }
-    }
+
+    /*Inizializza shellpid, variabile contenente il pid della variabile */
     shellpid = get_shell_pid();
 
+    /* Inizializza MessageQueue in funzione del pid*/
     key_pid = ftok("/tmp/ipc/mqueues", pid);
     msgid_pid = msgget(key_pid, 0666 | IPC_CREAT);
-    /*printf(" KEY %d MSGID: %d\n",key_pid, msgid_pid); */
 
+    /* Assegna segnali ed handler */
     signal(SIGCHLD, SIG_IGN);
     signal(SIGTERM, sighandler_int);
     signal(SIGUSR1, sighandler_int);
@@ -139,65 +156,37 @@ int main(int argc, char* argv[]) {
             flag_usr1 = 0;
             override = 0;
             status_override = 0;
-            /*printf("hub usr1: %d\n", pid); */
-            /* bisogna controllare se i dispositivi sono allineati o meno (override) */
-
             /* conto i dispositivi connessi */
             connected = 0;
 
+            /* Itero sui figli se != -1 il pid corrispondente => Sono da contare */
             for (i = 0; i < MAX_CHILDREN; i++) {
                 if (children_pids[i] != -1) {
-                    /*printf("Children pids[%d]: %d\n", i, children_pids[i] ); */
                     connected++;
                 }
             }
 
-            /*
-            sprintf(tmp, "4|%d|%d|%d|%d|<!|",
-                    pid, __index, status, connected);
-            */
-
-            /* Stampo nel buffer tante volte quanti device ho */
-            /*
-            for (i = 0; i < MAX_CHILDREN; i++) {
-                if (children_pids[i] != -1) {
-                    raw_info = get_raw_device_info(children_pids[i]);
-                    if(raw_info != NULL){
-                    //printf("INFO PER FIGLIO: %d di HUB %d: %s\n", children_pids[i], pid, raw_info);
-                    strcat(tmp, raw_info);
-                    strcat(tmp, "|!|");
-                    free(raw_info);
-                    }else{
-                        printf("Ti ho beccato, pezzo di merda\n");
-                    }
-                }
-            }
-
-            strcat(tmp, "!>");
-            //printf("TMP DI HUB %d: %s\n",pid,  tmp);
-            sprintf(message.mesg_text, "%s", tmp);
-            printf("HUB message: %s\n", message.mesg_text);
-            msgsnd(msgid_pid, &message, sizeof(message), 0);
-            */
-
-            /*write(fd, tmp, MAX_BUF_SIZE); */
-            /*printf("INFO SENT\n"); */
-
+            /* Scrive su tmp le proprie raw_info
+             * pid|indice|status|numero di dipositiviconnessi <! le info di questi */
             sprintf(tmp, "4|%d|%d|%d|%d|<!|",
                     pid, __index, status, connected);
 
             /* Stampo nel buffer tante volte quanti device ho */
-
             for (i = 0; i < MAX_CHILDREN; i++) {
                 if (children_pids[i] != -1) {
+                    /* Prendo le raw_info del figlio con pid children_pids[i] */
                     raw_info = get_raw_device_info(children_pids[i]);
                     char raw_tmp[MAX_BUF_SIZE];
+                    /* Mi assicuro che split non corrompa raw_info */
                     sprintf(raw_tmp, "%s", raw_info);
-                    //printf("STO SPLITTANDO BELLA MERDA\n");
+                    /* Splitto le raw_info */
                     char** raw_split = split(raw_tmp);
-                    //printf("SONO IO IL STRONZO\n");
                     if (atoi(raw_split[3]) != status) {
+
+                        /* Se gli status non corrispondono sono in override */
                         override = 1;
+
+                        /* setta la "tipologia" di override */
                         if (status) {
                             status_override = 2;
                         } else {
@@ -205,17 +194,17 @@ int main(int argc, char* argv[]) {
                         }
                     }
                     if (raw_info != NULL) {
-                        /*printf("INFO PER FIGLIO: %d di HUB %d: %s\n", children_pids[i], pid, raw_info); */
+                        /* se non sono nulle le concateno in tmp */
                         strcat(tmp, raw_info);
                         strcat(tmp, "|!|");
                         free(raw_info);
-                    } else {
-                        // printf("Ti ho beccato, pezzo di merda\n");
                     }
                 }
             }
-
+            /* Chiudo la concatenazione */
             strcat(tmp, "!>");
+
+            /* Operazioni necessarie al passaggio dell'info di override */
             int sep = 0;
             for (i = 0; i < 20 && sep < 3 && (status_override == 2 || status_override == 3); i++) {
                 if (tmp[i] == '|') {
@@ -226,131 +215,123 @@ int main(int argc, char* argv[]) {
                     tmp[i + 1] = c;
                 }
             }
-            /*printf("TMP DI HUB %d: %s\n",pid,  tmp); */
+
+            /* Mando il messaggio relativo alle informazioni che mi sono richieste
+             * Sulla message queue relativa al pid */
             message.mesg_type = 1;
             sprintf(message.mesg_text, "%s", tmp);
-            /*printf("HUB message: %s\n", message.mesg_text); */
             msgsnd(msgid_pid, &message, sizeof(message), 0);
-            /*printf("MESSAGE SENT %s\n", message.mesg_text); */
         }
         if (flag_usr2) {
             flag_usr2 = 0;
             /* La finestra apre la pipe in lettura e ottiene cosa deve fare. */
             /* 0|.. -> spegni/accendi tutto */
             /* 1|.. -> attacca contenuto */
-            /* 2|.. -> toglie contenuto */
 
-            //printf("hub usr2: %d\n", pid);
-            /*read(fd, mall_tmp, MAX_BUF_SIZE);
-            printf("End Read: %s\n\n", mall_tmp);*/
+            /* Ricevo il messaggio relativo all'operazione da eseguire */
             msgrcv(msgid_pid, &message, sizeof(message), 1, 0);
             sprintf(tmp, "%s", message.mesg_text);
-            //printf("End Read: %s\n\n", tmp);
-            code = tmp[0] - '0';
-            /*printf("hub code: %d\n", code); */
 
+            /* Primo parametro è il codice dell'operazione */
+            code = tmp[0] - '0';
+
+            /* inizializzo la maschera booleana che indica se lo stato dei figli è concorde o meno con quello dell'hub */
             int j = 0;
             for (j = 0; j < MAX_CHILDREN; j++) {
                 over_index[j] = -1;
             }
 
-            // printf("Checking Override...\n");
+            /* Controllo lo stato */
             override = check_override(over_index);
-            //  printf("Override checked: %d\n", override);
+
+            /* code 0 => cambiamento di status */
             if (code == 0) {
-                /*printf("CODE 0\n"); */
+                /* cambio lo status */
                 status = !status;
-                printf("Status: %d\n", status);
                 for (i = 0; i < MAX_CHILDREN; i++) {
-                    if (children_pids[i] != -1 /*&& !over_index[i]*/) {
-                        //printf("Switching children[%d]; %d\n", i, children_pids[i]);
+                    if (children_pids[i] != -1) {
+                        /* Prendo le raw_info del figlio */
                         char* raw_info = get_raw_device_info(children_pids[i]);
+                        /* le splitto */
                         char** split_info = split(raw_info);
+                        /* Metodo che manda lo switch anche hai figli */
                         switch_child(atoi(split_info[2]), atoi(split_info[0]));
-                        //__switch(children_pids[i], "accensione", status ? "on" : "off", raw_info);
                     }
                 }
             }
+            /* Aggiunta di un nuovo figlio */
             if (code == 1) {
                 /* Devo rimuovere i primi due caratteri per passare i parametri nel modo corretto */
                 char* shifted_tmp = malloc(MAX_BUF_SIZE * sizeof(shifted_tmp));
                 strcpy(shifted_tmp, tmp);
                 shifted_tmp = shifted_tmp + 2;
+                /* Splitto il tmp attuale */
                 vars = split(shifted_tmp);
+                /* Metodo che si occupa dell'aggiunta del figlio */
                 __add_ex(vars, children_pids, MAX_CHILDREN);
-                sleep(1);
+                sleep(1); /* Blocco momentaneo al fine di garantire la sincronizzazione dei figli*/
+                /* chiamata alla switch degli interruttori dei figli */
                 switch_child(atoi(vars[2]), atoi(vars[0]));
-                //__switch_index(atoi(vars[2]), "accensione", status ? "on" : "off", children_pids);
                 free(vars);
                 free(shifted_tmp - 2);
             }
-            if (code == 2) {
-                /*printf("CODE 2\n"); */
-                vars = split(tmp);
-                for (i = 0; i < MAX_CHILDREN; i++) {
-                    if (children_pids[i] == atoi(vars[1])) {
-                        /*printf("BECCATO: childern_Pids: %d, atoi: %d\n", children_pids[i], atoi(vars[1])); */
-                        children_pids[i] = -1;
-                    }
-                }
-            }
         }
+        /* Chiamato nella link */
         if (flag_term) {
             term();
         }
+        /* Chiamato nella del diretta del figlio */
         if (flag_urg) {
             flag_urg = 0;
-            //printf("hub urg: %d\n", pid);
-            /*read(fd, mall_tmp, MAX_BUF_SIZE);
-            printf("End Read: %s\n\n", mall_tmp);*/
+            /* Riceve messaggio nella coda relativa al pid */
             msgrcv(msgid_pid, &message, sizeof(message), 1, 0);
             sprintf(tmp, "%s", message.mesg_text);
-            //printf("End Read: %s\n\n", tmp);
+            /* splitto le variabili vars[0] = 2 vars[1] = pid del figlio eliminato. */
             vars = split(tmp);
+            /*Cerco il figlio e setto il suo pid (nel vettore) a -1*/
             for (i = 0; i < MAX_CHILDREN; i++) {
                 if (children_pids[i] == atoi(vars[1])) {
-                    /*printf("BECCATO: childern_Pids: %d, atoi: %d\n", children_pids[i], atoi(vars[1])); */
                     children_pids[i] = -1;
                 }
             }
         }
+        /* Chiamato nella del */
         if (flag_int) {
             int ppid = (int)getppid();
+            /* Se fosse la shell la situazione sarebbe risolta nel metodo stesso */
             if (ppid != shellpid) {
+                /* apre la messagequeue del padre (relativa a pid) */
                 key_t key_ppid = ftok("/tmp/ipc/mqueues", ppid);
                 int msgid_ppid = msgget(key_ppid, 0666 | IPC_CREAT);
+                /* Scrive 2|pid nella message queue*/
                 sprintf(message.mesg_text, "2|%d", pid);
                 message.mesg_type = 1;
                 msgsnd(msgid_ppid, &message, sizeof(message), 0);
+                /*segnale al padre di aver scritto sulla coda */
                 kill(ppid, SIGURG);
             }
+
+            /* Itera sui figli se sono diversi da uno segnala la terminazione */
             int i = 0;
-            int count = 0;
-            char* info;
-            char* intern;
             for (i = 0; i < MAX_CHILDREN; i++) {
                 if (children_pids[i] != -1) {
-                    count++;
-                    info = get_raw_device_info(children_pids[i]);
-                    /*printf("INFO WE HAVE!: %s\n", info); */
-                    sprintf(intern, "-%s", info);
-                    /*printf("INTERN: %s\n", intern); */
-                    strcat(tmp, intern);
                     kill(children_pids[i], SIGTERM);
                 }
             }
 
+            /* Elimina la messagequeue relativa all'indice */
             msgctl(msgid_pid, IPC_RMID, NULL);
             exit(0);
         }
-        //sleep(10);
     }
 
     return 0;
 }
 
+
+/* a SIGTERM(=> O durante una link, oppure a seguito della del sul padre) ricevuta
+ * un Hub scrive nella code relativa all'indice le informazioni relative ad i figli separati da "-" */
 void term() {
-    int done = 1;
     int i;
     char tmp[MAX_BUF_SIZE - sizeof(int)]; /* POI VA CONCATENATO */
 
@@ -358,65 +339,35 @@ void term() {
     char intern[MAX_BUF_SIZE];
     char* info;
 
-    /*printf("IN TERM FOR HUB: %d\n", __index); */
-    /*  if (ppid != shellpid) {
-        kill(ppid, SIGUSR2);
-        get_pipe_name(ppid, pipe_str); 
-        fd = open(pipe_str, O_RDWR);
-        sprintf(tmp, "2|%d", (int)getpid());
-        write(fd, tmp, sizeof(tmp));
-    }
-
-    for (i = 0; i < MAX_CHILDREN; i++) {
-        if (children_pids[i] != -1) {
-            printf("Chiamata link_ex per figlio %d\n", children_pids[i]);
-            ret = __link_ex(children_pids[i], ppid, shellpid);
-            if (ret != 1) {
-                done = 0;
-            }
-        }
-    }
-*/
-
+    /* inizia la concantenazione delle informazioni relative ai figli */
     sprintf(tmp, "-");
     for (i = 0; i < MAX_CHILDREN; i++) {
         if (children_pids[i] != -1) {
-            /*printf("Trying to send pids\n"); */
             count++;
-            /*printf("Trying to get INFO\n"); */
+            /* Richiede le info al proprio figlio */
             info = get_raw_device_info(children_pids[i]);
-            /*printf("INFO WE HAVE!: %s\n", info); */
+            /* Operazioni di concatenazione */
             sprintf(intern, "-%s", info);
-            /*printf("INTERN: %s\n", intern); */
             strcat(tmp, intern);
+            /* Segnala la terminazione del figlio (Con SIGTERM dato che siamo in una link o in una del)*/
             kill(children_pids[i], SIGTERM);
         }
     }
+    /* setto il tipo di messaggio */
     message.mesg_type = 1;
 
+    /* Mando il messaggio nella coda relativa all'indice */
     sprintf(message.mesg_text, "%d%s", count, tmp);
     msgsnd(msgid, &message, sizeof(message), 0);
-    /*kill(shellpid, SIGUSR2);
-    int ppid = (int)getppid();
-    if(ppid != shellpid){
-        key_t key_ppid = ftok("/tmp/ipc/mqueues", ppid);
-        int msgid_ppid = msgget(key_ppid, 0666 | IPC_CREAT);
-        sprintf(message.mesg_text, "2|%d", pid);
-        message.mesg_type = 1;
-        msgsnd(msgid_ppid, &message, sizeof(message), 0);
-        kill(ppid, SIGURG);
-    }
 
-    /*int ret = __link_ex(children_pids, ppid, shellpid); */
-
-    if (done) {
-        msgctl(msgid_pid, IPC_RMID, NULL);
-        exit(0);
-    } else {
-        printf("Errore nell'eliminazione.\n");
-    }
+    /* distruggo la message queue relativa al pid */
+    msgctl(msgid_pid, IPC_RMID, NULL);
+    exit(0);
 }
 
+
+/* Funzione chiamata in apertura che si occupa della lettura della coda relativa all'indice
+ * così da ottenere i figli che vanno aggiunti al proprio vettore dei figli */
 void read_msgqueue(int msgid) {
     int n_devices;
     int ret;
@@ -427,10 +378,10 @@ void read_msgqueue(int msgid) {
     char** vars;
     char** son_j;
 
-    // printf("Lettura figlio da aggiungere...\n");
+    /* Lettura messagequeu relativa indice se ritorna -1 è vuota, oppure già stata letta */
     ret = msgrcv(msgid, &message, sizeof(message), 1, IPC_NOWAIT);
-    //printf("Dovrei aggiungere figli: %s\n", message.mesg_text);
     if (ret != -1) {
+        /* Ottengo il numero di figli presenti*/
         q = 0;
         while (!(message.mesg_text[q] == '-')) {
             n_dev_str[q] = message.mesg_text[q];
@@ -438,18 +389,20 @@ void read_msgqueue(int msgid) {
         }
         n_dev_str[q] = '\0';
         n_devices = atoi(n_dev_str);
+        /* Se maggiore di 0 => Li aggiungo tramite add_ex */
         if (n_devices > 0) {
             __count = n_devices;
             sprintf(tmp_buf, "%s", message.mesg_text);
             vars = NULL;
+            /* vars conterrà le raw info dei figli in ogni indice abbiamo una stringa di raw_info */
             vars = split_sons(tmp_buf, __count);
             j = 0;
             while (j <= __count) {
                 if (j >= 1) {
-                    //printf("\nVars %d: %s\n", j, vars[j]);
+                    /* splitto le raw_info in var[j] */
                     son_j = split(vars[j]);
+                    /* aggiungo il figlio */
                     __add_ex(son_j, children_pids, MAX_CHILDREN);
-                    //printf("\nADD_EX GOOD\n");
                 }
                 j++;
             }
