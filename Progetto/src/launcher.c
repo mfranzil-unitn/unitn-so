@@ -11,17 +11,18 @@ int main(int argc, char *argv[]) {
     signal(SIGHUP, handle_sighup);
     signal(SIGINT, handle_sigint);
 
-    char(*buf)[MAX_BUF_SIZE];
+    
+    char(*buf)[MAX_BUF_SIZE];       /*buf: andrà a contenere la stringa dei comandi*/
     int cmd_n;                     /* numero di comandi disponibili */
     int device_pids[MAX_CHILDREN]; /* array contenenti i PID dei figli */
-    char *name;
+    char *name;                     /*Necessario per la stampa*/
     int j, i;
 
-    key_t key;
-    int msgid;
+    key_t key; /*Chiave messagequeue per comunicazione tra shell e launcher*/
+    int msgid;   /*msgid relativo*/
 
-    key_t key_sh;
-    int msgid_sh;
+    key_t key_sh; /*Chiave messagequeue per comunicazione del pid di shell tra tutti i dspositivi*/
+    int msgid_sh;  /*msgid relativo*/
 
     char c;
     name = get_shell_text();
