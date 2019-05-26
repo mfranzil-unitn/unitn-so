@@ -204,6 +204,7 @@ char **get_device_info(int pid) {
 }*/
 
 char *get_raw_device_info(int pid) {
+    //printf("get_raw_device_info(%d);", pid);
     /* const int MAX_ATTEMPTS = 3; */
     /*  lprintf("DEBUG: Attempt 0"); */
 
