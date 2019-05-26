@@ -190,16 +190,20 @@ int main(int argc, char* argv[]) {
                 char* raw_info = get_raw_device_info(children_pids[0]);
 
                 if (raw_info != NULL) {
-// MOdifica
-                //printf("INFO2: %d\n", atoi(raw_info[3]));
-                 /*   if (atoi(raw_info[3]) != status) {
-                        override = 1;
-                        if (status) {
-                             status_override = 2;
-                        } else {
-                            status_override = 3;
-                        }
-                    }*/
+
+                char raw_tmp[MAX_BUF_SIZE];
+                sprintf(raw_tmp, "%s", raw_info);
+                char** raw_split = split(raw_tmp);
+
+                if (atoi(raw_split[3]) != status) {
+                    override = 1;
+                    if (status) {
+                         status_override = 2;
+                    } else {
+                        status_override = 3;
+                    }
+                }
+
 
                     strcat(tmp, raw_info);
                     strcat(tmp, "|!|");

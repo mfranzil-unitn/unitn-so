@@ -272,12 +272,13 @@ void __print(char **vars) {
                vars[1], vars[2], atoi(vars[3]) ? "Aperto" : "Chiuso", vars[4]);
     } else if (strcmp(vars[0], HUB_S) == 0) {
         printf("Hub (PID %s, Indice %s)\nStato: %s\nDispositivi collegati: %s\n",
-               vars[1], vars[2], atoi(vars[3]) ? "Acceso" : "Spento", vars[4]);
+               vars[1], vars[2], (atoi(vars[3]) == 1 || atoi(vars[3]) == 2) ? "Acceso" : "Spento", vars[4]);
     } else if (strcmp(vars[0], TIMER_S) == 0) {
         printf(
-            "Timer (PID %s, Indice %s)\nStato: %s\nFascia oraria: %s%s:%s%s -> %s%s:%s%s\
+            "Timer (PID %s, Indice %s)%s\nStato: %s\nFascia oraria: %s%s:%s%s -> %s%s:%s%s \
         \nDispositivi collegati: %s\n",
-            vars[1], vars[2], atoi(vars[3]) ? "Acceso" : "Spento",
+            vars[1], vars[2], (atoi(vars[3]) == 2 || atoi(vars[3]) == 3) ? "  -> Override" : " ",
+            (atoi(vars[3]) == 1 || atoi(vars[3]) == 2) ? "Acceso" : "Spento",
             atoi(vars[4]) < 10 ? "0" : "", vars[4],
             atoi(vars[5]) < 10 ? "0" : "", vars[5],
             atoi(vars[6]) < 10 ? "0" : "", vars[6],
