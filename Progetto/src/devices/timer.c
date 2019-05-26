@@ -38,6 +38,7 @@ volatile int flag_usr2 = 0;
 volatile int flag_term = 0;
 volatile int flag_alarm = 0;
 volatile int flag_int = 0;
+volatile int flag_urg = 0;
 
 void term();
 void read_msgqueue(int msgid);
@@ -120,6 +121,9 @@ void sighandler_int(int sig) {
     if (sig == SIGINT) {
         flag_int = 1;
     }
+    if(sig == SIGURG){
+        flag_urg = 1;
+    }
 }
 
 int main(int argc, char* argv[]) {
@@ -159,6 +163,7 @@ int main(int argc, char* argv[]) {
     signal(SIGUSR2, sighandler_int);
     signal(SIGALRM, sighandler_int);
     signal(SIGINT, sighandler_int);
+    signal(SIGURG, sighandler_int);
 
     key = ftok("/tmp/ipc/mqueues", __index);
     msgid = msgget(key, 0666 | IPC_CREAT);
@@ -309,6 +314,23 @@ int main(int argc, char* argv[]) {
 
             msgctl(msgid_pid, IPC_RMID, NULL);
             exit(0);
+        }
+        if(flag_urg){
+            flag_urg = 0; 
+            char** vars;
+             flag_urg = 0;
+            //printf("hub urg: %d\n", pid);
+            /*read(fd, mall_tmp, MAX_BUF_SIZE);
+            printf("End Read: %s\n\n", mall_tmp);*/
+            msgrcv(msgid_pid, &message, sizeof(message), 1, 0);
+            sprintf(tmp, "%s", message.mesg_text);
+            //printf("End Read: %s\n\n", tmp);
+            vars = split(tmp);
+                if (children_pids[0] == atoi(vars[1])) {
+                    /*printf("BECCATO: childern_Pids: %d, atoi: %d\n", children_pids[i], atoi(vars[1])); */
+                    children_pids[0] = -1;
+                }
+            
         }
         //sleep(10);
     }
