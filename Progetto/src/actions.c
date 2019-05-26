@@ -368,7 +368,7 @@ void __list(int *children_pids) {
                     get_device_name(atoi(vars[0]), device_name);
                     device_name[0] += 'A' - 'a';
 
-                    printf("%s, (PID %s, Indice %s)\n", device_name, vars[1], vars[2]);
+                    printf("%s (PID %s, Indice %s)\n", device_name, vars[1], vars[2]);
                     /* Pulizia */
                     free(vars);
                 }
