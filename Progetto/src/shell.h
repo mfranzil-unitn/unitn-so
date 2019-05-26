@@ -20,13 +20,14 @@
                                 <label> in posizione <pos>, ad esempio:\n\
                                 \"switch 3 open on\" imposta per il dispositivo 3\n\
                                 l’interruttore “open” su “on” (ad esempio apre una finestra)\n\
-    info <id>                   mostra i dettagli del dispositivo\n"
+    info <id>                   mostra i dettagli del dispositivo\n\
+    exit                        uscire dalla shell\n"
 
 int add_shell(char buf[][MAX_BUF_SIZE], int *device_i, int *children_pids, char *__out_buf);
 
 void cleanup_sig(int sig);
 void handle_sig(int sig);
 void stop_sig(int sig);
-void link_child(int signal);
+void link_child(int param);
 
 #endif

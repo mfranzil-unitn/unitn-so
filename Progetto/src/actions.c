@@ -1,14 +1,22 @@
 #include "actions.h"
 
-void __switch(int index, char *action, char *position, int *children_pids) {
-    /* Prova a impostare un interruttore ACTION su POSITION di un certo DEVICE */
+/* wrapper per switch */
+void __switch_index(int index, char *action, char *position, int *children_pids) {
+    int pid;
     char *device_info;
-    int pid, fd, status;
-    char **vars;
-    char pipe_str[MAX_BUF_SIZE];
-    char pipe_message[MAX_BUF_SIZE]; /* buffer per la pipe */
-
     pid = get_device_pid(index, children_pids, &device_info);
+    __switch(pid, action, position, device_info);
+}
+
+/* imposta un interruttore ACTION su POSITION di un certo DEVICE */
+void __switch(int pid, char *action, char *position, char *device_info) {
+    int status;
+    char **vars;
+    char buffer[MAX_BUF_SIZE]; /* buffer per la pipe */
+    int __index;
+    key_t key;
+    int msgid;
+    char switch_names[6][MAX_BUF_SIZE] = {"-", "accensione", "apertura", "apertura", "accensione", "accensione"};
 
     if (pid == -1) {
         printf("Errore! Non esiste questo dispositivo.\n");
@@ -20,30 +28,35 @@ void __switch(int index, char *action, char *position, int *children_pids) {
         return;
     }
 
-    printf("DEVICE INFO DELLO SWITCH: %s\n", device_info);
     vars = split(device_info);
-    get_pipe_name(pid, pipe_str); /* Nome della pipe */
+    __index = atoi(vars[2]);
 
-    fd = open(pipe_str, O_RDWR);
+    if (strcmp(action, "generic_on_off") == 0) {
+         action = switch_names[atoi(vars[0])];
+    }
+
+    key = ftok("/tmp/ipc/mqueues", pid);
+    msgid = msgget(key, 0666 | IPC_CREAT);
+    message.mesg_type = 1;
 
     if (strcmp(vars[0], BULB_S) == 0) { /* Lampadina */
         if (strcmp(action, "accensione") == 0) {
             status = atoi(vars[3]);
-            sprintf(pipe_message, "0|0");
-            /*printf("pipe message: %s\n", pipe_message); */
-
+            sprintf(buffer, "0|0");
             if (strcmp(position, "on") == 0 && status == 0) {
-                write(fd, pipe_message, MAX_BUF_SIZE);
+                sprintf(message.mesg_text, "%s", buffer);
+                msgsnd(msgid, &message, sizeof(message), 0);
                 kill(pid, SIGUSR2);
-                printf("Lampadina accesa.\n");
+                printf("Lampadina %d accesa.\n", __index);
             } else if (strcmp(position, "off") == 0 && status == 1) {
-                write(fd, pipe_message, MAX_BUF_SIZE);
+                sprintf(message.mesg_text, "%s", buffer);
+                msgsnd(msgid, &message, sizeof(message), 0);
                 kill(pid, SIGUSR2); /* sleep(1) */
-                printf("Lampadina spenta.\n");
+                printf("Lampadina %d spenta.\n", __index);
             } else if (strcmp(position, "off") == 0 && status == 0) { /* Spengo una lampadina spenta */
-                printf("Stai provando a spegnere una lampadina spenta!\n");
+                printf("La lampadina %d è già spenta.\n", __index);
             } else if (strcmp(position, "on") == 0 && status == 1) { /* Accendo una lampadina accesa */
-                printf("Stai provando a accendere una lampadina accesa!\n");
+                printf("La lampadina %d è già accesa.\n", __index);
             } else {
                 printf("Sintassi non corretta. Sintassi: switch <bulb> accensione <on/off>\n");
             }
@@ -53,47 +66,51 @@ void __switch(int index, char *action, char *position, int *children_pids) {
     } else if (strcmp(vars[0], FRIDGE_S) == 0) { /* Fridge */
         if (strcmp(action, "apertura") == 0) {
             status = atoi(vars[3]);
-            sprintf(pipe_message, "0|0");
-
+            sprintf(buffer, "0|0");
             if (strcmp(position, "on") == 0 && status == 0) {
-                write(fd, pipe_message, MAX_BUF_SIZE);
-                kill(pid, SIGUSR2); /* sleep(1) */
-                printf("Frigorifero aperto.\n");
+                sprintf(message.mesg_text, "%s", buffer);
+                msgsnd(msgid, &message, sizeof(message), 0); /* invio sulla message queue */
+                kill(pid, SIGUSR2);
+                printf("Frigorifero %d aperto.\n", __index);
             } else if (strcmp(position, "off") == 0 && status == 1) {
-                write(fd, pipe_message, MAX_BUF_SIZE);
-                kill(pid, SIGUSR2); /* sleep(1) */
-                printf("Frigorifero chiuso.\n");
+                sprintf(message.mesg_text, "%s", buffer);
+                msgsnd(msgid, &message, sizeof(message), 0); /* invio sulla message queue */
+                kill(pid, SIGUSR2);
+                printf("Frigorifero %d chiuso.\n", __index);
             } else if (strcmp(position, "off") == 0 && status == 0) { /* Chiudo frigo già chiuso */
-                printf("Stai provando a chiudere un frigorifero già chiuso.\n");
+                printf("Il frigorifero %d è già chiuso.\n", __index);
             } else if (strcmp(position, "on") == 0 && status == 1) { /* Apro frigo già aperto */
-                printf("Stai provando a aprire un frigorifero già aperto.\n");
+                printf("Il frigorifero %d è già aperto.\n", __index);
             } else {
                 printf("Sintassi non corretta. Sintassi: switch <fridge> apertura <on/off>\n");
             }
         } else if (strcmp(action, "temperatura") == 0) {
             if ((atoi(position) >= -10 && atoi(position) < 0) || (atoi(position) > 0 && atoi(position) <= 15) || strcmp(position, "0") == 0) {
-                sprintf(pipe_message, "1|%s", position);
-                write(fd, pipe_message, MAX_BUF_SIZE);
-                kill(pid, SIGUSR2); /* sleep(1) */
-                printf("Temperatura modificata con successo a %s°C.\n", position);
+                sprintf(buffer, "1|%s", position);
+                sprintf(message.mesg_text, "%s", buffer);
+                msgsnd(msgid, &message, sizeof(message), 0); /* invio sulla message queue */
+                kill(pid, SIGUSR2);
+                printf("Temperatura del frigo %d modificata con successo a %s°C.\n", __index, position);
             } else {
                 printf("Sintassi non corretta. Sintassi: switch <fridge> temperatura <-10 - 15>\n");
             }
         } else if (strcmp(action, "delay") == 0) {
             if ((atoi(position) > 0 && atoi(position) <= (60 * 5)) || strcmp(position, "0") == 0) { /* Massimo 5 minuti */
-                sprintf(pipe_message, "2|%s", position);
-                write(fd, pipe_message, MAX_BUF_SIZE);
-                kill(pid, SIGUSR2); /* sleep(1) */
-                printf("Tempo di richiusura automatico modificato con successo a %s secondi.\n", position);
+                sprintf(buffer, "2|%s", position);
+                sprintf(message.mesg_text, "%s", buffer);
+                msgsnd(msgid, &message, sizeof(message), 0); /* invio sulla message queue */
+                kill(pid, SIGUSR2);
+                printf("Tempo di richiusura automatico del frigo %d modificato con successo a %s secondi.\n", __index, position);
             } else {
                 printf("Sintassi non corretta. Sintassi: switch <fridge> delay <0-300>.\n");
             }
         } else if (strcmp(action, "riempimento") == 0) { /* Possibile solo manualmente (launcher) */
             if ((atoi(position) > 0 && atoi(position) <= 100) || strcmp(position, "0") == 0) {
-                sprintf(pipe_message, "3|%s", position);
-                write(fd, pipe_message, MAX_BUF_SIZE);
-                kill(pid, SIGUSR2); /* sleep(1) */
-                printf("Percentuale di riempimento modificato con successo a %s. \n", position);
+                sprintf(buffer, "3|%s", position);
+                sprintf(message.mesg_text, "%s", buffer);
+                msgsnd(msgid, &message, sizeof(message), 0); /* invio sulla message queue */
+                kill(pid, SIGUSR2);
+                printf("Percentuale di riempimento del frigo %d modificato con successo a %s. \n", __index, position);
             } else {
                 printf("Sintassi non corretta. Sintassi: switch <fridge> riempimento <0-100>.\n");
             }
@@ -106,21 +123,22 @@ void __switch(int index, char *action, char *position, int *children_pids) {
             if (((strcmp(action, "apertura") != 0) || (strcmp(action, "apertura") == 0 && strcmp(position, "off") == 0)) &&
                 ((strcmp(action, "chiusura") != 0) || (strcmp(action, "chiusura") == 0 && strcmp(position, "off") == 0))) {
                 printf("Operazione non permessa: i pulsanti sono solo attivi!\n");
-                /* se off non permetto */
+                /* se posizione è off non permetto alcuna azione */
                 return;
             }
-
             status = atoi(vars[3]);
-            sprintf(pipe_message, "0|0");
+            sprintf(buffer, "0|0");
 
             if (strcmp(action, "apertura") == 0 && status == 0) {
-                write(fd, pipe_message, MAX_BUF_SIZE);
-                kill(pid, SIGUSR2); /* sleep(1) */
-                printf("Finestra aperta.\n");
+                sprintf(message.mesg_text, "%s", buffer);
+                msgsnd(msgid, &message, sizeof(message), 0); /* invio sulla message queue */
+                kill(pid, SIGUSR2);
+                printf("Finestra %d aperta.\n", __index);
             } else if (strcmp(action, "chiusura") == 0 && status == 1) {
-                write(fd, pipe_message, MAX_BUF_SIZE);
-                kill(pid, SIGUSR2); /* sleep(1) */
-                printf("Finestra chiusa.\n");
+                sprintf(message.mesg_text, "%s", buffer);
+                msgsnd(msgid, &message, sizeof(message), 0); /* invio sulla message queue */
+                kill(pid, SIGUSR2);
+                printf("Finestra %d chiusa.\n", __index);
             } else {
                 printf("Operazione non permessa: pulsante già premuto.\n");
             }
@@ -130,20 +148,22 @@ void __switch(int index, char *action, char *position, int *children_pids) {
     } else if (strcmp(vars[0], HUB_S) == 0) { /* Hub */
         if (strcmp(action, "accensione") == 0) {
             status = atoi(vars[3]);
-            sprintf(pipe_message, "0|0");
+            sprintf(buffer, "0|0");
 
-            if (strcmp(position, "on") == 0 && status == 0) {
-                write(fd, pipe_message, MAX_BUF_SIZE);
-                kill(pid, SIGUSR2); /* sleep(1) */
-                printf("Hub acceso.\n");
-            } else if (strcmp(position, "off") == 0 && status == 1) {
-                write(fd, pipe_message, MAX_BUF_SIZE);
-                kill(pid, SIGUSR2); /* sleep(1) */
-                printf("Hub spento.\n");
-            } else if (strcmp(position, "off") == 0 && status == 0) { /* Spengo un hub spento */
-                printf("Stai provando a spegnere un hub spenta!\n");
-            } else if (strcmp(position, "on") == 0 && status == 1) { /* Accendo un hub acceso */
-                printf("Stai provando a accendere un hub acceso!\n");
+            if (strcmp(position, "on") == 0 && (status == 0 || status == 3)) {
+                sprintf(message.mesg_text, "%s", buffer);
+                msgsnd(msgid, &message, sizeof(message), 0); /* invio sulla message queue */
+                kill(pid, SIGUSR2);
+                printf("Hub %d acceso.\n", __index);
+            } else if (strcmp(position, "off") == 0 && (status == 1 || status == 2)) {
+                sprintf(message.mesg_text, "%s", buffer);
+                msgsnd(msgid, &message, sizeof(message), 0); /* invio sulla message queue */
+                kill(pid, SIGUSR2);
+                printf("Hub %d spento.\n", __index);
+            } else if (strcmp(position, "off") == 0 && (status == 0 || status == 3)) { /* Spengo un hub spento */
+                printf("Hub %d già spento.\n", __index);
+            } else if (strcmp(position, "on") == 0 && (status == 1 || status == 2)) { /* Accendo un hub acceso */
+                printf("Hub %d già acceso.\n", __index);
             } else {
                 printf("Sintassi non corretta. Sintassi: switch <hub> accensione <on/off>\n");
             }
@@ -151,36 +171,57 @@ void __switch(int index, char *action, char *position, int *children_pids) {
             printf("Operazione non permessa su un hub!\nOperazioni permesse: accensione\n");
         }
     } else if (strcmp(vars[0], TIMER_S) == 0) {
-        if (strcmp(action, "orario") == 0) {
+        if (strcmp(action, "accensione") == 0) {
+            status = atoi(vars[3]);
+            sprintf(buffer, "0|0");
+
+            if (strcmp(position, "on") == 0 && (status == 0 || status == 3)) {
+                sprintf(message.mesg_text, "%s", buffer);
+                msgsnd(msgid, &message, sizeof(message), 0); /* invio sulla message queue */
+                kill(pid, SIGUSR2);
+                printf("Timer %d acceso.\n", __index);
+            } else if (strcmp(position, "off") == 0 && (status == 1 || status == 2)) {
+                sprintf(message.mesg_text, "%s", buffer);
+                msgsnd(msgid, &message, sizeof(message), 0);
+                kill(pid, SIGUSR2); /* sleep(1) */
+                printf("Timer %d spento.\n", __index);
+            } else if (strcmp(position, "off") == 0 && (status == 0 || status == 3)) { /* Spengo un timer spento */
+                printf("Timer %d già spento.\n", __index);
+            } else if (strcmp(position, "on") == 0 && (status == 1 || status == 2)) { /* Accendo un timer acceso */
+                printf("Timer %d già acceso.\n", __index);
+            } else {
+                printf("Sintassi non corretta. Sintassi: switch <timer> accensione <on/off>\n");
+            }
+        } else if (strcmp(action, "orario") == 0) {
             int h_start, m_start, h_end, m_end;
             /* Aggiungere controlli sugli orari */
             int scan = sscanf(position, "%d:%d->%d:%d", &h_start, &m_start, &h_end, &m_end);
             if (scan != 4 || h_start < 0 || h_start > 23 || h_end < 0 || h_end > 59 || h_start > h_end || m_start > m_end) {
                 printf("Formattazione degli orari sbagliata. Formato (24 ore): \"HH:MM -> HH:MM\"\n");
             } else {
-                sprintf(pipe_message, "0|%d|%d|%d|%d", h_start, m_start, h_end, m_end);
-                write(fd, pipe_message, MAX_BUF_SIZE);
+                sprintf(buffer, "3|%d|%d|%d|%d", h_start, m_start, h_end, m_end);
+                sprintf(message.mesg_text, "%s", buffer);
+                msgsnd(msgid, &message, sizeof(message), 0);
                 kill(pid, SIGUSR2);
-                printf("Timer settato dalle ore %d:%d alle ore %d:%d\n", h_start, m_start, h_end, m_end);
+                printf("Timer %d settato dalle ore %d:%d alle ore %d:%d\n", __index, h_start, m_start, h_end, m_end);
             }
         } else {
-            printf("Operazione non permessa su un hub!\nOperazioni permesse: orario\n");
+            printf("Operazione non permessa su un timer!\nOperazioni permesse: <accensione/orario>\n");
         }
     } else { /* tutti gli altri dispositivi */
         printf("Dispositivo non supportato.\n");
     }
-    close(fd);
     free(vars);
 }
 
+/* chiede le informazioni ai device in base al'id */
 void __info(int index, int *children_pids) {
     char *info = NULL;
     int pid;
-    /*printf("PID info: %d\n", pid);*/
     char **info_p = NULL;
 
     pid = get_device_pid(index, children_pids, &info);
-       
+
     if (pid == -1) {
         printf("Errore! Non esiste questo dispositivo.\n");
         return;
@@ -188,6 +229,7 @@ void __info(int index, int *children_pids) {
 
     if (info == NULL) {
         printf("Errore di connessione (PID %d)\n", pid);
+        return;
     }
 
     if (strncmp(info, HUB_S, 1) != 0 && strncmp(info, TIMER_S, 1) != 0) {
@@ -196,16 +238,18 @@ void __info(int index, int *children_pids) {
     } else {
         info = get_raw_device_info(pid);
 
-        if (strncmp(info, HUB_S, 1) == 0 || strncmp(info, TIMER_S, 1) == 0) {
+        if (strncmp(info, HUB_S, 1) == 0) {
             hub_tree_parser(info);
         } else {
             info_p = split(info);
             __print(info_p);
         }
     }
+
     free(info);
 }
 
+/* stampa le informazioni */
 void __print(char **vars) {
     if (strcmp(vars[0], BULB_S) == 0) {
         /* Lampadina - parametri: tipo, pid, indice, stato, tempo di accensione */
@@ -224,16 +268,25 @@ void __print(char **vars) {
                vars[1], vars[2], atoi(vars[3]) ? "Aperto" : "Chiuso", vars[4]);
     } else if (strcmp(vars[0], HUB_S) == 0) {
         printf("Hub (PID %s, Indice %s)\nStato: %s\nDispositivi collegati: %s\n",
-               vars[1], vars[2], atoi(vars[3]) ? "Acceso" : "Spento", vars[4]);
+               vars[1], vars[2], (atoi(vars[3]) == 1 || atoi(vars[3]) == 2) ? "Acceso" : "Spento", vars[4]);
     } else if (strcmp(vars[0], TIMER_S) == 0) {
-        printf("Timer (PID %s, Indice %s)\nStato: %s\nFascia oraria: %s:%s -> %s:%s\nDispositivi collegati: %s\n",
-               vars[1], vars[2], atoi(vars[3]) ? "Acceso" : "Spento", vars[4], vars[5], vars[6], vars[7], vars[8]);
+        printf(
+            "Timer (PID %s, Indice %s)%s\nStato: %s\nFascia oraria: %s%s:%s%s -> %s%s:%s%s \
+        \nDispositivi collegati: %s\n",
+            vars[1], vars[2], (atoi(vars[3]) == 2 || atoi(vars[3]) == 3) ? "  -> Override" : " ",
+            (atoi(vars[3]) == 1 || atoi(vars[3]) == 2) ? "Acceso" : "Spento",
+            atoi(vars[4]) < 10 ? "0" : "", vars[4],
+            atoi(vars[5]) < 10 ? "0" : "", vars[5],
+            atoi(vars[6]) < 10 ? "0" : "", vars[6],
+            atoi(vars[7]) < 10 ? "0" : "", vars[7],
+            vars[8]);
     } else {
         printf("Dispositivo non supportato.\n");
     }
 }
 
-int __add(char *device, int device_index, int *children_pids, char *__out_buf) {
+/* aggiungo */
+int __add(char *device, int device_index, int *children_pids, const int devices_number, char *__out_buf) {
     int actual_index = -1;
     pid_t pid;
     int i; /* del ciclo */
@@ -242,14 +295,14 @@ int __add(char *device, int device_index, int *children_pids, char *__out_buf) {
     char program_name[MAX_BUF_SIZE / 4];
     char device_name[MAX_BUF_SIZE];
 
-    for (i = 0; i < MAX_CHILDREN; i++) {
+    for (i = 0; i < devices_number; i++) {
         if (children_pids[i] == -1) {
             actual_index = i;
             break;
         }
     }
 
-    if (i == MAX_CHILDREN) {
+    if (i == devices_number) {
         sprintf(__out_buf, "Non c'è più spazio! Rimuovi qualche dispositivo.\n");
         return 0;
     }
@@ -262,25 +315,23 @@ int __add(char *device, int device_index, int *children_pids, char *__out_buf) {
         /* Conversione a stringa dell'indice */
         sprintf(index_str, "%d", device_index);
         sprintf(program_name, "./%s%s", DEVICES_POSITIONS, device);
-        key_t key_index = ftok("/tmp/ipc/mqueues", device_index);
-        int msgid_index = msgget(key_index, 0666 | IPC_CREAT | IPC_EXCL);
-        message.mesg_type = 1;
-
-        msgrcv(msgid_index, &message, sizeof(message), 1, IPC_NOWAIT);
         execlp(program_name, program_name, index_str, pipe_str, NULL);
         exit(0);
     } else { /* Padre */
         children_pids[actual_index] = pid;
+        key_t key = ftok("/tmp/ipc/mqueues", device_index);
+        int msgid = msgget(key, 0666 | IPC_CREAT);
+        if (msgid = -1) {
+            msgrcv(msgid, &message, sizeof(message), 1, IPC_NOWAIT);
+        }
         get_device_name_str(device, device_name);
         sprintf(__out_buf, "Aggiunto un dispositivo di tipo %s con PID %d e indice %d\n",
                 device_name, pid, device_index);
     }
     return 1;
-    /*  return 1; */
 }
 
 void __list(int *children_pids) {
-    /* prende come input l'indice/nome del dispositivo, ritorna il PID */
     int i;
     char **vars = NULL;
     char *tmp;
@@ -315,7 +366,7 @@ void __list(int *children_pids) {
     }
 }
 
-void __del(int index, int *children_pids, char *__out_buf, int flag) {
+void __del(int index, int *children_pids, char *__out_buf) {
     char *raw_device_info = NULL;
     char **vars;
     int pid;
@@ -324,6 +375,7 @@ void __del(int index, int *children_pids, char *__out_buf, int flag) {
     int i;
 
     pid = get_device_pid(index, children_pids, &raw_device_info);
+    //raw_device_info = get_raw_device_info(pid);
 
     if (pid == -1) {
         sprintf(__out_buf, "Errore! Non esiste questo dispositivo.\n");
@@ -342,55 +394,8 @@ void __del(int index, int *children_pids, char *__out_buf, int flag) {
 
     free(vars);
 
-    printf("STRING: %s\n", raw_device_info);
-    printf("THE PID IS: %d\n", pid);
-    if(flag){
-        key_t key = ftok("/tmp/ipc/mqueues", pid);
-        int msgid = msgget(key, 0666 | IPC_CREAT);
-        message.mesg_type = 1;
-        sprintf(message.mesg_text, "SENDPID");
-        msgsnd(msgid, &message, sizeof(message), 0);
-    }
     kill(pid, SIGTERM);
     remove(pipe_str); /* RIP pipe */
-    /*if(flag){
-        int q = 0;
-        int n_devices;
-        int __count;
-        int j;
-        char tmp_buf[MAX_BUF_SIZE];
-        char** son_j;
-        char** vars_int;
-        key_t key = ftok("/tmp/ipc/mqueues", index);
-        int msgid = msgget(key, 0666 | IPC_CREAT);
-        int ret = msgrcv(msgid, &message, sizeof(message), 1 , IPC_NOWAIT);
-
-        if(ret!=-1){
-        char n_dev_str[MAX_BUF_SIZE];
-        while (!(message.mesg_text[q] == '-')) {
-            n_dev_str[q] = message.mesg_text[q];
-            q++;
-        }
-        n_dev_str[q] = '\0';
-        n_devices = atoi(n_dev_str);
-        if (n_devices > 0) {
-            __count = n_devices;
-            sprintf(tmp_buf, "%s", message.mesg_text);
-            vars_int = NULL;
-            vars_int = split_sons(tmp_buf, __count);
-            j = 0;
-            while (j <= __count) {
-                if (j >= 1) {
-                    printf("\nVars %d: %s\n", j, vars_int[j]);
-                    son_j = split(vars_int[j]);
-                    __add_ex(son_j, children_pids);
-                    printf("\nADD_EX GOOD\n");
-                }
-                j++;
-            }
-        }
-        }
-    }*/
 
     for (i = 0; i < MAX_CHILDREN; i++) {
         if (children_pids[i] == pid) {
@@ -403,13 +408,14 @@ void __del(int index, int *children_pids, char *__out_buf, int flag) {
 void __link(int index, int controller, int *children_pids) {
     char *raw_device_info = NULL;
     char *raw_controller_info = NULL;
-    int device_pid, controller_pid;/*, fd;*/
+    int device_pid, controller_pid; /*, fd;*/
     char buf[MAX_BUF_SIZE];
     char __out_buf[MAX_BUF_SIZE];
-   /* char controller_pipe_name[MAX_BUF_SIZE];*/
 
     key_t key;
     int msgid;
+
+    int t;
 
     device_pid = get_device_pid(index, children_pids, &raw_device_info);
 
@@ -435,19 +441,16 @@ void __link(int index, int controller, int *children_pids) {
         return;
     }
 
+    printf("Spostamento in corso...\n");
+    sleep(1);
+
     if (is_controller(controller_pid, raw_controller_info)) {
         if (!controller_is_full(controller_pid, raw_controller_info)) {
             sprintf(buf, "1|");
             strcat(buf, raw_device_info);
-            free(raw_device_info);
-            free(raw_controller_info);
 
-            __del(index, children_pids, __out_buf,0);
+            __del(index, children_pids, __out_buf);
 
-            /*get_pipe_name(controller_pid, controller_pipe_name);
-
-            fd = open(controller_pipe_name, O_RDWR);
-            write(fd, buf, MAX_BUF_SIZE);*/
 
             key = ftok("/tmp/ipc/mqueues", controller_pid);
             msgid = msgget(key, 0666 | IPC_CREAT);
@@ -457,7 +460,11 @@ void __link(int index, int controller, int *children_pids) {
             kill(controller_pid, SIGUSR2);
 
             printf("Spostato l'oggetto %d sotto l'oggetto %d\n", index, controller);
-            /*close(fd);*/
+            printf("Controllo dello stato dei dispositivi figli...\n");
+            sleep(2);
+
+            free(raw_device_info);
+            free(raw_controller_info);
         } else {
             printf("Operazione non permessa. Il dispositivo %d è già pieno. Eliminare qualche figlio.\n", controller);
         }
@@ -466,33 +473,31 @@ void __link(int index, int controller, int *children_pids) {
     }
 }
 
-int __add_ex(char **vars, int *children_pids) {
+/* collego figli dopo una link */
+int __add_ex(char **vars, int *children_pids, const int devices_number) {
     char __out_buf[MAX_BUF_SIZE];
     if (strcmp(vars[0], BULB_S) == 0) { /* Lampadina */
-        return __add("bulb", atoi(vars[2]), children_pids, __out_buf);
+        return __add("bulb", atoi(vars[2]), children_pids, devices_number, __out_buf);
         /* Chiaramente minchia posso replicare il time_on o lo stato... */
         /* se scollego una lampadina quella si spegne */
     } else if (strcmp(vars[0], FRIDGE_S) == 0) { /* Frigo */
-        return __add("fridge", atoi(vars[2]), children_pids, __out_buf);
+        return __add("fridge", atoi(vars[2]), children_pids, devices_number, __out_buf);
         /*    .... aggiungere la temperatura eventualmente riempimento etc */
     } else if (strcmp(vars[0], WINDOW_S) == 0) { /* Frigo */
-        return __add("window", atoi(vars[2]), children_pids, __out_buf);
+        return __add("window", atoi(vars[2]), children_pids, devices_number, __out_buf);
     } else if (strcmp(vars[0], HUB_S) == 0) {
-        return __add("hub", atoi(vars[2]), children_pids, __out_buf);
+        return __add("hub", atoi(vars[2]), children_pids, devices_number, __out_buf);
     } else if (strcmp(vars[0], TIMER_S) == 0) {
-        return __add("timer", atoi(vars[2]), children_pids, __out_buf);
+        return __add("timer", atoi(vars[2]), children_pids, devices_number, __out_buf);
     } else {
         printf("Da implementare...");
         return 0;
     }
 }
 
-int hub_tree_constructor(char *__buf, int *children_pids) {
+int hub_tree_constructor(char *__buf, int *children_pids, const int devices_number) {
     char *tokenizer = strtok(__buf, "|");
     char *old = NULL;
-    /*printf("Level %d\n", level); */
-
-    /* DISPOSITIVO; PID; ID */
 
     char **vars;
     int i = 0;
@@ -503,25 +508,23 @@ int hub_tree_constructor(char *__buf, int *children_pids) {
         if (strcmp(tokenizer, "<!") == 0) {
             to_be_added += atoi(old) - 1;
             i = 0;
-            __add_ex(vars, children_pids);
-            /* segnarsi chi è il padre e poi fare link */
+            __add_ex(vars, children_pids, devices_number);
         } else if (strcmp(tokenizer, "!>") == 0) {
             if (strcmp(old, "<!") != 0 && strcmp(old, "!") != 0 && to_be_added > 0) {
                 i = 0;
 
-                __add_ex(vars, children_pids);
+                __add_ex(vars, children_pids, devices_number);
                 to_be_added--;
             }
         } else if (strcmp(tokenizer, "!") == 0) {
             if (strcmp(old, "!>") != 0 && to_be_added > 0) {
                 i = 0;
 
-                __add_ex(vars, children_pids);
+                __add_ex(vars, children_pids, devices_number);
                 to_be_added--;
             }
         } else {
             vars[i++] = tokenizer;
-            /*printf("%s, ", tokenizer); */
         }
         old = tokenizer;
         tokenizer = strtok(NULL, "|");
@@ -530,120 +533,26 @@ int hub_tree_constructor(char *__buf, int *children_pids) {
     return -1;
 }
 
-int __link_ex(int son_pid, int parent_pid, int shellpid) {
-    int controller;
-    char *tmp_controller;
-    char **parent_info;
-    char buf[MAX_BUF_SIZE];
-    char tmp[1024];
-    char *son_info;
-    char **son_info_split;
-    int index;
-    char controller_pipe_name[MAX_BUF_SIZE];
-    int fd;
+void del_direct(int index, int *children_pids, char *__out_buf) {
+    char *device_info;
+    int pid;
+    char device_name[MAX_BUF_SIZE];
+    char **vars;
 
-    son_info = get_raw_device_info(son_pid);
+    pid = get_device_pid(index, children_pids, &device_info);
+    vars = split(device_info);
+    get_device_name(atoi(vars[0]), device_name);
+    
 
-    if (son_info == NULL) {
-        printf("Errore di comunicazione (PID: %d)\n", son_pid);
-        return -1;
-    }
+    sprintf(__out_buf, "Dispositivo di tipo %s con PID %s e indice %s rimosso.\n",
+            device_name, vars[1], vars[2]);
 
-    if (parent_pid != shellpid) {
-        tmp_controller = get_raw_device_info(parent_pid);
-
-        if (tmp_controller == NULL) {
-            printf("Errore di comunicazione (PID: %d)\n", parent_pid);
-            return -1;
+    kill(pid, SIGINT);
+    int i;
+    for (i = 0; i < MAX_CHILDREN; i++) {
+        if (children_pids[i] == pid) {
+            children_pids[i] = -1;
         }
-
-        parent_info = split(tmp_controller);
-        controller = atoi(parent_info[2]);
-    } else {
-        controller = 0;
     }
-
-    /*printf("Getting son info\n"); */
-    sprintf(buf, "1|%s", son_info);
-    printf("Buf: %s\n", buf);
-    sprintf(tmp, "%s", son_info);
-    son_info_split = split(tmp);
-    index = atoi(son_info_split[2]);
-
-    /*Deleting son */
-    /*printf("Deleting\n"); */
-    kill(son_pid, SIGTERM);
-
-    get_pipe_name(parent_pid, controller_pipe_name);
-
-    /*printf("Killing %d\n", parent_pid); */
-    kill(parent_pid, SIGUSR2); /* sleep(1) */
-    fd = open(controller_pipe_name, O_RDWR);
-    write(fd, buf, MAX_BUF_SIZE);
-
-    printf("Spostato l'oggetto %d sotto l'oggetto %d\n", index, controller);
-    close(fd);
-
-    free(son_info);
-
-    return 1;
 }
 
-/* int __link_ex(int *son_pids, int parent_pid, int shellpid) {
-    int controller;
-    char buf[MAX_BUF_SIZE];
-    int count = 0;
-    int i = 0;
-    char *tmp_controller;
-    char **parent_info;
-
-    int son_pid;
-    char tmp[MAX_BUF_SIZE];
-    char **son_info;
-    int index;
-
-    char buffer[MAX_BUF_SIZE + 24];
-    char controller_pipe_name[MAX_BUF_SIZE];
-
-    int fd;
-
-    printf("LINK_EX\n");
-
-    if (parent_pid != shellpid) {
-        tmp_controller = get_raw_device_info(parent_pid);
-        parent_info = split(tmp_controller);
-        controller = atoi(parent_info[2]);
-    } else {
-        controller = 0;
-    }
-
-    sprintf(buf, "-");
-    for (i = 0; i < MAX_CHILDREN; i++) {
-        printf("SON: %d\n", son_pids[i]);
-        if (son_pids[i] != -1) {
-            count++;
-            son_pid = son_pids[i];
-            lprintf("DEBUG: Getting son: %d info\n", son_pid);
-            sprintf(tmp, "%s-", get_raw_device_info(son_pid));
-            lprintf("DEBUG: TMP_Link: %s\n", tmp);
-            strcat(buf, tmp);
-            lprintf("DEBUG: BUF of %d: %s", son_pid, buf);
-            son_info = split(tmp);
-            index = atoi(son_info[2]);
-
-            lprintf("DEBUG: Deleting\n");
-            kill(son_pid, SIGTERM);
-            lprintf("DEBUG: Spostando l'oggetto %d sotto l'oggetto %d\n", index, controller);
-        }
-    }
-    printf("Exiting For\n");
-    sprintf(buffer, "%d%s", count, buf);
-    get_pipe_name(parent_pid, controller_pipe_name);
-    lprintf("DEBUG: Killing %d\n", parent_pid);
-    kill(parent_pid, SIGUSR2);
-    fd = open(controller_pipe_name, O_RDWR);
-    write(fd, buffer, MAX_BUF_SIZE);
-    close(fd);
-
-    return 1;
-}*/

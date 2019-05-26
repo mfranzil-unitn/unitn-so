@@ -1,0 +1,131 @@
+\documentclass[11pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[italian]{babel}
+\usepackage[margin=1in]{geometry} 
+\usepackage{scrextend}
+\usepackage{relsize}
+\usepackage{sectsty}
+
+\title{%
+Progetto di Domotica \\
+  \large Sistemi Operativi A.A. 2018/2019}
+
+\author{Matteo Franzil\\Ruben Bettoni\\Paolo Baiguera}
+
+\begin{document}
+
+\maketitle
+
+\tableofcontents
+
+\newpage
+
+\section{Informazioni generali}
+
+Il seguente progetto è stato realizzato da:
+\begin{itemize}
+    \item Matteo Franzil (192198)
+    \item Paolo Baiguera (194008)
+    \item Ruben Bettoni (192685)
+\end{itemize}
+
+Il progetto segue le specifiche della \textit{variante con processi}, ed è stato testato sulle versioni Ubuntu 18.04, Ubuntu 19.04, Ubuntu 16.04 LTS.
+
+\section{Il sistema}
+\subsection{Avvio del progetto}
+
+Per iniziare, entrare nella cartella del progetto e digitare \verb|make build| e poi \verb|./run|. Quest'ultimo è un link simbolico all'eseguibile \verb|launcher|, situato in \verb|bin/|.
+
+Per rimuovere i file temporanei (la cui posizione è specificata in fondo al documento) e gli eseguibili, digitare \verb|make clear|.
+
+\subsection{Logica del progetto}
+
+L'idea dietro l'implementazione è che si accede a un "ambiente d'interazione" una volta eseguito \verb|./run|. All'interno di quest'ambiente è possibile eseguire le "interazioni manuali" con i dispositivi, nonché spegnere e riaccedendere la centralina con il comando \verb|user| \verb|turn| \verb|shell| \verb|on/off|. Da sottolineare la differenza tra centralina \textbf{spenta} (ovvero processo ucciso o non ancora aperto) e \textbf{chiusa} (ovvero disattivata da launcher, equivalente a spegnere l'intero sistema conservandone l'intero stato).
+
+Quest'ultimo comando aprirà una seconda finestra di terminale, distinguibile per via del colore della \verb|pwd|. Questo terminale permette di controllare la centralina e quindi eseguire tutti i comandi richiesti dall'implementazione.
+
+La stragrande maggioranza dell'inter-process communication è stato implementato tramite message queue, i cui descrittori vengono salvati per comodità nella cartella dei file temporanei del sistema. Tutte le pipe, nonché quasi tutte le stringhe usate nel sistema, hanno come dimensione simbolica \verb|MAX_BUF_SIZE = 1024| che è facilmente modificabile.
+
+Per implementare la comunicazione tra dispositivi si utilizzano prevalentemente i segnali \verb|SIGUSR1| (per la richiesta di informazioni) e \verb|SIGUSR2| (per l'interazione con il dispositivo), mentre altri segnali di sistema vengono usati per la cancellazione come \verb|SIGINT|.
+
+Il protocollo usato per comunicare le informazioni dei dispositivi è descritto in dettaglio nella sezione successiva.
+
+\subsection{Protocollo di comunicazione}
+
+All'arrivo di un \verb|SIGUSR1|, un dispositivo invia sulla message queue connessa al padre una stringa separata da pipe \verb=|=: i parametri più importanti sono:
+
+\begin{itemize}
+    \item identificativo del dispositivo
+          \begin{itemize}
+              \item 0 $\rightarrow$ centralina
+              \item 1 $\rightarrow$ lampadina
+              \item 2 $\rightarrow$ frigo
+              \item 3 $\rightarrow$ finestra
+              \item 4 $\rightarrow$ hub
+              \item 5 $\rightarrow$ timer
+          \end{itemize}
+    \item PID del dispositivo
+    \item Indice del dispositivo
+    \item Stato (generalmente acceso/spento, con informazioni sull'override per i dispositivi di controllo)
+\end{itemize}
+
+Seguono dei parametri, specificati nella lista dei dispositivi, propri dei registri assegnati al singolo dispositivo.
+
+Per i dispositivi di controllo (hub e timer) la stringa continua con le informazioni sui figli (il numero di figli è specificato nell'ultimo parametro) con la seguente sintassi:
+
+\begin{itemize}
+    \item \verb|<!| - indica l'inizio della lista dei figli; il parametro successivo sarà l'identificativo del primo figlio
+    \item \verb|!| - indica la fine di un figlio
+    \item \verb|!>| - indica la fine della lista dei figli
+\end{itemize}
+
+Questa sintassi può essere nestata a più livelli, in modo da avere una quantità arbitraria di dispositivi di controllo uniti tra di loro.
+
+\subsection{Tipi di dispositivi}
+
+Per i dispositivi, a fianco è segnalata una lista di registri che vengono inseriti nel protocollo descritto in precedenza.
+
+\begin{itemize}
+    \item Launcher
+          \begin{itemize}
+              \item Può accendere/spegnere la centralina (\verb|user turn shell on/off|)
+              \item Può chiedere le informazioni ai device (\verb|info <id>|)
+              \item Simula lo switch manuale dei dispositivi (\verb|switch <id> nome_interruttore> <posizione>|)
+          \end{itemize}
+    \item Centralina - conosce solo i pid dei dispositivi collegati direttamente ad essa, così come gli hub e i timer. Se la centralina viene spenta dal launcher, si rifiuterà di ricevere comandi ma manterrà lo stato dei dispositivi, a meno che non venga esplicitamente uccisa con \verb|exit|
+          \begin{itemize}
+              \item Può creare i dispositivi (\verb|add <tipo_device>|)
+              \item Può distruggere i dispositivi (\verb|del <id>|)
+              \item Può mostrare la struttura ad albero del programma (\verb|list|)
+              \item Può chiedere le informazioni ai device (\verb|info <id>|)
+              \item Simula lo switch manuale dei dispositivi (\verb|switch <id> nome_interruttore> <posizione>|); il secondo dispositivo deve essere obbligatoriamente un dispositivo di controllo (hub, timer)
+              \item Può collegare due dispositivi tra loro (\verb|link <id> to <id>|)
+          \end{itemize}
+    \item Lampadina - \verb=(tipo|pid|indice|=\verb=stato|tempo_accensione)=; mantiene lo stato e il tempo di accensione
+    \item Frigo -  \verb=(tipo|pid|indice|=\verb=stato|=\verb=tempo_accensione|delay=\verb=|temperatura|=\verb=riempimento)=; mantiene lo stato, il tempo di apertura, la temperatura e a percentuale di riempimento. Dopo un tempo di delay (modificabile) il frigorifero si chiuderà in automatico, anche se comandato da un timer o da un hub.
+    \item Finestra - \verb=(tipo|pid|indice=\verb=|stato|tempo_apertura)=; mantiene lo stato, il tempo di apertura. Ha due interruttori diversi per aprire/chiudere la finestra, che sono soltanto di tipo attivo.
+    \item Hub - \verb=(tipo|pid|indice=\verb=|stato|numero_figli_collegati=\verb=<! ... ! ... ! ... !>)=; può supportare dispositivi di qualsiasi tipo. Se viene modificato il suo stato, questo modificherà lo stato di tutti i suoi figli. Se vengono chieste informazioni ad esso, verrà mostrato tutto il suo sottoalbero e se è in override.
+    \item Timer - \verb=(tipo|pid|indice=\verb=|stato|orario_apertura=\verb=|orario_chiusura)=; può essere settato un orario di accensione e di spegnimento per un qualsiasi dispositivo, questo verrà rimandato ogni giorno ciclicamente. Se viene settato un range nella quale cade l'orario corrente, il timer si accenderà in automatico
+\end{itemize}
+
+\subsection{File utilizzati}
+All'interno del progetto vengono usate le cartelle \verb|src/| per i sorgenti, \verb|bin/| per gli eseguibili. Fuori dalla cartella principale viene fatto uso della sola cartella \verb|/tmp/ipc|, dove vengono create le FIFO, e \verb|tmp/ipc/mqueues|, dove vengono create le message queues.
+
+All'interno della cartella \verb|src/| si trovano \verb|launcher.c| e \verb|shell.c| che contengono gli eseguibili del launcher e della shell della centralina; \verb|util.c| che accomunato al suo header viene incluso in tutti gli altri file, e contiene tutte le primitive di basso livello per lavorare con le informazioni e le stringhe, oltre a tutte le macro; \verb|actions.c| che contiene le funzioni usate da tutti i dispositivi di controllo (hub, timer e centralina) per eseguire le loro funzioni. All'interno della sottocartella \verb|src/devices/| si trovano gli eseguibili di tutti i dispositivi.
+
+\subsection{Differenze implementative}
+
+Sono state fatte delle scelte implementative, per ragioni di tempo:
+\begin{itemize}
+    \item Tutti i dispositivi figli di un dispositivo distrutto con \verb|del| vengono distrutti a loro volta
+    \item Lo spostamento di sottoalberi all'interno di un sottoalbero di un dispositivo controller manda in crash il programma
+    \item La \verb|link| è stata volutamente rallentata con degli \verb|sleep()| per evitare la sovrapposizione di segnali
+    \item Il concetto di centralina indirizzabile con lo \verb|0| non è stato aggiunto: tutti i dispositivi aggiunti vengono linkati di default alla centralina. E' comunque possibile accendere/spegnere l'intero sistema da launcher
+    \item Il timer supporta soltanto l'attivazione con ora singola e non tramite data
+\end{itemize}
+
+\end{document}
+
+
+
+

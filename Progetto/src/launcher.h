@@ -12,7 +12,7 @@
                                 \"switch 3 open on\" imposta per il dispositivo 3\n\
                                 l’interruttore “open” su “on” (ad esempio apre una finestra)\n\
     info <id>                   mostra i dettagli del dispositivo\n\
-    restart                     ricompila il progetto e riavvia il programma\n"
+    exit                        per uscire dal programma\n"
 
 #define USER_STRING \
     "Sintassi: user turn shell <pos>\n"

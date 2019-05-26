@@ -48,6 +48,7 @@
 #define HUB_IT "hub"
 #define TIMER_IT "timer"
 
+/* numero massimo di figli per ogni hub e della centralina */
 #define MAX_CHILDREN 20
 
 #define BULB_PARAMETERS 5
@@ -63,7 +64,7 @@
 
 #define SWITCH_STRING \
     "Sintassi: switch <id> <label> <pos>\n\
-    Interruttori disponibili:\n        bulb: accensione\n        fridge: temperatura, apertura, delay, riempimento\n        window: apertura\n        hub: accensione\n        timer: orario\n"
+    Interruttori disponibili:\n        bulb: accensione\n        fridge: temperatura, apertura, delay, riempimento\n        window: apertura\n        hub: accensione\n        timer: accensione, orario\n"
 
 #define ADD_STRING \
     "Sintassi: add <device>\nDispositivi disponibili: bulb, window, fridge, hub, timer\n"
@@ -105,7 +106,6 @@ void get_device_name_str(char *device_type, char *buf);
 int get_shell_pid();
 
 char *get_raw_device_info(int pid);
-/*char **get_device_info(int pid);*/
 
 int is_controller(int pid, char *raw_info);
 int controller_is_full(int pid, char *raw_info);
@@ -113,7 +113,7 @@ int controller_is_full(int pid, char *raw_info);
 void hub_tree_print(char **vars);
 void hub_tree_spaces(int level);
 void hub_tree_parser(char *__buf);
-int hub_tree_pid_finder(char *__buf, int id);
+int hub_tree_pid_finder(char *__buf, int id, char** raw_info);
 char **split_sons(char *__buf, int __count);
 
 void change_ext_pid(int newpid);
