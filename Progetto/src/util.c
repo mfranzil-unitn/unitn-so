@@ -204,7 +204,6 @@ char **get_device_info(int pid) {
 }*/
 
 char *get_raw_device_info(int pid) {
-    //printf("get_raw_device_info(%d);", pid);
     /* const int MAX_ATTEMPTS = 3; */
     /*  lprintf("DEBUG: Attempt 0"); */
 
@@ -324,16 +323,18 @@ void hub_tree_print(char **vars) {
     char device_name[MAX_BUF_SIZE];
 
     if (strcmp(vars[0], HUB_S) == 0) {
-        printf("Hub (PID: %s, Indice: %s), Stato: %s, Collegati: %s",
-               vars[1], vars[2], atoi(vars[3]) ? "Acceso" : "Spento", vars[4]);
+       printf("Hub (PID %s, Indice %s) Stato: %s Dispositivi collegati: %s %s",
+               vars[1], vars[2], (atoi(vars[3]) == 1 || atoi(vars[3]) == 2) ? "Acceso" : "Spento", vars[4], ( atoi(vars[3]) == 2 || atoi(vars[3]) == 3 ) ? " -> Override" : "");
     } else if (strcmp(vars[0], TIMER_S) == 0) {
-        printf("Timer (PID: %s, Indice: %s), Stato: %s, Orari: %s%s:%s%s -> %s%s:%s%s, Collegati: %s",
-               vars[1], vars[2], atoi(vars[3]) ? "Acceso" : "Spento",
+        printf("Timer (PID: %s, Indice: %s), Stato: %s, Orari: %s%s:%s%s -> %s%s:%s%s, Collegati: %s %s",
+               vars[1], vars[2],
+               (atoi(vars[3]) == 1 || atoi(vars[3]) == 2) ? "Acceso" : "Spento",
                atoi(vars[4]) < 10 ? "0" : "", vars[4],
                atoi(vars[5]) < 10 ? "0" : "", vars[5],               
                atoi(vars[6]) < 10 ? "0" : "", vars[6],               
                atoi(vars[7]) < 10 ? "0" : "", vars[7],
-               vars[8]);
+               vars[8],
+               (atoi(vars[3]) == 2 || atoi(vars[3]) == 3 ) ? " -> Override" : "");
     } else {
         get_device_name(atoi(vars[0]), device_name);
         device_name[0] += 'A' - 'a';

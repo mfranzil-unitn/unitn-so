@@ -8,6 +8,7 @@ int shellpid;
 int fd;           /* file descriptor della pipe verso il padre */
 int pid, __index; /* variabili di stato */
 int status = 0;   /* interruttore accensione */
+int status_override = 0; /* override 2 acceso - 3 spento*/
 
 int children_pids[MAX_CHILDREN];
 int override = 0;
@@ -137,6 +138,7 @@ int main(int argc, char* argv[]) {
         if (flag_usr1) {
             flag_usr1 = 0;
             override = 0;
+            status_override = 0;
             /*printf("hub usr1: %d\n", pid); */
             /* bisogna controllare se i dispositivi sono allineati o meno (override) */
 
@@ -196,6 +198,11 @@ int main(int argc, char* argv[]) {
                     //printf("SONO IO IL STRONZO\n");
                     if (atoi(raw_split[3]) != status) {
                         override = 1;
+                        if (status) {
+                             status_override = 2;
+                        } else {
+                            status_override = 3;
+                        }
                     }
                     if (raw_info != NULL) {
                         /*printf("INFO PER FIGLIO: %d di HUB %d: %s\n", children_pids[i], pid, raw_info); */
@@ -209,15 +216,22 @@ int main(int argc, char* argv[]) {
             }
 
             strcat(tmp, "!>");
+            int sep = 0;
+            for (i = 0; i < 20 && sep < 3 && (status_override == 2 || status_override == 3); i++) {
+                if (tmp[i] == '|') {
+                    sep++;
+                }
+                if (sep == 3) {
+                    char c = status_override+'0';
+                    tmp[i+1] = c;
+                }
+            }
             /*printf("TMP DI HUB %d: %s\n",pid,  tmp); */
             message.mesg_type = 1;
             sprintf(message.mesg_text, "%s", tmp);
             /*printf("HUB message: %s\n", message.mesg_text); */
             msgsnd(msgid_pid, &message, sizeof(message), 0);
             /*printf("MESSAGE SENT %s\n", message.mesg_text); */
-            if (override) {
-                // printf("OVERRIDE\n");
-            }
         }
         if (flag_usr2) {
             flag_usr2 = 0;

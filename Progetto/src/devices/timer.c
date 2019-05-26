@@ -14,6 +14,7 @@ int shellpid;
 int fd;           /* file descriptor della pipe verso il padre */
 int pid, __index; /* variabili di stato */
 int status = 0;   /* interruttore accensione */
+int status_override = 0; /* override 2 acceso - 3 spento*/
 
 /* Registri per il figlio - array usato per intercompatibilità */
 int children_pids[1];
@@ -138,10 +139,7 @@ int main(int argc, char* argv[]) {
     __index = atoi(argv[1]);
     fd = open(this_pipe, O_RDWR);
 
-    // -------------------------------------
     shellpid = get_shell_pid();
-    // -------------------------------------
-    printf("SHPID %d\n", shellpid);
 
     tm_start.hour = 8;
     tm_start.min = 0;
@@ -171,7 +169,7 @@ int main(int argc, char* argv[]) {
         if (flag_usr1) {
             flag_usr1 = 0;
             override = 0;
-
+            status_override = 0;
             // IDEA: SETTARE a 2 STATUS SE OVERRIDE
 
             sprintf(tmp, "5|%d|%d|%d|%d|%d|%d|%d|%d|<!|",
@@ -182,13 +180,34 @@ int main(int argc, char* argv[]) {
             if (children_pids[0] != -1) {
                 char* raw_info = get_raw_device_info(children_pids[0]);
                 if (raw_info != NULL) {
+// MOdifica
+                printf("INFOO: %d\n", atoi(raw_info[3]));
+                    /*if (atoi(raw_info[3]) != status) {
+                        override = 1;
+                        if (status) {
+                             status_override = 2;
+                        } else {
+                            status_override = 3;
+                        }
+                    }*/
+
                     strcat(tmp, raw_info);
                     strcat(tmp, "|!|");
                     free(raw_info);
                 }
             }
             strcat(tmp, "!>");
-
+            /*
+            int sep = 0;
+             for (i = 0; i < 20 && sep < 3 && (status_override == 2 || status_override == 3); i++) {
+                if (tmp[i] == '|') {
+                    sep++;
+                }
+                if (sep == 3) {
+                    char c = status_override+'0';
+                    tmp[i+1] = c;
+                }
+            }*/
             message.mesg_type = 1;
             sprintf(message.mesg_text, "%s", tmp);
             msgsnd(msgid_pid, &message, sizeof(message), 0);
@@ -210,6 +229,7 @@ int main(int argc, char* argv[]) {
 
             if (code == 0) {
                 override = check_override(over_index);
+
                 status = !status;
                 if (children_pids[0] != -1 /*&& !over_index[0]*/) {
                     switch_child();
@@ -275,15 +295,15 @@ int main(int argc, char* argv[]) {
             int count = 0;
             char* info;
             char* intern;
-            if (children_pids[0] != -1) {
-                count++;
-                info = get_raw_device_info(children_pids[i]);
-                /*printf("INFO WE HAVE!: %s\n", info); */
-                sprintf(intern, "-%s", info);
-                /*printf("INTERN: %s\n", intern); */
-                strcat(tmp, intern);
-                kill(children_pids[i], SIGTERM);
-            }
+                if (children_pids[0] != -1) {
+                    count++;
+                    info = get_raw_device_info(children_pids[i]);
+                    /*printf("INFO WE HAVE!: %s\n", info); */
+                    sprintf(intern, "-%s", info);
+                    /*printf("INTERN: %s\n", intern); */
+                    strcat(tmp, intern);
+                    kill(children_pids[i], SIGTERM);
+                }
 
             msgctl(msgid_pid, IPC_RMID, NULL);
             exit(0);
@@ -343,7 +363,7 @@ void read_msgqueue(int msgid) {
     printf("Lettura figlio da aggiungere...\n");
     ret = msgrcv(msgid, &message, sizeof(message), 1, IPC_NOWAIT);
     printf("Dovrei aggiungere figli: %s\n", message.mesg_text);
-
+    
     //getchar();
     if (ret != -1) {
         q = 0;
