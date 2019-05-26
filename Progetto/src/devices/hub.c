@@ -67,6 +67,7 @@ void switch_child(int children_index, int device_type) {
         return;
     }
 
+    /*Chiamata alla funzione wrapper in action.c */
     __switch_index(children_index, switch_names[device_type], status ? "on" : "off", children_pids);
 }
 

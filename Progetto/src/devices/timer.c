@@ -21,15 +21,19 @@ int children_pids[1];
 int override = 0;
 char info[MAX_BUF_SIZE];
 
+/* Parametri della message queue e dela message id basate su indice */
 key_t key;
 int msgid;
 
+/* Parametri della message queue e dela message id basate su pid */
 key_t key_pid;
 int msgid_pid;
 
+/* strutture di time.h per la gestione della data */
 struct rctm tm_start;
 struct rctm tm_end;
 
+/* Flag relativi al segnale appena ricevuto */
 volatile int flag_usr1 = 0;
 volatile int flag_usr2 = 0;
 volatile int flag_term = 0;
@@ -37,10 +41,15 @@ volatile int flag_alarm = 0;
 volatile int flag_int = 0;
 volatile int flag_urg = 0;
 
+/* Funzione chiamata in chiusura
+ * che scrive sull messagequeue, basata su indice
+ * il figli attualmente presente */
 void term();
+/* Legge la messagequeue dell'indice, in apertura, e aggiunge i figli presenti nella messagequeue
+ * (FONDAMENTALE PER RICOSTRUZIONE GERARCHIA) */
 void read_msgqueue(int msgid);
 
-/* Restituisce 1 solo se i figli sono in override */
+/* Restituisce 1 solo se il figlio è in override */
 int check_override() {
     int ret = 0;
     char** vars;
@@ -58,23 +67,30 @@ int check_override() {
         }
     }
 
-    //free(vars);
-
     return ret;
 }
 
+/* Funzione chiamata in seguito al comando switch ed in aggiunta di qualsiasi figlio
+ * per modificarne l'interrutore */
 void switch_child() {
     char* raw_info;
     if (children_pids[0] == -1) {
         return;
     }
 
+    /* Ottiene le raw_info del figlio */
     raw_info = get_raw_device_info(children_pids[0]);
 
+    /* Chiamata alla funzione diretta in actions.c*/
     __switch(children_pids[0], "generic_on_off", status ? "on" : "off", raw_info);
 }
 
+/*
+ * Funzione che setta un alarm dipedente dalla differenza dal tempo della chiamata al prossimo tempo di spegnimento.
+ * Appoggiandosi a strutture di time.h
+ */
 void check_time() {
+    /* Ottiene il tempo attuale */
     struct tm tmp = *localtime(&(time_t){time(NULL)});
     struct rctm tm_current;
     const int SECONDS_IN_A_DAY = 86400;
@@ -82,19 +98,21 @@ void check_time() {
     tm_current.hour = tmp.tm_hour;
     tm_current.min = tmp.tm_min;
 
+    /* Conversione in secondi */
     int tm_current_seconds = 60 * 60 * tm_current.hour + 60 * tm_current.min + tmp.tm_sec;
     int tm_end_seconds = 60 * 60 * tm_end.hour + 60 * tm_end.min;
     int tm_start_seconds = 60 * 60 * tm_start.hour + 60 * tm_start.min;
 
-    //printf("Current: %d, Start %d, End %d\n", tm_current_seconds, tm_start_seconds, tm_end_seconds);
+    /* Sono nella fascia oraria => Devo accendere il dispositivo */
     if (tm_current_seconds >= tm_start_seconds && tm_current_seconds < tm_end_seconds) {
-        //printf("Fascia on\n");
         /* Sono nella "fascia oraria" */
         status = 1;
+        /* Setto(alarm) */
         alarm((tm_end_seconds - tm_current_seconds) % SECONDS_IN_A_DAY);
         switch_child();
-    } else {
-        //printf("Fascia off\n");
+    }
+    /* Dispositivo spento, non sono nella fascia oraria */
+    else {
         status = 0;
         alarm((tm_start_seconds - tm_current_seconds) % SECONDS_IN_A_DAY);
         switch_child();
@@ -103,6 +121,7 @@ void check_time() {
     return;
 }
 
+/* handler che in funzione del segnale setta un flag */
 void sighandler_int(int sig) {
     if (sig == SIGUSR1) {
         flag_usr1 = 1;
@@ -136,6 +155,7 @@ int main(int argc, char* argv[]) {
 
     int i;
 
+    /* Inizializza pipe ed indice */
     this_pipe = argv[2];
     pid = getpid();
     __index = atoi(argv[1]);
@@ -148,9 +168,11 @@ int main(int argc, char* argv[]) {
     tm_end.hour = 9;
     tm_end.min = 0;
 
+    /* Viene settato ad 1 il flag alarm */
     flag_alarm = 1;
     children_pids[0] = -1;
 
+    /* Segnali assegnati ad handler relativi */
     signal(SIGCHLD, SIG_IGN);
     signal(SIGTERM, sighandler_int);
     signal(SIGUSR1, sighandler_int);
@@ -159,11 +181,14 @@ int main(int argc, char* argv[]) {
     signal(SIGINT, sighandler_int);
     signal(SIGURG, sighandler_int);
 
+    /* Inizializzo message queue basata su indice */
     key = ftok("/tmp/ipc/mqueues", __index);
     msgid = msgget(key, 0666 | IPC_CREAT);
 
+    /* Legge se ha dispositivo da aggiungersi (Fondamentale per consistenza della gerarchia) */
     read_msgqueue(msgid);
 
+    /* Inizializzo message queue basata su pid */
     key_pid = ftok("/tmp/ipc/mqueues", pid);
     msgid_pid = msgget(key_pid, 0666 | IPC_CREAT);
 
@@ -173,13 +198,14 @@ int main(int argc, char* argv[]) {
             flag_usr1 = 0;
             override = 0;
             status_override = 0;
-            // IDEA: SETTARE a 2 STATUS SE OVERRIDE
 
+            /* Comunico informazioni sulla message queue, all'interno concateno informazioni del dispositivo figlio, se presente. */
             sprintf(tmp, "5|%d|%d|%d|%d|%d|%d|%d|%d|<!|",
                     pid, __index, status,
                     tm_start.hour, tm_start.min,
                     tm_end.hour, tm_end.min,
                     children_pids[0] != -1);
+            /* Eseguo concatenazione */
             if (children_pids[0] != -1) {
                 char* raw_info = get_raw_device_info(children_pids[0]);
 
@@ -188,6 +214,7 @@ int main(int argc, char* argv[]) {
                     sprintf(raw_tmp, "%s", raw_info);
                     char** raw_split = split(raw_tmp);
 
+                    /* Distinguo vari casi di override */
                     if (atoi(raw_split[3]) != status) {
                         override = 1;
                         if (status) {
@@ -204,6 +231,7 @@ int main(int argc, char* argv[]) {
             }
             strcat(tmp, "!>");
 
+            /* Concateno lo stato di override */
             int sep = 0;
             for (i = 0; i < 20 && sep < 3 && (status_override == 2 || status_override == 3); i++) {
                 if (tmp[i] == '|') {
@@ -214,6 +242,7 @@ int main(int argc, char* argv[]) {
                     tmp[i + 1] = c;
                 }
             }
+            /* Mando messaggio sulla coda relativa al pid */
             message.mesg_type = 1;
             sprintf(message.mesg_text, "%s", tmp);
             msgsnd(msgid_pid, &message, sizeof(message), 0);
@@ -228,19 +257,21 @@ int main(int argc, char* argv[]) {
                 3|ORA|MINUTI|ORAFINE|MINUTIFINE -> imposta timer
 
             */
+
+            /* Ricevo il messaggio */
             msgrcv(msgid_pid, &message, sizeof(message), 1, 0);
             sprintf(tmp, "%s", message.mesg_text);
 
+            /* Codice è il primo carattere del messaggio */
             code = tmp[0] - '0';
 
             if (code == 0) {
                 override = check_override(over_index);
-
+                /* Cambio lo status */
                 status = !status;
-                if (children_pids[0] != -1 /*&& !over_index[0]*/) {
+                if (children_pids[0] != -1) {
+                    /* Cambio lo stato del figlio */
                     switch_child();
-                    //char* raw_info = get_raw_device_info(children_pids[0]);
-                    //__switch(children_pids[0], "accensione", status ? "on" : "off", raw_info);
                 }
             }
             if (code == 1) {
@@ -249,21 +280,18 @@ int main(int argc, char* argv[]) {
                 strcpy(shifted_tmp, tmp);
                 shifted_tmp = shifted_tmp + 2;
 
+                /* Splitto le variabili in modo da poter aggiungere il figlio */
                 vars = split(shifted_tmp);
+                /* Metodo che aggiunge il figlio */
                 __add_ex(vars, children_pids, 1);
 
                 sleep(2);
+                /* Mi assicuro la congruenza, almeno iniziale degli stati */
                 switch_child();
-                //__switch_index(children_index, "accensione", status ? "on" : "off", children_pids);
                 free(vars);
                 free(shifted_tmp - 2);
             }
-            if (code == 2) {
-                vars = split(tmp);
-                if (children_pids[0] == atoi(vars[1])) {
-                    children_pids[0] = -1;
-                }
-            }
+            /*Modifica di altri interruttori*/
             if (code == 3) {
                 vars = split_fixed(tmp, 5);
 
@@ -275,61 +303,58 @@ int main(int argc, char* argv[]) {
                 flag_alarm = 1;
             }
         }
+        /* Chiamato in caso di del del padre o di link */
         if (flag_term) {
             term();
         }
-
+        /* Fondamentale per funzionamento timer */
         if (flag_alarm) {
             check_time();
         }
+        /* Chiamato in caso di eliminazione diretta */
         if (flag_int) {
             int ppid = (int)getppid();
+            /* Se padre è shell questo viene risolto immediatamente*/
             if (ppid != shellpid) {
+                /* Apre coda verso il padre */
                 key_t key_ppid = ftok("/tmp/ipc/mqueues", ppid);
                 int msgid_ppid = msgget(key_ppid, 0666 | IPC_CREAT);
                 sprintf(message.mesg_text, "2|%d", pid);
                 message.mesg_type = 1;
+                /* Manda messaggio ed avverte che questo è stato mandato */
                 msgsnd(msgid_ppid, &message, sizeof(message), 0);
                 kill(ppid, SIGURG);
             }
-            char* info;
-            char* intern;
             if (children_pids[0] != -1) {
-                info = get_raw_device_info(children_pids[0]);
-                /*printf("INFO WE HAVE!: %s\n", info); */
-                sprintf(intern, "-%s", info);
-                /*printf("INTERN: %s\n", intern); */
-                strcat(tmp, intern);
+                /* Killa il figlio */
                 kill(children_pids[0], SIGTERM);
             }
-
+            /* Elimina la coda relativa al pid */
             msgctl(msgid_pid, IPC_RMID, NULL);
             exit(0);
         }
+        /* Chiamato all'eliminazione di un figlio */
         if (flag_urg) {
             flag_urg = 0;
             char** vars;
-            flag_urg = 0;
-            //printf("hub urg: %d\n", pid);
-            /*read(fd, mall_tmp, MAX_BUF_SIZE);
-            printf("End Read: %s\n\n", mall_tmp);*/
+            /* Riceve messaggio contenente il pid */
             msgrcv(msgid_pid, &message, sizeof(message), 1, 0);
             sprintf(tmp, "%s", message.mesg_text);
-            //printf("End Read: %s\n\n", tmp);
             vars = split(tmp);
             if (children_pids[0] == atoi(vars[1])) {
-                /*printf("BECCATO: childern_Pids: %d, atoi: %d\n", children_pids[i], atoi(vars[1])); */
+                /* setta il pid del dispositivo a -1 */
                 children_pids[0] = -1;
             }
         }
-        //sleep(10);
     }
 
     return 0;
 }
 
+/* Chiamato in caso di eliminazione del padre o di linking
+ * il metodo manda alla coda relativa all'indice le informazione dei figli*/
+
 void term() {
-    int done = 1;
     int i;
     char tmp[MAX_BUF_SIZE - sizeof(int)]; /* POI VA CONCATENATO */
 
@@ -338,30 +363,25 @@ void term() {
     char* info;
 
     sprintf(tmp, "-");
-
-    //printf("PID: %d", children_pids[0]);
-
+    /* Se figlio presente => Richide le informazioni */
     if (children_pids[0] != -1) {
+        /* Richiede le informazioni al figlio */
         char* son_info = get_raw_device_info(children_pids[0]);
         char intern[MAX_BUF_SIZE];
         sprintf(intern, "-%s", son_info);
         strcat(tmp, son_info);
-
         sprintf(message.mesg_text, "1%s", tmp);
-    } else {
+    }
+    /* Non fa nulla in caso contrario */
+    else {
         sprintf(message.mesg_text, "0%s", tmp);
     }
+    /* Manda il messaggio alla propria coda relativa all'indice */
     message.mesg_type = 1;
     msgsnd(msgid, &message, sizeof(message), 0);
 
-    /*int ret = __link_ex(children_pids, ppid, shellpid); */
-
-    if (done) {
-        msgctl(msgid_pid, IPC_RMID, NULL);
-        exit(0);
-    } else {
-        printf("Errore nell'eliminazione.\n");
-    }
+    msgctl(msgid_pid, IPC_RMID, NULL);
+    exit(0);
 }
 
 void read_msgqueue(int msgid) {
@@ -374,11 +394,11 @@ void read_msgqueue(int msgid) {
     char** vars;
     char** son_j;
 
-    //printf("Lettura figlio da aggiungere...\n");
+    /* Legge la messagequeue relativa all'indice per controllare se vi è il figlio da aggiungere (=> ret != -1) */
     ret = msgrcv(msgid, &message, sizeof(message), 1, IPC_NOWAIT);
-    //printf("Dovrei aggiungere figli: %s\n", message.mesg_text);
 
     if (ret != -1) {
+        /* Controlla che vi sia il figlio*/
         q = 0;
         while (!(message.mesg_text[q] == '-')) {
             n_dev_str[q] = message.mesg_text[q];
@@ -387,18 +407,13 @@ void read_msgqueue(int msgid) {
         n_dev_str[q] = '\0';
         n_devices = atoi(n_dev_str);
         if (n_devices > 0) {
+            /* Splitta le info relative al figlio e lo aggiunge */
             __count = n_devices;
             sprintf(tmp_buf, "%s", message.mesg_text);
             vars = NULL;
             vars = split_sons(tmp_buf, __count);
-            //j = 0;
-            // while (j <= __count) {
-            //if (j >= 1) {
-            //   printf("\nVars %d: %s\n", j, vars[j]);
             son_j = split(vars[1]);
             __add_ex(son_j, children_pids, 1);
-            //   printf("\nADD_EX GOOD\n");
         }
-        //j++;
     }
 }
