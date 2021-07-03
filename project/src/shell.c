@@ -69,7 +69,6 @@ int main(int argc, char *argv[]) {
     system("clear");
 
     while (1) {
-        if (stato) {
             /* Scrive numero devices e elenco dei pid a launcher. */
             if ((argc != 2 || strcmp(argv[1], "--no-wrapper") != 0) && changed) {
                 /* Ripulisco Forzatamente. */
@@ -86,12 +85,7 @@ int main(int argc, char *argv[]) {
                 sprintf(current_msg, "%s", message.mesg_text);
                 msgsnd(msgid, &message, MAX_BUF_SIZE, 0);
                 changed = 0;
-            } else {
-                /* Ripulisco forzatamente. */
-                msgrcv(msgid, &message, MAX_BUF_SIZE, 1, IPC_NOWAIT);
-                sprintf(message.mesg_text, "%s", current_msg);
-                msgsnd(msgid, &message, MAX_BUF_SIZE, 0);
-            }
+            
             
             /* stringa Centralina colorata */
             printf("\033[0;32m%s\033[0m:\033[0;31mCentralina\033[0m$ ", name);
