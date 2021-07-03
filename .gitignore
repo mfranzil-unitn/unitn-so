@@ -3,9 +3,11 @@ Materiale/
 Esami/
 Slide/
 .vscode/
-Progetto/.idea/
-Progetto/.vscode/
-Progetto/bin/
+
+.idea/
+project/bin/
+
+run
 
 # Prerequisites
 *.d

@@ -20,9 +20,9 @@ This repo contains material about the following course:
 
 You can find the following material in the repo:
 
-* Codici/ - Sample code given during theory lectures.
-* Laboratorio/ - Laboratory lecture notes written in LaTeX, with sample code.
-* Progetto/ - An emulation of a home automation system, with instructions for use below.
+* lab/ - Laboratory lecture notes written in LaTeX, with sample code.
+* lectures/ - Sample code given during theory lectures.
+* project/ - An emulation of a home automation system, with instructions for use below.
 
 Additional content related to this repo:
 
@@ -30,13 +30,13 @@ Additional content related to this repo:
 
 ## Home automation project
 
-In the `Progetto` folder you can find the project assigned for the course.
+In the `project` folder you can find the project assigned for the course.
 
-The project revolves around a home automation system, with devices such as bulbs and windows represented as UNIX processes and managed by a tree-structured control system. 
+The project revolves around a home automation system, with devices such as bulbs and windows represented as UNIX processes and managed by a tree-structured control system.
 
-Information (in Italian) about the assignment itself can be found in the `Progetto/documents/` sub-folder. The `ProgettoSO.pdf` is the initial task, while `readme.pdf` is an overview of (Paolo, Ruben and mine)'s implementation with details about the protocol used.
+Information (in Italian) about the assignment itself can be found in the `project/documents/` sub-folder. The `ProgettoSO.pdf` is the initial task, while `readme.pdf` is an overview of (Paolo, Ruben and mine)'s implementation with details about the protocol used.
 
-To get started, simply move to the `Progetto` folder and type `make`.
+To get started, simply move to the `project` folder and type `make`.
 
 ## Authors
 
